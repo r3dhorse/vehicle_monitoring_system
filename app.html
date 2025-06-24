@@ -283,6 +283,9 @@
                     <button class="btn btn-outline-light btn-sm me-3" id="vehicleManagementBtn" style="display: none;" onclick="showVehicleManagement()">
                         <i class="bi bi-truck me-1"></i>Manage Vehicles
                     </button>
+                    <button class="btn btn-outline-light btn-sm me-3" id="driverManagementBtn" style="display: none;" onclick="showDriverManagement()">
+                        <i class="bi bi-person-badge me-1"></i>Manage Drivers
+                    </button>
                     <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
                         <i class="bi bi-door-open me-1"></i>Manage Gates
                     </button>
@@ -344,11 +347,17 @@
             <!-- Search and Filter -->
             <div class="row mb-4">
                 <div class="col-md-3">
+                    <label class="form-label mb-1">
+                        <small><i class="bi bi-search me-1"></i>Search by:</small>
+                    </label>
                     <input type="text" class="form-control" id="searchInput" 
-                           placeholder="Search by plate, model, or driver..." 
+                           placeholder="Plate, model, or driver..." 
                            onkeyup="filterVehicles()">
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label mb-1">
+                        <small><i class="bi bi-filter me-1"></i>Status:</small>
+                    </label>
                     <select class="form-select" id="filterStatus" onchange="filterVehicles()">
                         <option value="">All Statuses</option>
                         <option value="IN">Checked In</option>
@@ -359,13 +368,17 @@
                     <label class="form-label mb-1">
                         <small><i class="bi bi-geo-alt me-1"></i>Active Gate:</small>
                     </label>
-                    <select class="form-select gate-selector" id="gateSelector">
-                        <option value="Main Gate">🏛️ Main Gate</option>
-                        <option value="Side Gate">🚪 Side Gate</option>
-                        <option value="Parking Gate">🅿️ Parking Gate</option>
-                        <option value="Service Gate">🔧 Service Gate</option>
-                        <option value="Emergency Gate">🚨 Emergency Gate</option>
-                    </select>
+                    <div class="input-group">
+                        <select class="form-select gate-selector" id="gateSelector">
+                            <option value="">🔄 Loading gates...</option>
+                        </select>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="refreshGateSelector()" title="Refresh gates">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        <small class="text-muted">Select the current gate for vehicle operations</small>
+                    </div>
                 </div>
                 <div class="col-md-4 text-end d-flex align-items-end">
                     <button class="btn btn-primary" onclick="loadVehicles()">
@@ -500,7 +513,11 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Assigned Driver</label>
-                                    <input type="text" class="form-control" id="newDriver" placeholder="Driver ID or Name">
+                                    <select class="form-select" id="newDriver">
+                                        <option value="">Select a driver...</option>
+                                        <!-- Options will be loaded dynamically -->
+                                    </select>
+                                    <div class="form-text">Primary driver for this vehicle</div>
                                 </div>
                             </div>
                         </div>
@@ -619,7 +636,11 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Current Driver</label>
-                                    <input type="text" class="form-control" id="editDriver" placeholder="Driver ID or Name">
+                                    <select class="form-select" id="editDriver">
+                                        <option value="">Select a driver...</option>
+                                        <!-- Options will be loaded dynamically -->
+                                    </select>
+                                    <div class="form-text">Currently assigned driver</div>
                                 </div>
                             </div>
                         </div>
@@ -655,6 +676,247 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-warning" onclick="saveVehicleEdit()">
+                        <i class="bi bi-check-lg me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Driver Management Modal -->
+    <div class="modal fade" id="driverManagementModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-badge me-2"></i>Driver Management
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">All Drivers</h6>
+                        <button class="btn btn-success btn-sm" onclick="showAddDriverModal()">
+                            <i class="bi bi-person-plus me-1"></i>Add Driver
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="driversTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Driver ID</th>
+                                    <th>Name</th>
+                                    <th>License Number</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="driversTableBody">
+                                <!-- Driver rows will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Driver Modal -->
+    <div class="modal fade" id="addDriverModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-plus me-2"></i>Add New Driver
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addDriverForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Driver ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="newDriverId" required>
+                                    <div class="form-text">Unique identifier for the driver</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="newDriverName" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">License Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="newDriverLicense" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">License Type</label>
+                                    <select class="form-select" id="newDriverLicenseType">
+                                        <option value="Regular">Regular</option>
+                                        <option value="Commercial">Commercial (CDL)</option>
+                                        <option value="Motorcycle">Motorcycle</option>
+                                        <option value="Chauffeur">Chauffeur</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="newDriverPhone">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="newDriverEmail">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Department</label>
+                                    <input type="text" class="form-control" id="newDriverDepartment">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">License Expiry</label>
+                                    <input type="date" class="form-control" id="newDriverLicenseExpiry">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="newDriverStatus">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Suspended">Suspended</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="newDriverNotes" rows="3" placeholder="Additional notes about the driver..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="saveNewDriver()">
+                        <i class="bi bi-check-lg me-2"></i>Add Driver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Driver Modal -->
+    <div class="modal fade" id="editDriverModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Driver
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editDriverForm">
+                        <input type="hidden" id="editDriverIndex">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Driver ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editDriverId" required>
+                                    <div class="form-text">Unique identifier for the driver</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editDriverName" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">License Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editDriverLicense" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">License Type</label>
+                                    <select class="form-select" id="editDriverLicenseType">
+                                        <option value="Regular">Regular</option>
+                                        <option value="Commercial">Commercial (CDL)</option>
+                                        <option value="Motorcycle">Motorcycle</option>
+                                        <option value="Chauffeur">Chauffeur</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="editDriverPhone">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="editDriverEmail">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Department</label>
+                                    <input type="text" class="form-control" id="editDriverDepartment">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">License Expiry</label>
+                                    <input type="date" class="form-control" id="editDriverLicenseExpiry">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="editDriverStatus">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Suspended">Suspended</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" id="editDriverNotes" rows="3" placeholder="Additional notes about the driver..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" onclick="saveDriverEdit()">
                         <i class="bi bi-check-lg me-2"></i>Save Changes
                     </button>
                 </div>
@@ -1085,6 +1347,14 @@
                 vehicleManagementBtn.style.display = 'none';
             }
             
+            // Show/hide driver management button
+            const driverManagementBtn = document.getElementById('driverManagementBtn');
+            if (hasPermission('manage_drivers')) {
+                driverManagementBtn.style.display = 'inline-block';
+            } else {
+                driverManagementBtn.style.display = 'none';
+            }
+            
             // Show/hide gate management button
             const gateManagementBtn = document.getElementById('gateManagementBtn');
             if (hasPermission('manage_gates')) {
@@ -1306,20 +1576,26 @@
         }
 
         function toggleVehicleStatus(index) {
+            // Validate gate selection first
+            if (!validateGateSelection()) {
+                return;
+            }
+
             const vehicle = vehicleData[index];
             const currentStatus = vehicle[6] || 'OUT';
             const newStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
             
-            // Get the selected gate from the dropdown
-            const gateSelector = document.getElementById('gateSelector');
-            const gate = gateSelector.value;
+            // Get the selected gate using our helper function
+            const selectedGate = getCurrentGate();
+            const gate = selectedGate.id;
 
             const logData = {
                 plateNumber: vehicle[0],
                 driverId: vehicle[7] || 'Unknown',
                 action: newStatus,
                 gate: gate,
-                remarks: ''
+                remarks: '',
+                username: currentUser.username // Add the current user's username
             };
 
             showLoading(true);
@@ -1329,7 +1605,7 @@
                         vehicleData[index][6] = newStatus;
                         displayVehicles();
                         updateStatistics();
-                        showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${gate}!`, 'success');
+                        showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`, 'success');
                     }
                     showLoading(false);
                 })
@@ -1455,6 +1731,9 @@
             // Clear form
             document.getElementById('addVehicleForm').reset();
             
+            // Load driver options
+            loadDriverOptions();
+            
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('addVehicleModal'));
             modal.show();
@@ -1577,6 +1856,9 @@
             
             // Hide details modal and show edit modal
             bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
+            
+            // Load driver options before showing form
+            loadDriverOptions();
             
             // Populate edit form
             document.getElementById('editVehicleIndex').value = index;
@@ -1948,26 +2230,103 @@
             // Clear existing options
             gateSelector.innerHTML = '';
 
-            // Add active gates
+            // Show loading state if no gates
+            if (!activeGates || activeGates.length === 0) {
+                const loadingOption = document.createElement('option');
+                loadingOption.value = '';
+                loadingOption.textContent = '⚠️ No gates available';
+                loadingOption.disabled = true;
+                gateSelector.appendChild(loadingOption);
+                return;
+            }
+
+            // Add active gates with enhanced icon mapping
             activeGates.forEach(gate => {
                 const option = document.createElement('option');
                 option.value = gate.id;
                 
-                // Add icon based on gate name
-                let icon = '🏛️'; // Default
-                if (gate.name.toLowerCase().includes('main')) icon = '🏛️';
-                else if (gate.name.toLowerCase().includes('back')) icon = '🚪';
-                else if (gate.name.toLowerCase().includes('service')) icon = '🔧';
-                else if (gate.name.toLowerCase().includes('emergency')) icon = '🚨';
+                // Enhanced icon mapping based on gate name
+                let icon = '🏛️'; // Default gate icon
+                const gateName = gate.name.toLowerCase();
+                
+                if (gateName.includes('main') || gateName.includes('front')) icon = '🏛️';
+                else if (gateName.includes('back') || gateName.includes('rear') || gateName.includes('side')) icon = '🚪';
+                else if (gateName.includes('parking') || gateName.includes('park')) icon = '🅿️';
+                else if (gateName.includes('service') || gateName.includes('maintenance')) icon = '🔧';
+                else if (gateName.includes('emergency') || gateName.includes('exit')) icon = '🚨';
+                else if (gateName.includes('security') || gateName.includes('guard')) icon = '🛡️';
+                else if (gateName.includes('visitor') || gateName.includes('guest')) icon = '👥';
+                else if (gateName.includes('delivery') || gateName.includes('cargo')) icon = '📦';
+                else if (gateName.includes('pedestrian') || gateName.includes('walk')) icon = '🚶';
                 
                 option.textContent = `${icon} ${gate.name}`;
                 gateSelector.appendChild(option);
             });
 
-            // Select first gate by default
-            if (activeGates.length > 0) {
-                gateSelector.value = activeGates[0].id;
+            // Restore previously selected gate or select first gate
+            const savedGate = sessionStorage.getItem('selectedGate');
+            let gateSelected = false;
+            
+            if (savedGate) {
+                // Check if saved gate still exists
+                const gateExists = activeGates.find(gate => gate.id === savedGate);
+                if (gateExists) {
+                    gateSelector.value = savedGate;
+                    gateSelected = true;
+                }
             }
+            
+            // If no saved gate or saved gate doesn't exist, select first gate
+            if (!gateSelected && activeGates.length > 0) {
+                gateSelector.value = activeGates[0].id;
+                sessionStorage.setItem('selectedGate', activeGates[0].id);
+            }
+            
+            // Add change event listener for persistence (only once)
+            if (!gateSelector.hasAttribute('data-listener-added')) {
+                gateSelector.addEventListener('change', function() {
+                    if (this.value) {
+                        sessionStorage.setItem('selectedGate', this.value);
+                        const gateName = this.options[this.selectedIndex].text;
+                        showToast(`Switched to ${gateName}`, 'info');
+                    }
+                });
+                gateSelector.setAttribute('data-listener-added', 'true');
+            }
+        }
+
+        function refreshGateSelector() {
+            // Show loading state
+            const gateSelector = document.getElementById('gateSelector');
+            if (gateSelector) {
+                gateSelector.innerHTML = '<option value="">🔄 Refreshing gates...</option>';
+            }
+            
+            // Reload gates and update selector
+            loadActiveGates();
+            
+            // Show feedback
+            showToast('Refreshing gates...', 'info');
+        }
+
+        function getCurrentGate() {
+            const gateSelector = document.getElementById('gateSelector');
+            if (gateSelector && gateSelector.value) {
+                return {
+                    id: gateSelector.value,
+                    name: gateSelector.options[gateSelector.selectedIndex].text.replace(/^[^\s]+\s/, '') // Remove emoji
+                };
+            }
+            return null;
+        }
+
+        function validateGateSelection() {
+            const gate = getCurrentGate();
+            if (!gate) {
+                showToast('Please select a gate before performing vehicle operations', 'warning');
+                return false;
+            }
+            return true;
         }
 
         function showGateManagement() {
@@ -2259,6 +2618,256 @@
                     showToast('Failed to delete vehicle: ' + error, 'danger');
                 })
                 .deleteVehicleRecord(index, currentUser.role);
+        }
+
+        // Driver Management Functions - CRUD
+        let allDriversManagement = [];
+
+        function showDriverManagement() {
+            if (!hasPermission('manage_drivers')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('driverManagementModal'));
+            modal.show();
+            
+            loadDriversForManagement();
+        }
+
+        function loadDriversForManagement() {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    allDriversManagement = data;
+                    displayDriversForManagement();
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to load drivers: ' + error, 'danger');
+                })
+                .getDriverListForManagement();
+        }
+
+        function displayDriversForManagement() {
+            const tbody = document.getElementById('driversTableBody');
+            
+            if (allDriversManagement.length <= 1) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">No drivers found</td></tr>';
+                return;
+            }
+
+            let driversHtml = '';
+            
+            for (let i = 1; i < allDriversManagement.length; i++) {
+                const driver = allDriversManagement[i];
+                const status = driver[9] || 'Active'; // Status column
+                const statusClass = status === 'Active' ? 'text-success' : 
+                                   status === 'Inactive' ? 'text-warning' : 'text-danger';
+                
+                driversHtml += `
+                    <tr>
+                        <td><strong>${driver[0]}</strong></td>
+                        <td>${driver[1]}</td>
+                        <td>${driver[2]}</td>
+                        <td>${driver[3] || '-'}</td>
+                        <td>${driver[4] || '-'}</td>
+                        <td><span class="${statusClass}"><i class="bi bi-circle-fill me-1"></i>${status}</span></td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editDriverRecord(${i})" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteDriverRecord(${i})" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            tbody.innerHTML = driversHtml;
+        }
+
+        function showAddDriverModal() {
+            if (!hasPermission('manage_drivers')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            // Clear form
+            document.getElementById('addDriverForm').reset();
+            
+            const modal = new bootstrap.Modal(document.getElementById('addDriverModal'));
+            modal.show();
+        }
+
+        function editDriverRecord(index) {
+            if (!hasPermission('manage_drivers')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const driver = allDriversManagement[index];
+            
+            // Populate edit form
+            document.getElementById('editDriverIndex').value = index;
+            document.getElementById('editDriverId').value = driver[0] || '';
+            document.getElementById('editDriverName').value = driver[1] || '';
+            document.getElementById('editDriverLicense').value = driver[2] || '';
+            document.getElementById('editDriverPhone').value = driver[3] || '';
+            document.getElementById('editDriverEmail').value = driver[4] || '';
+            document.getElementById('editDriverLicenseType').value = driver[5] || 'Regular';
+            document.getElementById('editDriverDepartment').value = driver[6] || '';
+            document.getElementById('editDriverLicenseExpiry').value = driver[7] || '';
+            document.getElementById('editDriverNotes').value = driver[8] || '';
+            document.getElementById('editDriverStatus').value = driver[9] || 'Active';
+            
+            const modal = new bootstrap.Modal(document.getElementById('editDriverModal'));
+            modal.show();
+        }
+
+        function saveNewDriver() {
+            const driverData = {
+                driverId: document.getElementById('newDriverId').value.trim(),
+                name: document.getElementById('newDriverName').value.trim(),
+                licenseNumber: document.getElementById('newDriverLicense').value.trim(),
+                phone: document.getElementById('newDriverPhone').value.trim(),
+                email: document.getElementById('newDriverEmail').value.trim(),
+                licenseType: document.getElementById('newDriverLicenseType').value,
+                department: document.getElementById('newDriverDepartment').value.trim(),
+                licenseExpiry: document.getElementById('newDriverLicenseExpiry').value,
+                notes: document.getElementById('newDriverNotes').value.trim(),
+                status: document.getElementById('newDriverStatus').value
+            };
+
+            if (!driverData.driverId || !driverData.name || !driverData.licenseNumber) {
+                showToast('Please fill in all required fields', 'warning');
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('addDriverModal')).hide();
+                        loadDriversForManagement();
+                        showToast('Driver added successfully!', 'success');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to add driver: ' + error, 'danger');
+                })
+                .saveDriverRecord(driverData, currentUser.role);
+        }
+
+        function saveDriverEdit() {
+            const index = parseInt(document.getElementById('editDriverIndex').value);
+            const driverData = {
+                driverId: document.getElementById('editDriverId').value.trim(),
+                name: document.getElementById('editDriverName').value.trim(),
+                licenseNumber: document.getElementById('editDriverLicense').value.trim(),
+                phone: document.getElementById('editDriverPhone').value.trim(),
+                email: document.getElementById('editDriverEmail').value.trim(),
+                licenseType: document.getElementById('editDriverLicenseType').value,
+                department: document.getElementById('editDriverDepartment').value.trim(),
+                licenseExpiry: document.getElementById('editDriverLicenseExpiry').value,
+                notes: document.getElementById('editDriverNotes').value.trim(),
+                status: document.getElementById('editDriverStatus').value
+            };
+
+            if (!driverData.driverId || !driverData.name || !driverData.licenseNumber) {
+                showToast('Please fill in all required fields', 'warning');
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('editDriverModal')).hide();
+                        loadDriversForManagement();
+                        showToast('Driver updated successfully!', 'success');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to update driver: ' + error, 'danger');
+                })
+                .saveDriverRecord(driverData, currentUser.role, index);
+        }
+
+        function deleteDriverRecord(index) {
+            if (!hasPermission('manage_drivers')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const driver = allDriversManagement[index];
+            const driverName = driver[1] || driver[0];
+            
+            if (!confirm(`Are you sure you want to delete driver "${driverName}"?`)) {
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadDriversForManagement();
+                        showToast('Driver deleted successfully!', 'success');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to delete driver: ' + error, 'danger');
+                })
+                .deleteDriverRecord(index, currentUser.role);
+        }
+
+        // Driver Integration Functions
+        function loadDriverOptions() {
+            google.script.run
+                .withSuccessHandler(function(drivers) {
+                    populateDriverSelects(drivers);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Failed to load drivers:', error);
+                })
+                .getDriverListForManagement();
+        }
+
+        function populateDriverSelects(drivers) {
+            const selects = ['newDriver', 'editDriver'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value; // Save current value before clearing
+                    
+                    // Clear existing options except the first one
+                    select.innerHTML = '<option value="">Select a driver...</option>';
+                    
+                    // Add driver options (skip header row)
+                    for (let i = 1; i < drivers.length; i++) {
+                        const driver = drivers[i];
+                        const driverId = driver[0];
+                        const driverName = driver[1];
+                        const status = driver[9] || 'Active';
+                        
+                        // Show active drivers and preserve existing assignments
+                        if (status === 'Active' || driverId === currentValue) {
+                            const option = document.createElement('option');
+                            option.value = driverId;
+                            option.textContent = `${driverName} (${driverId})`;
+                            if (status !== 'Active') {
+                                option.textContent += ' - Inactive';
+                                option.style.color = '#6c757d';
+                            }
+                            select.appendChild(option);
+                        }
+                    }
+                    
+                    // Restore the previous value if it exists
+                    if (currentValue) {
+                        select.value = currentValue;
+                    }
+                }
+            });
         }
     </script>
 </body>

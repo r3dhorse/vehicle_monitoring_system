@@ -182,6 +182,161 @@ function deleteVehicleRecord(vehicleIndex, userRole) {
   }
 }
 
+// Driver Management Functions - CRUD
+
+// Get all drivers for management (enhanced)
+function getDriverListForManagement() {
+  try {
+    console.log('Getting driver list for management...');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+    
+    if (!sheet) {
+      console.log('Driver sheet not found, creating initial setup...');
+      createInitialSheets();
+      createSampleData();
+      sheet = ss.getSheetByName(DRIVER_SHEET);
+      if (!sheet) {
+        throw new Error('Failed to create driver sheet');
+      }
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('Driver management data retrieved successfully:', data.length, 'rows');
+    
+    if (data.length <= 1) {
+      console.log('No driver data found, creating sample data...');
+      createSampleData();
+      const updatedData = sheet.getDataRange().getValues();
+      console.log('Driver data after sample creation:', updatedData.length);
+      return updatedData;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting driver list for management:', error);
+    return [
+      ["Driver ID", "Name", "License Number", "Phone", "Email", "License Type", "Department", "License Expiry", "Notes", "Status"],
+      ["D001", "John Smith", "DL123456789", "555-0123", "john.smith@company.com", "Regular", "Transportation", "2025-12-31", "Experienced driver", "Active"]
+    ];
+  }
+}
+
+// Save driver (create or update) - for management
+function saveDriverRecord(driverData, userRole, editIndex = -1) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    validateRequired(driverData.driverId, 'Driver ID');
+    validateRequired(driverData.name, 'Name');
+    validateRequired(driverData.licenseNumber, 'License Number');
+
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+    const data = sheet.getDataRange().getValues();
+
+    // Sanitize inputs
+    const sanitizedData = {
+      driverId: sanitizeInput(driverData.driverId),
+      name: sanitizeInput(driverData.name),
+      licenseNumber: sanitizeInput(driverData.licenseNumber),
+      phone: sanitizeInput(driverData.phone),
+      email: sanitizeInput(driverData.email),
+      licenseType: sanitizeInput(driverData.licenseType) || 'Regular',
+      department: sanitizeInput(driverData.department),
+      licenseExpiry: driverData.licenseExpiry || '',
+      notes: sanitizeInput(driverData.notes),
+      status: sanitizeInput(driverData.status) || 'Active'
+    };
+
+    // Check for duplicate Driver ID (excluding current record in edit mode)
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === sanitizedData.driverId && i !== editIndex) {
+        throw new Error(`Driver ID "${sanitizedData.driverId}" already exists`);
+      }
+    }
+
+    // Check for duplicate License Number (excluding current record in edit mode)
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][2] === sanitizedData.licenseNumber && i !== editIndex) {
+        throw new Error(`License number "${sanitizedData.licenseNumber}" already exists`);
+      }
+    }
+
+    const rowData = [
+      sanitizedData.driverId,
+      sanitizedData.name,
+      sanitizedData.licenseNumber,
+      sanitizedData.phone,
+      sanitizedData.email,
+      sanitizedData.licenseType,
+      sanitizedData.department,
+      sanitizedData.licenseExpiry,
+      sanitizedData.notes,
+      sanitizedData.status
+    ];
+
+    if (editIndex >= 1) {
+      // Update existing driver
+      sheet.getRange(editIndex + 1, 1, 1, rowData.length).setValues([rowData]);
+      console.log('Driver updated successfully:', sanitizedData.driverId);
+      logUserActivity(userRole, 'driver_updated', `Driver ${sanitizedData.driverId} updated`);
+    } else {
+      // Add new driver
+      sheet.appendRow(rowData);
+      console.log('Driver added successfully:', sanitizedData.driverId);
+      logUserActivity(userRole, 'driver_created', `Driver ${sanitizedData.driverId} created`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving driver:', error);
+    throw error;
+  }
+}
+
+// Delete driver (management)
+function deleteDriverRecord(driverIndex, userRole) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    if (driverIndex < 1 || driverIndex >= data.length) {
+      throw new Error("Invalid driver index");
+    }
+    
+    const driverId = data[driverIndex][0];
+    
+    // Check if driver is assigned to any vehicles
+    const vehicleSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (vehicleSheet) {
+      const vehicleData = vehicleSheet.getDataRange().getValues();
+      
+      for (let i = 1; i < vehicleData.length; i++) {
+        const currentDriver = vehicleData[i][7]; // Current Driver column
+        const assignedDrivers = vehicleData[i][8]; // Assigned Drivers column
+        
+        if (currentDriver === driverId || (assignedDrivers && assignedDrivers.includes(driverId))) {
+          throw new Error(`Cannot delete driver: ${driverId} is currently assigned to vehicle ${vehicleData[i][0]}`);
+        }
+      }
+    }
+    
+    // Safe to delete
+    sheet.deleteRow(driverIndex + 1);
+    logUserActivity(userRole, 'driver_deleted', `Driver ${driverId} deleted`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting driver:', error);
+    throw error;
+  }
+}
+
 // Get all vehicle records with error handling
 function getVehicleList() {
   try {
@@ -294,7 +449,7 @@ function logVehicleAction(data) {
       throw new Error(`Gate access denied: ${gateValidation.reason}`);
     }
     
-    // Log the action
+    // Log the action with username instead of email
     logSheet.appendRow([
       new Date(),
       data.plateNumber,
@@ -302,7 +457,7 @@ function logVehicleAction(data) {
       data.action,
       data.gate,
       data.remarks || "",
-      Session.getActiveUser().getEmail() || "Unknown",
+      data.username || "System", // Use username passed from frontend
       accessStatus
     ]);
     
@@ -557,24 +712,36 @@ function createInitialSheets() {
       }
     }
     
-    // Create Driver Master sheet
+    // Create Driver Master sheet (enhanced)
     let driverSheet = ss.getSheetByName(DRIVER_SHEET);
     if (!driverSheet) {
       driverSheet = ss.insertSheet(DRIVER_SHEET);
-      driverSheet.getRange(1, 1, 1, 6).setValues([
-        ["Driver ID", "Name", "License Number", "Phone", "Email", "Status"]
+      driverSheet.getRange(1, 1, 1, 10).setValues([
+        ["Driver ID", "Name", "License Number", "Phone", "Email", "License Type", "Department", "License Expiry", "Notes", "Status"]
       ]);
-      driverSheet.getRange(1, 1, 1, 6).setFontWeight("bold");
+      driverSheet.getRange(1, 1, 1, 10).setFontWeight("bold");
       driverSheet.setFrozenRows(1);
-      driverSheet.autoResizeColumns(1, 6);
+      driverSheet.autoResizeColumns(1, 10);
       
       // Add data validation for Driver Status
-      const driverStatusRange = driverSheet.getRange(2, 6, 1000, 1);
+      const driverStatusRange = driverSheet.getRange(2, 10, 1000, 1);
       const driverStatusRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(['Active', 'Inactive', 'Suspended'], true)
         .setAllowInvalid(false)
         .build();
       driverStatusRange.setDataValidation(driverStatusRule);
+      
+      // Add data validation for License Type
+      const licenseTypeRange = driverSheet.getRange(2, 6, 1000, 1);
+      const licenseTypeRule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(['Regular', 'Commercial', 'Motorcycle', 'Chauffeur'], true)
+        .setAllowInvalid(false)
+        .build();
+      licenseTypeRange.setDataValidation(licenseTypeRule);
+      
+      // Format license expiry column
+      const expiryRange = driverSheet.getRange(2, 8, 1000, 1);
+      expiryRange.setNumberFormat("yyyy-mm-dd");
     }
     
     // Create Logs sheet
@@ -1111,102 +1278,43 @@ function getActiveGates() {
   }
 }
 
-// Validate gate access for vehicles
+// Validate gate access for vehicles (simplified)
 function validateGateAccess(gateId, action, plateNumber) {
   try {
     const gateSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
-    const vehicleSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
     
     if (!gateSheet) {
       // If no gates sheet exists, allow access (backward compatibility)
       return { allowed: true, reason: 'Gate validation bypassed - no gate configuration' };
     }
     
-    const gateData = gateSheet.getDataRange().getValues();
-    let gate = null;
+    // Check if gateId is provided
+    if (!gateId || gateId === '') {
+      return { allowed: false, reason: 'No gate selected' };
+    }
     
-    // Find the gate
+    const gateData = gateSheet.getDataRange().getValues();
+    let gateFound = false;
+    
+    // Find the gate (simplified structure - only gate name in column 0)
     for (let i = 1; i < gateData.length; i++) {
       if (gateData[i][0] === gateId) {
-        gate = {
-          id: gateData[i][0],
-          name: gateData[i][1],
-          location: gateData[i][2],
-          type: gateData[i][3],
-          status: gateData[i][4],
-          accessLevel: gateData[i][5],
-          operatingHours: gateData[i][6],
-          description: gateData[i][7]
-        };
+        gateFound = true;
         break;
       }
     }
     
-    if (!gate) {
-      return { allowed: false, reason: `Gate ${gateId} not found` };
+    if (!gateFound) {
+      return { allowed: false, reason: `Gate "${gateId}" not found in system` };
     }
     
-    // Check gate status
-    if (gate.status !== 'active') {
-      return { allowed: false, reason: `Gate is ${gate.status}` };
-    }
+    // For simplified gate system, all valid gates are considered active
+    // and allow both entry and exit
     
-    // Check gate type vs action
-    if (gate.type === 'entry' && action === 'OUT') {
-      return { allowed: false, reason: 'This gate is for entry only' };
-    }
-    if (gate.type === 'exit' && action === 'IN') {
-      return { allowed: false, reason: 'This gate is for exit only' };
-    }
+    // Log the gate usage for tracking
+    console.log(`Vehicle ${plateNumber} attempting ${action} at gate: ${gateId}`);
     
-    // Check emergency gate restrictions
-    if (gate.accessLevel === 'emergency-only') {
-      return { allowed: false, reason: 'Emergency gate - authorized use only' };
-    }
-    
-    // Check operating hours (basic validation)
-    if (gate.operatingHours && gate.operatingHours !== '24/7') {
-      const now = new Date();
-      const currentHour = now.getHours();
-      
-      // Simple hour range validation (e.g., "06:00-18:00")
-      const hourMatch = gate.operatingHours.match(/(\d{1,2}):?\d{0,2}-(\d{1,2}):?\d{0,2}/);
-      if (hourMatch) {
-        const startHour = parseInt(hourMatch[1]);
-        const endHour = parseInt(hourMatch[2]);
-        
-        if (currentHour < startHour || currentHour >= endHour) {
-          return { allowed: false, reason: `Gate operating hours: ${gate.operatingHours}` };
-        }
-      }
-    }
-    
-    // High-security gate additional checks
-    if (gate.accessLevel === 'high-security') {
-      // Get vehicle information for additional validation
-      if (vehicleSheet) {
-        const vehicleData = vehicleSheet.getDataRange().getValues();
-        let vehicle = null;
-        
-        for (let i = 1; i < vehicleData.length; i++) {
-          if (vehicleData[i][0] === plateNumber) {
-            vehicle = vehicleData[i];
-            break;
-          }
-        }
-        
-        if (vehicle) {
-          const department = vehicle[3] || '';
-          // Allow high-security access for specific departments
-          const authorizedDepartments = ['Security', 'Executive', 'IT Department'];
-          
-          if (!authorizedDepartments.some(dept => department.toLowerCase().includes(dept.toLowerCase()))) {
-            return { allowed: false, reason: 'High-security gate requires special authorization' };
-          }
-        }
-      }
-    }
-    
+    // All validation passed
     return { allowed: true, reason: 'Access granted' };
   } catch (error) {
     console.error('Error validating gate access:', error);
@@ -1231,15 +1339,9 @@ function getGateStatistics() {
     const gateData = gateSheet.getDataRange().getValues();
     console.log('Gate data length:', gateData.length);
     
-    // Count gates
+    // Count gates (simplified - all gates are considered active)
     let totalGates = Math.max(0, gateData.length - 1); // Exclude header
-    let activeGates = 0;
-    
-    for (let i = 1; i < gateData.length; i++) {
-      if (gateData[i] && gateData[i][4] === 'active') {
-        activeGates++;
-      }
-    }
+    let activeGates = totalGates; // In simplified system, all gates are active
     
     let usageToday = {};
     let busyGates = [];
@@ -1503,11 +1605,11 @@ function createSampleData() {
     if (driverData.length <= 1) {
       console.log('Adding sample drivers...');
       const sampleDrivers = [
-        ['DRV001', 'John Doe', 'LIC001', '555-0101', 'john.doe@example.com', 'Active'],
-        ['DRV002', 'Jane Smith', 'LIC002', '555-0102', 'jane.smith@example.com', 'Active'],
-        ['DRV003', 'Bob Johnson', 'LIC003', '555-0103', 'bob.johnson@example.com', 'Active'],
-        ['DRV004', 'Alice Brown', 'LIC004', '555-0104', 'alice.brown@example.com', 'Inactive'],
-        ['DRV005', 'Charlie Davis', 'LIC005', '555-0105', 'charlie.davis@example.com', 'Active']
+        ['DRV001', 'John Doe', 'LIC001', '555-0101', 'john.doe@company.com', 'Regular', 'Transportation', '2025-12-31', 'Experienced driver with 10+ years', 'Active'],
+        ['DRV002', 'Jane Smith', 'LIC002', '555-0102', 'jane.smith@company.com', 'Commercial', 'Logistics', '2025-06-30', 'CDL certified', 'Active'],
+        ['DRV003', 'Bob Johnson', 'LIC003', '555-0103', 'bob.johnson@company.com', 'Regular', 'IT Department', '2024-09-15', 'Part-time driver', 'Active'],
+        ['DRV004', 'Alice Brown', 'LIC004', '555-0104', 'alice.brown@company.com', 'Regular', 'HR Department', '2025-03-20', 'Emergency backup driver', 'Inactive'],
+        ['DRV005', 'Charlie Davis', 'LIC005', '555-0105', 'charlie.davis@company.com', 'Chauffeur', 'Executive', '2026-01-15', 'Executive driver specialist', 'Active']
       ];
       
       sampleDrivers.forEach(driver => {
@@ -1557,8 +1659,11 @@ function createSampleData() {
         const sampleGates = [
           ['Main Gate'],
           ['Back Gate'],
+          ['Parking Gate'],
           ['Service Gate'],
-          ['Emergency Gate']
+          ['Emergency Gate'],
+          ['Visitor Gate'],
+          ['Security Gate']
         ];
         
         sampleGates.forEach(gate => {
