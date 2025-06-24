@@ -60,11 +60,61 @@
             transition: all 0.3s ease;
             cursor: pointer;
             border: none;
-            border-radius: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid transparent;
         }
         .vehicle-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .vehicle-card.status-in {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+        .vehicle-card.status-out {
+            border-left-color: #dc3545;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+        .vehicle-status-columns .card {
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .vehicle-status-columns .card-header {
+            font-weight: 600;
+            border-bottom: none;
+        }
+        .vehicle-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .vehicle-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .vehicle-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .vehicle-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        .vehicle-list::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .vehicle-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .no-vehicles {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        .no-vehicles i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
         .status-in { background-color: #28a745; color: white; }
         .status-out { background-color: #dc3545; color: white; }
@@ -78,6 +128,97 @@
             padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .gate-selector {
+            border-left: 3px solid #667eea;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+        .gate-selector:focus {
+            border-left-color: #764ba2;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+        .plate-number {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 2px solid #dee2e6;
+            display: inline-block;
+        }
+        .vehicle-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .vehicle-plate {
+            flex: 1;
+        }
+        .add-vehicle-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .add-vehicle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+        }
+        .role-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+        .role-badge.super-admin {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        .role-badge.admin {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        .role-badge.supervisor {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+        }
+        .role-badge.security {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+        }
+        .role-badge.user {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+        }
+        .user-management-modal .modal-dialog {
+            max-width: 900px;
+        }
+        .user-card {
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .user-card.super-admin { border-left-color: #dc3545; }
+        .user-card.admin { border-left-color: #28a745; }
+        .user-card.supervisor { border-left-color: #ffc107; }
+        .user-card.security { border-left-color: #17a2b8; }
+        .user-card.user { border-left-color: #6c757d; }
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .permissions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .permission-item {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
         }
     </style>
 </head>
@@ -139,8 +280,29 @@
                     <i class="bi bi-truck me-2"></i>Vehicle Monitoring System
                 </a>
                 <div class="navbar-nav ms-auto">
+                    <button class="btn btn-outline-light btn-sm me-3" id="vehicleManagementBtn" style="display: none;" onclick="showVehicleManagement()">
+                        <i class="bi bi-truck me-1"></i>Manage Vehicles
+                    </button>
+                    <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
+                        <i class="bi bi-door-open me-1"></i>Manage Gates
+                    </button>
+                    <div class="dropdown me-3" id="userManagementDropdown" style="display: none;">
+                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-people me-1"></i>Users
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="showUserManagement()">
+                                <i class="bi bi-person-gear me-2"></i>Manage Users
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showRoleSettings()">
+                                <i class="bi bi-shield-check me-2"></i>Role Settings
+                            </a></li>
+                        </ul>
+                    </div>
                     <span class="navbar-text me-3">
-                        <i class="bi bi-person-circle me-1"></i>Role: <span id="userRole"></span>
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span id="userRole" class="badge role-badge"></span>
+                        <small class="text-light ms-1">(<span id="currentUsername"></span>)</small>
                     </span>
                     <button class="btn btn-outline-light btn-sm" onclick="logout()">
                         <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -181,19 +343,31 @@
 
             <!-- Search and Filter -->
             <div class="row mb-4">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <input type="text" class="form-control" id="searchInput" 
-                           placeholder="Search by plate or model..." 
+                           placeholder="Search by plate, model, or driver..." 
                            onkeyup="filterVehicles()">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select class="form-select" id="filterStatus" onchange="filterVehicles()">
                         <option value="">All Statuses</option>
                         <option value="IN">Checked In</option>
                         <option value="OUT">Checked Out</option>
                     </select>
                 </div>
-                <div class="col-md-5 text-end">
+                <div class="col-md-3">
+                    <label class="form-label mb-1">
+                        <small><i class="bi bi-geo-alt me-1"></i>Active Gate:</small>
+                    </label>
+                    <select class="form-select gate-selector" id="gateSelector">
+                        <option value="Main Gate">🏛️ Main Gate</option>
+                        <option value="Side Gate">🚪 Side Gate</option>
+                        <option value="Parking Gate">🅿️ Parking Gate</option>
+                        <option value="Service Gate">🔧 Service Gate</option>
+                        <option value="Emergency Gate">🚨 Emergency Gate</option>
+                    </select>
+                </div>
+                <div class="col-md-4 text-end d-flex align-items-end">
                     <button class="btn btn-primary" onclick="loadVehicles()">
                         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                     </button>
@@ -201,12 +375,51 @@
             </div>
 
             <!-- Vehicle Cards -->
-            <div class="row" id="vehicleContainer">
-                <div class="col-12 text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+            <div class="row vehicle-status-columns">
+                <!-- Vehicles IN Column -->
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-arrow-down-circle me-2"></i>
+                                Vehicles IN
+                                <span class="badge bg-light text-success ms-2" id="vehiclesInBadge">0</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="vehiclesInContainer" class="p-3">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-success" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Loading vehicles...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <p class="mt-2">Loading vehicles...</p>
+                </div>
+
+                <!-- Vehicles OUT Column -->
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-arrow-up-circle me-2"></i>
+                                Vehicles OUT
+                                <span class="badge bg-light text-danger ms-2" id="vehiclesOutBadge">0</span>
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="vehiclesOutContainer" class="p-3">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-danger" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Loading vehicles...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -216,6 +429,594 @@
     <div id="loadingSpinner" class="loading-spinner hidden">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Add Vehicle Button -->
+    <button class="btn btn-primary add-vehicle-btn" onclick="showAddVehicleModal()" title="Add New Vehicle" id="addVehicleBtn">
+        <i class="bi bi-plus-lg fs-4"></i>
+    </button>
+
+    <!-- Add Vehicle Modal -->
+    <div class="modal fade" id="addVehicleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-truck me-2"></i>Add New Vehicle
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addVehicleForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Plate Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="newPlateNumber" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Make/Model <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="newModel" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" class="form-control" id="newColor">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Year</label>
+                                    <input type="number" class="form-control" id="newYear" min="1900" max="2030">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="newType">
+                                        <option value="Car">Car</option>
+                                        <option value="Truck">Truck</option>
+                                        <option value="Van">Van</option>
+                                        <option value="Motorcycle">Motorcycle</option>
+                                        <option value="Bus">Bus</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Department/Company</label>
+                                    <input type="text" class="form-control" id="newDepartment">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Assigned Driver</label>
+                                    <input type="text" class="form-control" id="newDriver" placeholder="Driver ID or Name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Access Status</label>
+                                    <select class="form-select" id="newAccessStatus">
+                                        <option value="Access">Access</option>
+                                        <option value="No Access">No Access</option>
+                                        <option value="Banned">Banned</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Initial Status</label>
+                                    <select class="form-select" id="newStatus">
+                                        <option value="OUT">Checked Out</option>
+                                        <option value="IN">Checked In</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewVehicle()">
+                        <i class="bi bi-check-lg me-2"></i>Add Vehicle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Details Modal -->
+    <div class="modal fade" id="vehicleDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailsModalTitle">Vehicle Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsModalBody">
+                    <!-- Details will be loaded here -->
+                </div>
+                <div class="modal-footer" id="detailsModalFooter">
+                    <!-- Action buttons will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Vehicle Modal -->
+    <div class="modal fade" id="editVehicleModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Vehicle
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editVehicleForm">
+                        <input type="hidden" id="editVehicleIndex">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Plate Number <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editPlateNumber" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Make/Model <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="editModel" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Color</label>
+                                    <input type="text" class="form-control" id="editColor">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Year</label>
+                                    <input type="number" class="form-control" id="editYear" min="1900" max="2030">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="editType">
+                                        <option value="Car">Car</option>
+                                        <option value="Truck">Truck</option>
+                                        <option value="Van">Van</option>
+                                        <option value="Motorcycle">Motorcycle</option>
+                                        <option value="Bus">Bus</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Department/Company</label>
+                                    <input type="text" class="form-control" id="editDepartment">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Current Driver</label>
+                                    <input type="text" class="form-control" id="editDriver" placeholder="Driver ID or Name">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Assigned Drivers</label>
+                                    <input type="text" class="form-control" id="editAssignedDrivers" placeholder="Comma separated IDs">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Access Status</label>
+                                    <select class="form-select" id="editAccessStatus">
+                                        <option value="Access">Access</option>
+                                        <option value="No Access">No Access</option>
+                                        <option value="Banned">Banned</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="editStatus">
+                                        <option value="OUT">Checked Out</option>
+                                        <option value="IN">Checked In</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" onclick="saveVehicleEdit()">
+                        <i class="bi bi-check-lg me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div class="modal fade user-management-modal" id="userManagementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-people me-2"></i>User Management
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">System Users</h6>
+                        <button class="btn btn-success btn-sm" onclick="showAddUserModal()">
+                            <i class="bi bi-person-plus me-1"></i>Add User
+                        </button>
+                    </div>
+                    <div id="usersList">
+                        <!-- Users will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div class="modal fade" id="addEditUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addEditUserTitle">
+                        <i class="bi bi-person-plus me-2"></i>Add User
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addEditUserForm">
+                        <input type="hidden" id="editUserIndex">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Username <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="userUsername" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="userFullName" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="userEmail">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Role <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="userRole" required>
+                                        <option value="user">User</option>
+                                        <option value="security">Security</option>
+                                        <option value="supervisor">Supervisor</option>
+                                        <option value="admin">Admin</option>
+                                        <option value="super-admin">Super Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="passwordSection">
+                            <label class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="userPassword">
+                            <div class="form-text">Leave blank when editing to keep current password</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="userStatus">
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="suspended">Suspended</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="saveUser()">
+                        <i class="bi bi-check-lg me-2"></i>Save User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Settings Modal -->
+    <div class="modal fade" id="roleSettingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="bi bi-shield-check me-2"></i>Role Settings & Permissions
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <h6>Role Hierarchy & Permissions</h6>
+                            <div class="permissions-grid">
+                                <div class="permission-item">
+                                    <div class="role-badge super-admin mb-2">Super Admin</div>
+                                    <small>
+                                        • Full system access<br>
+                                        • Manage all users<br>
+                                        • System configuration<br>
+                                        • All vehicle operations
+                                    </small>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="role-badge admin mb-2">Admin</div>
+                                    <small>
+                                        • Manage vehicles<br>
+                                        • Manage drivers<br>
+                                        • View all reports<br>
+                                        • Manage regular users
+                                    </small>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="role-badge supervisor mb-2">Supervisor</div>
+                                    <small>
+                                        • View all vehicles<br>
+                                        • Generate reports<br>
+                                        • Check in/out vehicles<br>
+                                        • View activity logs
+                                    </small>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="role-badge security mb-2">Security</div>
+                                    <small>
+                                        • Check in/out vehicles<br>
+                                        • View vehicle status<br>
+                                        • Basic gate operations<br>
+                                        • View assigned areas
+                                    </small>
+                                </div>
+                                <div class="permission-item">
+                                    <div class="role-badge user mb-2">User</div>
+                                    <small>
+                                        • View own vehicles<br>
+                                        • Basic check in/out<br>
+                                        • View personal logs<br>
+                                        • Limited access
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gate Management Modal -->
+    <div class="modal fade" id="gateManagementModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-door-open me-2"></i>Gate Management
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Manage Gates</h6>
+                        <button class="btn btn-primary btn-sm" onclick="showAddGateForm()">
+                            <i class="bi bi-plus-lg me-1"></i>Add Gate
+                        </button>
+                    </div>
+                    
+                    <!-- Add/Edit Form -->
+                    <div id="gateForm" class="mb-3" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 id="gateFormTitle">Add New Gate</h6>
+                                <form id="addEditGateForm">
+                                    <input type="hidden" id="editGateIndex" value="-1">
+                                    <div class="mb-3">
+                                        <label for="gateName" class="form-label">Gate Name *</label>
+                                        <input type="text" class="form-control" id="gateName" required 
+                                               placeholder="e.g., Main Gate">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="saveGate()">
+                                            <i class="bi bi-check-lg me-1"></i>Save
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="cancelGateForm()">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gate List -->
+                    <div id="gateListContainer">
+                        <div class="text-center py-3">
+                            <div class="spinner-border" role="status"></div>
+                            <p class="mt-2 text-muted">Loading gates...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vehicle Management Modal -->
+    <div class="modal fade" id="vehicleManagementModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-truck me-2"></i>Vehicle Management
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Manage Vehicles</h6>
+                        <button class="btn btn-primary btn-sm" onclick="showAddVehicleForm()">
+                            <i class="bi bi-plus-lg me-1"></i>Add Vehicle
+                        </button>
+                    </div>
+                    
+                    <!-- Add/Edit Form -->
+                    <div id="vehicleForm" class="mb-3" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 id="vehicleFormTitle">Add New Vehicle</h6>
+                                <form id="addEditVehicleForm">
+                                    <input type="hidden" id="editVehicleIndex" value="-1">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="vehiclePlateNumber" class="form-label">Plate Number *</label>
+                                                <input type="text" class="form-control" id="vehiclePlateNumber" required 
+                                                       placeholder="e.g., ABC-123">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="vehicleModel" class="form-label">Make/Model *</label>
+                                                <input type="text" class="form-control" id="vehicleModel" required 
+                                                       placeholder="e.g., Toyota Camry">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="vehicleColor" class="form-label">Color</label>
+                                                <input type="text" class="form-control" id="vehicleColor" 
+                                                       placeholder="e.g., White">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="vehicleDepartment" class="form-label">Department/Company</label>
+                                                <input type="text" class="form-control" id="vehicleDepartment" 
+                                                       placeholder="e.g., IT Department">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="vehicleYear" class="form-label">Year</label>
+                                                <input type="number" class="form-control" id="vehicleYear" 
+                                                       placeholder="2023" min="1900" max="2030">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="vehicleType" class="form-label">Type</label>
+                                                <select class="form-select" id="vehicleType">
+                                                    <option value="Car">Car</option>
+                                                    <option value="Truck">Truck</option>
+                                                    <option value="Van">Van</option>
+                                                    <option value="SUV">SUV</option>
+                                                    <option value="Motorcycle">Motorcycle</option>
+                                                    <option value="Bus">Bus</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label for="vehicleStatus" class="form-label">Status</label>
+                                                <select class="form-select" id="vehicleStatus">
+                                                    <option value="OUT">OUT</option>
+                                                    <option value="IN">IN</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="vehicleDriver" class="form-label">Current Driver</label>
+                                                <input type="text" class="form-control" id="vehicleDriver" 
+                                                       placeholder="Driver name or ID">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="vehicleAccessStatus" class="form-label">Access Status</label>
+                                                <select class="form-select" id="vehicleAccessStatus">
+                                                    <option value="Access">Access</option>
+                                                    <option value="No Access">No Access</option>
+                                                    <option value="Banned">Banned</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="vehicleAssignedDrivers" class="form-label">Assigned Drivers</label>
+                                        <input type="text" class="form-control" id="vehicleAssignedDrivers" 
+                                               placeholder="Comma-separated driver names or IDs">
+                                        <small class="text-muted">Enter multiple drivers separated by commas</small>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="saveVehicle()">
+                                            <i class="bi bi-check-lg me-1"></i>Save
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="cancelVehicleForm()">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vehicle List -->
+                    <div id="vehicleListContainer">
+                        <div class="text-center py-3">
+                            <div class="spinner-border" role="status"></div>
+                            <p class="mt-2 text-muted">Loading vehicles...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -242,8 +1043,68 @@
         function showDashboard() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('dashboardPage').classList.remove('hidden');
-            document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            
+            // Update user role display
+            const roleElement = document.getElementById('userRole');
+            const usernameElement = document.getElementById('currentUsername');
+            roleElement.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            roleElement.className = `badge role-badge ${currentUser.role}`;
+            usernameElement.textContent = currentUser.username;
+            
+            // Show/hide features based on role permissions
+            updateUIBasedOnRole();
+            
             loadVehicles();
+            loadActiveGates();
+        }
+
+        function updateUIBasedOnRole() {
+            const role = currentUser.role;
+            
+            // Show/hide add vehicle button
+            const addVehicleBtn = document.getElementById('addVehicleBtn');
+            if (hasPermission('manage_vehicles')) {
+                addVehicleBtn.style.display = 'block';
+            } else {
+                addVehicleBtn.style.display = 'none';
+            }
+            
+            // Show/hide user management dropdown
+            const userManagementDropdown = document.getElementById('userManagementDropdown');
+            if (hasPermission('manage_users')) {
+                userManagementDropdown.style.display = 'block';
+            } else {
+                userManagementDropdown.style.display = 'none';
+            }
+            
+            // Show/hide vehicle management button
+            const vehicleManagementBtn = document.getElementById('vehicleManagementBtn');
+            if (hasPermission('manage_vehicles')) {
+                vehicleManagementBtn.style.display = 'inline-block';
+            } else {
+                vehicleManagementBtn.style.display = 'none';
+            }
+            
+            // Show/hide gate management button
+            const gateManagementBtn = document.getElementById('gateManagementBtn');
+            if (hasPermission('manage_gates')) {
+                gateManagementBtn.style.display = 'inline-block';
+            } else {
+                gateManagementBtn.style.display = 'none';
+            }
+        }
+
+        function hasPermission(permission) {
+            const role = currentUser.role;
+            const permissions = {
+                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config'],
+                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'manage_regular_users'],
+                'supervisor': ['view_all', 'vehicle_operations', 'manage_gates', 'generate_reports'],
+                'security': ['vehicle_operations', 'gate_operations', 'view_assigned'],
+                'user': ['view_own', 'basic_operations']
+            };
+            
+            return permissions[role]?.includes(permission) || false;
         }
 
         function login() {
@@ -308,19 +1169,33 @@
         }
 
         function displayVehicles() {
-            const container = document.getElementById('vehicleContainer');
-            container.innerHTML = '';
+            const vehiclesInContainer = document.getElementById('vehiclesInContainer');
+            const vehiclesOutContainer = document.getElementById('vehiclesOutContainer');
+            
+            // Clear containers
+            vehiclesInContainer.innerHTML = '';
+            vehiclesOutContainer.innerHTML = '';
 
             if (vehicleData.length <= 1) {
-                container.innerHTML = `
-                    <div class="col-12 text-center py-5">
-                        <i class="bi bi-truck fs-1 text-muted mb-3"></i>
-                        <p class="text-muted">No vehicles found</p>
+                vehiclesInContainer.innerHTML = `
+                    <div class="no-vehicles">
+                        <i class="bi bi-truck"></i>
+                        <p>No vehicles checked in</p>
+                    </div>
+                `;
+                vehiclesOutContainer.innerHTML = `
+                    <div class="no-vehicles">
+                        <i class="bi bi-truck"></i>
+                        <p>No vehicles checked out</p>
                     </div>
                 `;
                 return;
             }
 
+            let vehiclesIn = [];
+            let vehiclesOut = [];
+
+            // Separate vehicles by status
             for (let i = 1; i < vehicleData.length; i++) {
                 const vehicle = vehicleData[i];
                 if (!vehicle || vehicle.length < 7) continue;
@@ -330,38 +1205,104 @@
                 const status = vehicle[6] || 'OUT';
                 const driver = vehicle[7] || 'Unassigned';
 
-                const card = createVehicleCard(plateNumber, model, status, driver, i);
-                container.appendChild(card);
+                const vehicleData_item = { plateNumber, model, status, driver, index: i };
+
+                if (status === 'IN') {
+                    vehiclesIn.push(vehicleData_item);
+                } else {
+                    vehiclesOut.push(vehicleData_item);
+                }
             }
+
+            // Display vehicles in respective columns
+            if (vehiclesIn.length === 0) {
+                vehiclesInContainer.innerHTML = `
+                    <div class="no-vehicles">
+                        <i class="bi bi-truck"></i>
+                        <p>No vehicles checked in</p>
+                    </div>
+                `;
+            } else {
+                vehiclesInContainer.innerHTML = '<div class="vehicle-list"></div>';
+                const inList = vehiclesInContainer.querySelector('.vehicle-list');
+                vehiclesIn.forEach(vehicle => {
+                    const card = createVehicleListItem(vehicle.plateNumber, vehicle.model, vehicle.status, vehicle.driver, vehicle.index);
+                    inList.appendChild(card);
+                });
+            }
+
+            if (vehiclesOut.length === 0) {
+                vehiclesOutContainer.innerHTML = `
+                    <div class="no-vehicles">
+                        <i class="bi bi-truck"></i>
+                        <p>No vehicles checked out</p>
+                    </div>
+                `;
+            } else {
+                vehiclesOutContainer.innerHTML = '<div class="vehicle-list"></div>';
+                const outList = vehiclesOutContainer.querySelector('.vehicle-list');
+                vehiclesOut.forEach(vehicle => {
+                    const card = createVehicleListItem(vehicle.plateNumber, vehicle.model, vehicle.status, vehicle.driver, vehicle.index);
+                    outList.appendChild(card);
+                });
+            }
+
+            // Update badge counts
+            document.getElementById('vehiclesInBadge').textContent = vehiclesIn.length;
+            document.getElementById('vehiclesOutBadge').textContent = vehiclesOut.length;
         }
 
-        function createVehicleCard(plateNumber, model, status, driver, index) {
-            const col = document.createElement('div');
-            col.className = 'col-md-4 mb-4';
+        function createVehicleListItem(plateNumber, model, status, driver, index) {
+            const item = document.createElement('div');
+            item.className = `card vehicle-card status-${status.toLowerCase()}`;
 
-            col.innerHTML = `
-                <div class="card vehicle-card h-100">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h5 class="card-title mb-0">${plateNumber}</h5>
-                            <span class="badge ${status === 'IN' ? 'status-in' : 'status-out'}">${status}</span>
+            // Get vehicle details for enhanced display
+            const vehicle = vehicleData[index];
+            const color = vehicle[2] || 'Unknown';
+            const department = vehicle[3] || 'Unknown';
+            const year = vehicle[4] || '';
+
+            item.innerHTML = `
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="vehicle-plate">
+                            <h5 class="plate-number mb-1">${plateNumber}</h5>
+                            <small class="text-muted">${year} ${color}</small>
                         </div>
-                        <p class="card-text">
-                            <i class="bi bi-truck me-2"></i>${model}<br>
-                            <i class="bi bi-person-fill me-2"></i>${driver}
-                        </p>
-                        <div class="mt-3">
-                            <button class="btn btn-sm ${status === 'IN' ? 'btn-danger' : 'btn-success'}" 
-                                    onclick="toggleVehicleStatus(${index})">
-                                <i class="bi ${status === 'IN' ? 'bi-box-arrow-right' : 'bi-box-arrow-in-left'} me-1"></i>
-                                ${status === 'IN' ? 'Check Out' : 'Check In'}
+                        <div class="vehicle-actions">
+                            <button class="btn btn-sm btn-outline-secondary me-1" 
+                                    onclick="showVehicleDetails(${index})" title="View Details">
+                                <i class="bi bi-info-circle"></i>
                             </button>
+                            <button class="btn btn-sm ${status === 'IN' ? 'btn-outline-danger' : 'btn-outline-success'}" 
+                                    onclick="toggleVehicleStatus(${index})" title="${status === 'IN' ? 'Check Out' : 'Check In'}">
+                                <i class="bi ${status === 'IN' ? 'bi-box-arrow-right' : 'bi-box-arrow-in-left'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="vehicle-info">
+                        <div class="mb-1">
+                            <i class="bi bi-truck me-2 text-primary"></i>
+                            <small class="fw-medium">${model}</small>
+                        </div>
+                        <div class="mb-1">
+                            <i class="bi bi-person-fill me-2 text-success"></i>
+                            <small>${driver}</small>
+                        </div>
+                        <div>
+                            <i class="bi bi-building me-2 text-warning"></i>
+                            <small>${department}</small>
                         </div>
                     </div>
                 </div>
             `;
 
-            return col;
+            return item;
+        }
+
+        // Keep the old function for compatibility
+        function createVehicleCard(plateNumber, model, status, driver, index) {
+            return createVehicleListItem(plateNumber, model, status, driver, index);
         }
 
         function toggleVehicleStatus(index) {
@@ -369,8 +1310,9 @@
             const currentStatus = vehicle[6] || 'OUT';
             const newStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
             
-            const gate = prompt('Enter gate number:');
-            if (!gate) return;
+            // Get the selected gate from the dropdown
+            const gateSelector = document.getElementById('gateSelector');
+            const gate = gateSelector.value;
 
             const logData = {
                 plateNumber: vehicle[0],
@@ -387,7 +1329,7 @@
                         vehicleData[index][6] = newStatus;
                         displayVehicles();
                         updateStatistics();
-                        showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} successfully!`, 'success');
+                        showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${gate}!`, 'success');
                     }
                     showLoading(false);
                 })
@@ -407,11 +1349,13 @@
 
                 const plateNumber = (vehicle[0] || '').toLowerCase();
                 const model = (vehicle[1] || '').toLowerCase();
+                const driver = (vehicle[7] || '').toLowerCase();
                 const status = vehicle[6] || 'OUT';
 
                 const matchesSearch = !searchTerm || 
                     plateNumber.includes(searchTerm) || 
-                    model.includes(searchTerm);
+                    model.includes(searchTerm) ||
+                    driver.includes(searchTerm);
 
                 const matchesStatus = !filterStatus || status === filterStatus;
 
@@ -500,6 +1444,821 @@
                     toastElement.remove();
                 }
             }, 5000);
+        }
+
+        function showAddVehicleModal() {
+            if (currentUser.role !== 'admin') {
+                showToast('Only administrators can add vehicles', 'danger');
+                return;
+            }
+            
+            // Clear form
+            document.getElementById('addVehicleForm').reset();
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('addVehicleModal'));
+            modal.show();
+        }
+
+        function saveNewVehicle() {
+            const plateNumber = document.getElementById('newPlateNumber').value.trim();
+            const model = document.getElementById('newModel').value.trim();
+            
+            if (!plateNumber || !model) {
+                showToast('Plate number and model are required', 'danger');
+                return;
+            }
+            
+            // Check if plate number already exists
+            for (let i = 1; i < allVehicles.length; i++) {
+                if (allVehicles[i][0] === plateNumber) {
+                    showToast('Vehicle with this plate number already exists', 'danger');
+                    return;
+                }
+            }
+            
+            const newVehicleData = [
+                plateNumber,
+                model,
+                document.getElementById('newColor').value || '',
+                document.getElementById('newDepartment').value || '',
+                document.getElementById('newYear').value || '',
+                document.getElementById('newType').value || 'Car',
+                document.getElementById('newStatus').value || 'OUT',
+                document.getElementById('newDriver').value || '',
+                document.getElementById('newDriver').value || '', // Assigned drivers same as current driver
+                document.getElementById('newAccessStatus').value || 'Access'
+            ];
+            
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(success) {
+                    if (success) {
+                        // Add to local data
+                        allVehicles.push(newVehicleData);
+                        vehicleData = allVehicles;
+                        
+                        // Update display
+                        displayVehicles();
+                        updateStatistics();
+                        
+                        // Hide modal
+                        bootstrap.Modal.getInstance(document.getElementById('addVehicleModal')).hide();
+                        
+                        showToast('Vehicle added successfully!', 'success');
+                    }
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to add vehicle: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .updateVehicleRecord(-1, newVehicleData, currentUser.role);
+        }
+
+        function showVehicleDetails(index) {
+            const vehicle = vehicleData[index];
+            const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
+            
+            document.getElementById('detailsModalTitle').textContent = 'Vehicle Details - ' + vehicle[0];
+            
+            const accessStatus = vehicle[9] || 'Access';
+            const accessClass = accessStatus === 'Access' ? 'bg-success' : 
+                               accessStatus === 'No Access' ? 'bg-warning' : 'bg-danger';
+            const accessTextClass = accessStatus === 'No Access' ? 'text-dark' : 'text-white';
+            
+            document.getElementById('detailsModalBody').innerHTML = `
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <div class="plate-number text-center fs-4">${vehicle[0]}</div>
+                    </div>
+                </div>
+                <table class="table table-striped">
+                    <tr><th width="40%">Make/Model</th><td>${vehicle[1] || ''}</td></tr>
+                    <tr><th>Color</th><td>${vehicle[2] || ''}</td></tr>
+                    <tr><th>Department</th><td>${vehicle[3] || ''}</td></tr>
+                    <tr><th>Year</th><td>${vehicle[4] || ''}</td></tr>
+                    <tr><th>Type</th><td>${vehicle[5] || ''}</td></tr>
+                    <tr><th>Status</th><td><span class="badge ${vehicle[6] === 'IN' ? 'status-in' : 'status-out'}">${vehicle[6] || 'OUT'}</span></td></tr>
+                    <tr><th>Current Driver</th><td>${vehicle[7] || 'Unassigned'}</td></tr>
+                    <tr><th>Assigned Drivers</th><td>${vehicle[8] || 'None'}</td></tr>
+                    <tr><th>Access Status</th><td><span class="badge ${accessClass} ${accessTextClass}">${accessStatus}</span></td></tr>
+                </table>
+            `;
+            
+            // Add action buttons based on user role
+            const footer = document.getElementById('detailsModalFooter');
+            if (currentUser.role === 'admin') {
+                footer.innerHTML = `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
+                        <i class="bi bi-pencil-square me-2"></i>Edit
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="deleteVehicle(${index})">
+                        <i class="bi bi-trash me-2"></i>Delete
+                    </button>
+                `;
+            } else {
+                footer.innerHTML = `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                `;
+            }
+            
+            modal.show();
+        }
+
+        function editVehicle(index) {
+            if (currentUser.role !== 'admin') {
+                showToast('Only administrators can edit vehicles', 'danger');
+                return;
+            }
+            
+            const vehicle = vehicleData[index];
+            
+            // Hide details modal and show edit modal
+            bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
+            
+            // Populate edit form
+            document.getElementById('editVehicleIndex').value = index;
+            document.getElementById('editPlateNumber').value = vehicle[0] || '';
+            document.getElementById('editModel').value = vehicle[1] || '';
+            document.getElementById('editColor').value = vehicle[2] || '';
+            document.getElementById('editDepartment').value = vehicle[3] || '';
+            document.getElementById('editYear').value = vehicle[4] || '';
+            document.getElementById('editType').value = vehicle[5] || 'Car';
+            document.getElementById('editStatus').value = vehicle[6] || 'OUT';
+            document.getElementById('editDriver').value = vehicle[7] || '';
+            document.getElementById('editAssignedDrivers').value = vehicle[8] || '';
+            document.getElementById('editAccessStatus').value = vehicle[9] || 'Access';
+            
+            // Show edit modal
+            const modal = new bootstrap.Modal(document.getElementById('editVehicleModal'));
+            modal.show();
+        }
+
+        function saveVehicleEdit() {
+            const index = parseInt(document.getElementById('editVehicleIndex').value);
+            const plateNumber = document.getElementById('editPlateNumber').value.trim();
+            const model = document.getElementById('editModel').value.trim();
+            
+            if (!plateNumber || !model) {
+                showToast('Plate number and model are required', 'danger');
+                return;
+            }
+            
+            // Check if plate number already exists (excluding current vehicle)
+            for (let i = 1; i < allVehicles.length; i++) {
+                if (i !== index && allVehicles[i][0] === plateNumber) {
+                    showToast('Another vehicle with this plate number already exists', 'danger');
+                    return;
+                }
+            }
+            
+            const updatedVehicleData = [
+                plateNumber,
+                model,
+                document.getElementById('editColor').value || '',
+                document.getElementById('editDepartment').value || '',
+                document.getElementById('editYear').value || '',
+                document.getElementById('editType').value || 'Car',
+                document.getElementById('editStatus').value || 'OUT',
+                document.getElementById('editDriver').value || '',
+                document.getElementById('editAssignedDrivers').value || '',
+                document.getElementById('editAccessStatus').value || 'Access'
+            ];
+            
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(success) {
+                    if (success) {
+                        // Update local data
+                        allVehicles[index] = updatedVehicleData;
+                        vehicleData = allVehicles;
+                        
+                        // Update display
+                        displayVehicles();
+                        updateStatistics();
+                        
+                        // Hide modal
+                        bootstrap.Modal.getInstance(document.getElementById('editVehicleModal')).hide();
+                        
+                        showToast('Vehicle updated successfully!', 'success');
+                    }
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to update vehicle: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .updateVehicleRecord(index, updatedVehicleData, currentUser.role);
+        }
+
+        function deleteVehicle(index) {
+            if (currentUser.role !== 'admin') {
+                showToast('Only administrators can delete vehicles', 'danger');
+                return;
+            }
+            
+            const vehicle = vehicleData[index];
+            const plateNumber = vehicle[0];
+            
+            // Confirm deletion
+            if (!confirm(`Are you sure you want to delete vehicle ${plateNumber}?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+            
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(success) {
+                    if (success) {
+                        // Remove from local data
+                        allVehicles.splice(index, 1);
+                        vehicleData = allVehicles;
+                        
+                        // Update display
+                        displayVehicles();
+                        updateStatistics();
+                        
+                        // Hide modal
+                        bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
+                        
+                        showToast('Vehicle deleted successfully!', 'success');
+                    }
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to delete vehicle: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .deleteVehicleRecord(index, currentUser.role);
+        }
+
+        // User Management Functions
+        let allUsers = [];
+
+        function showUserManagement() {
+            if (!hasPermission('manage_users')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+            
+            loadUsers();
+            const modal = new bootstrap.Modal(document.getElementById('userManagementModal'));
+            modal.show();
+        }
+
+        function loadUsers() {
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(users) {
+                    allUsers = users || [];
+                    displayUsers();
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to load users: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .getUserList();
+        }
+
+        function displayUsers() {
+            const container = document.getElementById('usersList');
+            container.innerHTML = '';
+
+            if (allUsers.length <= 1) {
+                container.innerHTML = '<div class="text-center py-3 text-muted">No users found</div>';
+                return;
+            }
+
+            for (let i = 1; i < allUsers.length; i++) {
+                const user = allUsers[i];
+                if (!user || user.length < 5) continue;
+
+                const userCard = createUserCard(user, i);
+                container.appendChild(userCard);
+            }
+        }
+
+        function createUserCard(user, index) {
+            const card = document.createElement('div');
+            card.className = `card user-card ${user[2]} mb-2`;
+
+            const status = user[5] || 'active';
+            const statusClass = status === 'active' ? 'success' : status === 'inactive' ? 'secondary' : 'danger';
+
+            card.innerHTML = `
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">${user[3] || user[0]}</h6>
+                            <small class="text-muted">@${user[0]}</small>
+                            <div class="mt-1">
+                                <span class="badge role-badge ${user[2]}">${(user[2] || 'user').charAt(0).toUpperCase() + (user[2] || 'user').slice(1)}</span>
+                                <span class="badge bg-${statusClass} ms-1">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editUser(${index})" title="Edit User">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${index})" title="Delete User">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${user[4] ? `<small class="text-muted"><i class="bi bi-envelope me-1"></i>${user[4]}</small>` : ''}
+                </div>
+            `;
+
+            return card;
+        }
+
+        function showAddUserModal() {
+            if (!hasPermission('manage_users')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            // Clear form
+            document.getElementById('addEditUserForm').reset();
+            document.getElementById('editUserIndex').value = '-1';
+            document.getElementById('addEditUserTitle').innerHTML = '<i class="bi bi-person-plus me-2"></i>Add User';
+            document.getElementById('passwordSection').querySelector('.form-text').style.display = 'none';
+
+            const modal = new bootstrap.Modal(document.getElementById('addEditUserModal'));
+            modal.show();
+        }
+
+        function editUser(index) {
+            if (!hasPermission('manage_users')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const user = allUsers[index];
+            
+            // Populate form
+            document.getElementById('editUserIndex').value = index;
+            document.getElementById('userUsername').value = user[0] || '';
+            document.getElementById('userFullName').value = user[3] || '';
+            document.getElementById('userEmail').value = user[4] || '';
+            document.getElementById('userRole').value = user[2] || 'user';
+            document.getElementById('userStatus').value = user[5] || 'active';
+            document.getElementById('userPassword').value = '';
+            
+            document.getElementById('addEditUserTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Edit User';
+            document.getElementById('passwordSection').querySelector('.form-text').style.display = 'block';
+
+            const modal = new bootstrap.Modal(document.getElementById('addEditUserModal'));
+            modal.show();
+        }
+
+        function saveUser() {
+            const index = parseInt(document.getElementById('editUserIndex').value);
+            const username = document.getElementById('userUsername').value.trim();
+            const fullName = document.getElementById('userFullName').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            const role = document.getElementById('userRole').value;
+            const status = document.getElementById('userStatus').value;
+            const password = document.getElementById('userPassword').value;
+
+            if (!username || !fullName) {
+                showToast('Username and full name are required', 'danger');
+                return;
+            }
+
+            if (index === -1 && !password) {
+                showToast('Password is required for new users', 'danger');
+                return;
+            }
+
+            // Check if username already exists (excluding current user)
+            for (let i = 1; i < allUsers.length; i++) {
+                if (i !== index && allUsers[i][0] === username) {
+                    showToast('Username already exists', 'danger');
+                    return;
+                }
+            }
+
+            const userData = [
+                username,
+                password || null, // null means don't change password
+                role,
+                fullName,
+                email,
+                status,
+                new Date().toISOString()
+            ];
+
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(success) {
+                    if (success) {
+                        if (index === -1) {
+                            allUsers.push(userData);
+                        } else {
+                            // Keep existing password if not provided
+                            if (!password) {
+                                userData[1] = allUsers[index][1];
+                            }
+                            allUsers[index] = userData;
+                        }
+                        
+                        displayUsers();
+                        bootstrap.Modal.getInstance(document.getElementById('addEditUserModal')).hide();
+                        showToast('User saved successfully!', 'success');
+                    }
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to save user: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .saveUser(index, userData, currentUser.role);
+        }
+
+        function deleteUser(index) {
+            if (!hasPermission('manage_users')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const user = allUsers[index];
+            const username = user[0];
+
+            // Prevent deleting yourself
+            if (username === currentUser.username) {
+                showToast('Cannot delete your own account', 'danger');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(success) {
+                    if (success) {
+                        allUsers.splice(index, 1);
+                        displayUsers();
+                        showToast('User deleted successfully!', 'success');
+                    }
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to delete user: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .deleteUser(index, currentUser.role);
+        }
+
+        function showRoleSettings() {
+            const modal = new bootstrap.Modal(document.getElementById('roleSettingsModal'));
+            modal.show();
+        }
+
+        // Gate Management Functions - Simplified
+        let allGates = [];
+        let activeGates = [];
+
+        function loadActiveGates() {
+            google.script.run
+                .withSuccessHandler(function(gates) {
+                    activeGates = gates;
+                    updateGateSelector();
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Failed to load active gates:', error);
+                    // Fallback to default gates
+                    activeGates = [
+                        { id: 'Main Gate', name: 'Main Gate' },
+                        { id: 'Back Gate', name: 'Back Gate' }
+                    ];
+                    updateGateSelector();
+                })
+                .getActiveGates();
+        }
+
+        function updateGateSelector() {
+            const gateSelector = document.getElementById('gateSelector');
+            if (!gateSelector) return;
+
+            // Clear existing options
+            gateSelector.innerHTML = '';
+
+            // Add active gates
+            activeGates.forEach(gate => {
+                const option = document.createElement('option');
+                option.value = gate.id;
+                
+                // Add icon based on gate name
+                let icon = '🏛️'; // Default
+                if (gate.name.toLowerCase().includes('main')) icon = '🏛️';
+                else if (gate.name.toLowerCase().includes('back')) icon = '🚪';
+                else if (gate.name.toLowerCase().includes('service')) icon = '🔧';
+                else if (gate.name.toLowerCase().includes('emergency')) icon = '🚨';
+                
+                option.textContent = `${icon} ${gate.name}`;
+                gateSelector.appendChild(option);
+            });
+
+            // Select first gate by default
+            if (activeGates.length > 0) {
+                gateSelector.value = activeGates[0].id;
+            }
+        }
+
+        function showGateManagement() {
+            if (!hasPermission('manage_gates')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('gateManagementModal'));
+            modal.show();
+            
+            loadGates();
+        }
+
+        function loadGates() {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    allGates = data;
+                    displayGates();
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to load gates: ' + error, 'danger');
+                })
+                .getGateList();
+        }
+
+        function displayGates() {
+            const container = document.getElementById('gateListContainer');
+            
+            if (allGates.length <= 1) {
+                container.innerHTML = '<div class="text-center py-3 text-muted">No gates found</div>';
+                return;
+            }
+
+            let gatesHtml = '<div class="list-group">';
+            
+            for (let i = 1; i < allGates.length; i++) {
+                const gate = allGates[i];
+                gatesHtml += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${gate[0]}</span>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editGate(${i})" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteGate(${i})" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            gatesHtml += '</div>';
+            container.innerHTML = gatesHtml;
+        }
+
+        function showAddGateForm() {
+            document.getElementById('gateForm').style.display = 'block';
+            document.getElementById('gateFormTitle').textContent = 'Add New Gate';
+            document.getElementById('editGateIndex').value = '-1';
+            document.getElementById('gateName').value = '';
+            document.getElementById('gateName').focus();
+        }
+
+        function editGate(index) {
+            const gate = allGates[index];
+            document.getElementById('gateForm').style.display = 'block';
+            document.getElementById('gateFormTitle').textContent = 'Edit Gate';
+            document.getElementById('editGateIndex').value = index;
+            document.getElementById('gateName').value = gate[0];
+            document.getElementById('gateName').focus();
+        }
+
+        function cancelGateForm() {
+            document.getElementById('gateForm').style.display = 'none';
+            document.getElementById('addEditGateForm').reset();
+        }
+
+        function saveGate() {
+            const gateName = document.getElementById('gateName').value.trim();
+            const editIndex = parseInt(document.getElementById('editGateIndex').value);
+
+            if (!gateName) {
+                showToast('Gate name is required', 'danger');
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadGates();
+                        loadActiveGates(); // Refresh gate selector
+                        cancelGateForm();
+                        showToast(`Gate ${result.action} successfully!`, 'success');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to save gate: ' + error, 'danger');
+                })
+                .saveGate(gateName, currentUser.role, editIndex);
+        }
+
+        function deleteGate(index) {
+            const gate = allGates[index];
+            
+            if (!confirm(`Are you sure you want to delete "${gate[0]}"?`)) {
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadGates();
+                        loadActiveGates(); // Refresh gate selector
+                        showToast('Gate deleted successfully!', 'success');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to delete gate: ' + error, 'danger');
+                })
+                .deleteGate(index, currentUser.role);
+        }
+
+        // Vehicle Management Functions - CRUD
+        let allVehiclesManagement = [];
+
+        function showVehicleManagement() {
+            if (!hasPermission('manage_vehicles')) {
+                showToast('Access denied: Insufficient permissions', 'danger');
+                return;
+            }
+
+            const modal = new bootstrap.Modal(document.getElementById('vehicleManagementModal'));
+            modal.show();
+            
+            loadVehiclesForManagement();
+        }
+
+        function loadVehiclesForManagement() {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    allVehiclesManagement = data;
+                    displayVehiclesForManagement();
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to load vehicles: ' + error, 'danger');
+                })
+                .getVehicleListForManagement();
+        }
+
+        function displayVehiclesForManagement() {
+            const container = document.getElementById('vehicleListContainer');
+            
+            if (allVehiclesManagement.length <= 1) {
+                container.innerHTML = '<div class="text-center py-3 text-muted">No vehicles found</div>';
+                return;
+            }
+
+            let vehiclesHtml = '<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr>';
+            vehiclesHtml += '<th>Plate Number</th><th>Make/Model</th><th>Status</th><th>Access</th><th>Actions</th>';
+            vehiclesHtml += '</tr></thead><tbody>';
+            
+            for (let i = 1; i < allVehiclesManagement.length; i++) {
+                const vehicle = allVehiclesManagement[i];
+                const status = vehicle[6] || 'OUT';
+                const statusClass = status === 'IN' ? 'text-success' : 'text-danger';
+                const accessStatus = vehicle[9] || 'Access';
+                const accessClass = accessStatus === 'Access' ? 'text-success' : 
+                                   accessStatus === 'No Access' ? 'text-warning' : 'text-danger';
+                
+                vehiclesHtml += `
+                    <tr>
+                        <td><strong>${vehicle[0]}</strong></td>
+                        <td>${vehicle[1]} ${vehicle[2] ? '(' + vehicle[2] + ')' : ''}</td>
+                        <td><span class="${statusClass}"><i class="bi bi-circle-fill me-1"></i>${status}</span></td>
+                        <td><span class="${accessClass}">${accessStatus}</span></td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editVehicleRecord(${i})" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteVehicleRecord(${i})" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            vehiclesHtml += '</tbody></table></div>';
+            container.innerHTML = vehiclesHtml;
+        }
+
+        function showAddVehicleForm() {
+            document.getElementById('vehicleForm').style.display = 'block';
+            document.getElementById('vehicleFormTitle').textContent = 'Add New Vehicle';
+            document.getElementById('editVehicleIndex').value = '-1';
+            document.getElementById('addEditVehicleForm').reset();
+            document.getElementById('vehiclePlateNumber').focus();
+        }
+
+        function editVehicleRecord(index) {
+            const vehicle = allVehiclesManagement[index];
+            document.getElementById('vehicleForm').style.display = 'block';
+            document.getElementById('vehicleFormTitle').textContent = 'Edit Vehicle';
+            document.getElementById('editVehicleIndex').value = index;
+            
+            // Populate form
+            document.getElementById('vehiclePlateNumber').value = vehicle[0] || '';
+            document.getElementById('vehicleModel').value = vehicle[1] || '';
+            document.getElementById('vehicleColor').value = vehicle[2] || '';
+            document.getElementById('vehicleDepartment').value = vehicle[3] || '';
+            document.getElementById('vehicleYear').value = vehicle[4] || '';
+            document.getElementById('vehicleType').value = vehicle[5] || 'Car';
+            document.getElementById('vehicleStatus').value = vehicle[6] || 'OUT';
+            document.getElementById('vehicleDriver').value = vehicle[7] || '';
+            document.getElementById('vehicleAssignedDrivers').value = vehicle[8] || '';
+            document.getElementById('vehicleAccessStatus').value = vehicle[9] || 'Access';
+            
+            document.getElementById('vehiclePlateNumber').focus();
+        }
+
+        function cancelVehicleForm() {
+            document.getElementById('vehicleForm').style.display = 'none';
+            document.getElementById('addEditVehicleForm').reset();
+        }
+
+        function saveVehicle() {
+            const plateNumber = document.getElementById('vehiclePlateNumber').value.trim();
+            const model = document.getElementById('vehicleModel').value.trim();
+            const editIndex = parseInt(document.getElementById('editVehicleIndex').value);
+
+            if (!plateNumber || !model) {
+                showToast('Plate number and make/model are required', 'danger');
+                return;
+            }
+
+            const vehicleData = {
+                plateNumber: plateNumber,
+                model: model,
+                color: document.getElementById('vehicleColor').value.trim(),
+                department: document.getElementById('vehicleDepartment').value.trim(),
+                year: document.getElementById('vehicleYear').value,
+                type: document.getElementById('vehicleType').value,
+                status: document.getElementById('vehicleStatus').value,
+                driver: document.getElementById('vehicleDriver').value.trim(),
+                assignedDrivers: document.getElementById('vehicleAssignedDrivers').value.trim(),
+                accessStatus: document.getElementById('vehicleAccessStatus').value
+            };
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadVehiclesForManagement();
+                        loadVehicles(); // Refresh main dashboard
+                        cancelVehicleForm();
+                        showToast(`Vehicle ${result.action} successfully!`, 'success');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to save vehicle: ' + error, 'danger');
+                })
+                .saveVehicleRecord(vehicleData, currentUser.role, editIndex);
+        }
+
+        function deleteVehicleRecord(index) {
+            const vehicle = allVehiclesManagement[index];
+            
+            if (!confirm(`Are you sure you want to delete vehicle "${vehicle[0]}"?\n\nNote: If the vehicle has recent activity, access will be revoked instead of deleting.`)) {
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadVehiclesForManagement();
+                        loadVehicles(); // Refresh main dashboard
+                        
+                        if (result.action === 'access_revoked') {
+                            showToast('Vehicle access revoked (recent activity detected)', 'warning');
+                        } else {
+                            showToast('Vehicle deleted successfully!', 'success');
+                        }
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to delete vehicle: ' + error, 'danger');
+                })
+                .deleteVehicleRecord(index, currentUser.role);
         }
     </script>
 </body>

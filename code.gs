@@ -10,6 +10,7 @@ const VEHICLE_SHEET = "VehicleMaster";
 const DRIVER_SHEET = "DriverMaster";
 const LOG_SHEET = "InOutLogs";
 const USERS_SHEET = "Users";
+const GATES_SHEET = "Gates";
 
 // Enhanced error handling
 class VehicleMonitoringError extends Error {
@@ -45,6 +46,140 @@ function doGet(e) {
 // Legacy functions kept for compatibility
 function loadIndex() {
   return doGet({parameter: {page: 'dashboard'}});
+}
+
+// Vehicle Management Functions - CRUD
+
+// Get all vehicles for management (enhanced)
+function getVehicleListForManagement() {
+  try {
+    console.log('Getting vehicle list for management...');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(VEHICLE_SHEET);
+    
+    if (!sheet) {
+      console.log('Vehicle sheet not found, creating initial setup...');
+      createInitialSheets();
+      createSampleData();
+      sheet = ss.getSheetByName(VEHICLE_SHEET);
+      if (!sheet) {
+        throw new Error('Failed to create vehicle sheet');
+      }
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('Vehicle management data retrieved successfully:', data.length, 'rows');
+    
+    if (data.length <= 1) {
+      console.log('No vehicle data found, creating sample data...');
+      createSampleData();
+      const updatedData = sheet.getDataRange().getValues();
+      console.log('Vehicle data after sample creation:', updatedData.length);
+      return updatedData;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting vehicle list for management:', error);
+    return [
+      ["Plate Number", "Make/Model", "Color", "Department/Company", "Year", "Type", "Status", "Current Driver", "Assigned Drivers", "Access Status"],
+      ["ABC-123", "Toyota Camry", "White", "IT Department", "2022", "Car", "OUT", "John Doe", "John Doe", "Access"]
+    ];
+  }
+}
+
+// Save vehicle (create or update) - for management
+function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    validateRequired(vehicleData.plateNumber, 'Plate Number');
+    validateRequired(vehicleData.model, 'Make/Model');
+
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    const cleanPlateNumber = sanitizeInput(vehicleData.plateNumber.trim().toUpperCase());
+    
+    // Check if plate number already exists (excluding current edit)
+    for (let i = 1; i < data.length; i++) {
+      if (i !== editIndex && data[i][0] === cleanPlateNumber) {
+        throw new Error("Vehicle with this plate number already exists");
+      }
+    }
+
+    const vehicleRow = [
+      cleanPlateNumber,
+      sanitizeInput(vehicleData.model || ''),
+      sanitizeInput(vehicleData.color || ''),
+      sanitizeInput(vehicleData.department || ''),
+      vehicleData.year || '',
+      vehicleData.type || 'Car',
+      vehicleData.status || 'OUT',
+      sanitizeInput(vehicleData.driver || ''),
+      sanitizeInput(vehicleData.assignedDrivers || ''),
+      vehicleData.accessStatus || 'Access'
+    ];
+
+    if (editIndex > 0 && editIndex < data.length) {
+      // Update existing vehicle
+      const range = sheet.getRange(editIndex + 1, 1, 1, vehicleRow.length);
+      range.setValues([vehicleRow]);
+      logUserActivity('system', 'vehicle_updated', `Vehicle ${cleanPlateNumber} updated`);
+      return { success: true, action: 'updated' };
+    } else {
+      // Create new vehicle
+      sheet.appendRow(vehicleRow);
+      logUserActivity('system', 'vehicle_created', `Vehicle ${cleanPlateNumber} created`);
+      return { success: true, action: 'created' };
+    }
+  } catch (error) {
+    console.error('Error saving vehicle:', error);
+    throw error;
+  }
+}
+
+// Delete vehicle (management)
+function deleteVehicleRecord(vehicleIndex, userRole) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    if (vehicleIndex < 1 || vehicleIndex >= data.length) {
+      throw new Error("Invalid vehicle index");
+    }
+    
+    const plateNumber = data[vehicleIndex][0];
+    
+    // Check if vehicle has recent activity
+    const logSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOG_SHEET);
+    if (logSheet) {
+      const logData = logSheet.getDataRange().getValues();
+      const recentLogs = logData.slice(-50); // Check last 50 logs
+      
+      const vehicleInRecentUse = recentLogs.some(row => row[1] === plateNumber);
+      if (vehicleInRecentUse) {
+        // Don't delete, just set access to No Access
+        sheet.getRange(vehicleIndex + 1, 10).setValue('No Access');
+        logUserActivity('system', 'vehicle_access_revoked', `Vehicle ${plateNumber} access revoked (recent activity)`);
+        return { success: true, action: 'access_revoked' };
+      }
+    }
+    
+    // Safe to delete
+    sheet.deleteRow(vehicleIndex + 1);
+    logUserActivity('system', 'vehicle_deleted', `Vehicle ${plateNumber} deleted`);
+    return { success: true, action: 'deleted' };
+  } catch (error) {
+    console.error('Error deleting vehicle:', error);
+    throw error;
+  }
 }
 
 // Get all vehicle records with error handling
@@ -151,6 +286,12 @@ function logVehicleAction(data) {
     // Check if vehicle has access
     if (data.action === 'IN' && accessStatus !== 'Access') {
       throw new Error(`Vehicle access denied. Status: ${accessStatus}`);
+    }
+    
+    // Validate gate access and permissions
+    const gateValidation = validateGateAccess(data.gate, data.action, data.plateNumber);
+    if (!gateValidation.allowed) {
+      throw new Error(`Gate access denied: ${gateValidation.reason}`);
     }
     
     // Log the action
@@ -340,6 +481,22 @@ function deleteDriverRecord(rowIndex, userRole) {
   }
 }
 
+// Admin-only: delete vehicle record
+function deleteVehicleRecord(rowIndex, userRole) {
+  if (userRole !== "admin") {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    sheet.deleteRow(rowIndex + 1);
+    return true;
+  } catch (error) {
+    console.error('Error deleting vehicle:', error);
+    throw error;
+  }
+}
+
 // Include HTML pages
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
@@ -440,10 +597,40 @@ function createInitialSheets() {
     let usersSheet = ss.getSheetByName(USERS_SHEET);
     if (!usersSheet) {
       usersSheet = ss.insertSheet(USERS_SHEET);
-      usersSheet.getRange(1, 1, 1, 5).setValues([
-        ["Username", "Password", "Role", "Email", "Created Date"]
+      usersSheet.getRange(1, 1, 1, 7).setValues([
+        ["Username", "Password", "Role", "Full Name", "Email", "Status", "Created Date"]
       ]);
-      usersSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
+      usersSheet.getRange(1, 1, 1, 7).setFontWeight("bold");
+      usersSheet.setFrozenRows(1);
+      usersSheet.autoResizeColumns(1, 7);
+      
+      // Add data validation for Status
+      const statusRange = usersSheet.getRange(2, 6, 1000, 1);
+      const statusRule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(['active', 'inactive', 'suspended'], true)
+        .setAllowInvalid(false)
+        .build();
+      statusRange.setDataValidation(statusRule);
+      
+      // Add data validation for Role
+      const roleRange = usersSheet.getRange(2, 3, 1000, 1);
+      const roleRule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(['super-admin', 'admin', 'supervisor', 'security', 'user'], true)
+        .setAllowInvalid(false)
+        .build();
+      roleRange.setDataValidation(roleRule);
+    }
+    
+    // Create Gates sheet (simplified)
+    let gatesSheet = ss.getSheetByName(GATES_SHEET);
+    if (!gatesSheet) {
+      gatesSheet = ss.insertSheet(GATES_SHEET);
+      gatesSheet.getRange(1, 1, 1, 1).setValues([
+        ["Gate Name"]
+      ]);
+      gatesSheet.getRange(1, 1, 1, 1).setFontWeight("bold");
+      gatesSheet.setFrozenRows(1);
+      gatesSheet.autoResizeColumns(1, 1);
     }
     
     return true;
@@ -466,13 +653,15 @@ function createDefaultAdmin() {
       }
     }
     
-    // Add default admin
+    // Add default admin with enhanced structure
     sheet.appendRow([
       'admin',
       'admin123',
-      'admin',
+      'super-admin',
+      'System Administrator',
       'admin@vehiclemonitoring.com',
-      new Date()
+      'active',
+      new Date().toISOString()
     ]);
   } catch (error) {
     console.error('Error creating default admin:', error);
@@ -662,6 +851,597 @@ function testSpreadsheetAccess() {
   }
 }
 
+// User Management Functions
+
+// Get all users (admin only)
+function getUserList(userRole) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    if (!sheet) {
+      createInitialSheets();
+      createDefaultAdmin();
+      return getUserList(userRole);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('User data retrieved successfully:', data.length, 'rows');
+    return data;
+  } catch (error) {
+    console.error('Error getting user list:', error);
+    return [["Username", "Password", "Role", "Full Name", "Email", "Status", "Created Date"]];
+  }
+}
+
+// Save user (create or update)
+function saveUser(userData, userRole) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    validateRequired(userData.username, 'Username');
+    validateRequired(userData.password, 'Password');
+    validateRequired(userData.role, 'Role');
+    validateRequired(userData.fullName, 'Full Name');
+    validateRequired(userData.email, 'Email');
+
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    // Role validation based on current user's role
+    const validRoles = {
+      'super-admin': ['super-admin', 'admin', 'supervisor', 'security', 'user'],
+      'admin': ['supervisor', 'security', 'user']
+    };
+    
+    if (!validRoles[userRole].includes(userData.role)) {
+      throw new Error(`You cannot assign the role: ${userData.role}`);
+    }
+
+    let userExists = false;
+    let userRowIndex = -1;
+    
+    // Check if user already exists
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === userData.username) {
+        userExists = true;
+        userRowIndex = i;
+        break;
+      }
+    }
+
+    const userRow = [
+      sanitizeInput(userData.username),
+      sanitizeInput(userData.password),
+      userData.role,
+      sanitizeInput(userData.fullName),
+      sanitizeInput(userData.email),
+      userData.status || 'active',
+      userExists ? data[userRowIndex][6] : new Date().toISOString()
+    ];
+
+    if (userExists) {
+      // Update existing user
+      const range = sheet.getRange(userRowIndex + 1, 1, 1, userRow.length);
+      range.setValues([userRow]);
+      logUserActivity(userData.username, 'user_updated', 'success');
+    } else {
+      // Create new user
+      sheet.appendRow(userRow);
+      logUserActivity(userData.username, 'user_created', 'success');
+    }
+    
+    return { success: true, action: userExists ? 'updated' : 'created' };
+  } catch (error) {
+    console.error('Error saving user:', error);
+    throw error;
+  }
+}
+
+// Delete user (admin only)
+function deleteUser(username, userRole) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    validateRequired(username, 'Username');
+    
+    // Prevent deletion of admin user
+    if (username === 'admin') {
+      throw new Error("Cannot delete the default admin user");
+    }
+
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    let userRowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === username) {
+        userRowIndex = i;
+        break;
+      }
+    }
+    
+    if (userRowIndex === -1) {
+      throw new Error("User not found");
+    }
+    
+    // Check role permissions for deletion
+    const targetUserRole = data[userRowIndex][2];
+    if (userRole === 'admin' && ['super-admin', 'admin'].includes(targetUserRole)) {
+      throw new Error("You cannot delete users with admin privileges");
+    }
+    
+    sheet.deleteRow(userRowIndex + 1);
+    logUserActivity(username, 'user_deleted', 'success');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+}
+
+// Gate Management Functions - Simplified
+
+// Get all gates (simple)
+function getGateList() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(GATES_SHEET);
+    
+    if (!sheet) {
+      createInitialSheets();
+      sheet = ss.getSheetByName(GATES_SHEET);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    if (data.length <= 1) {
+      // Return default gates if no data
+      return [
+        ["Gate Name"],
+        ["Main Gate"],
+        ["Back Gate"],
+        ["Service Gate"]
+      ];
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error getting gate list:', error);
+    return [
+      ["Gate Name"],
+      ["Main Gate"],
+      ["Back Gate"]
+    ];
+  }
+}
+
+// Save gate (simple - just name)
+function saveGate(gateName, userRole, editIndex = -1) {
+  if (!['super-admin', 'admin', 'supervisor'].includes(userRole)) {
+    throw new Error("Unauthorized: Supervisor access or higher required.");
+  }
+
+  try {
+    if (!gateName || gateName.trim() === '') {
+      throw new Error("Gate name is required");
+    }
+
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    const cleanGateName = sanitizeInput(gateName.trim());
+    
+    // Check if gate name already exists (excluding current edit)
+    for (let i = 1; i < data.length; i++) {
+      if (i !== editIndex && data[i][0] === cleanGateName) {
+        throw new Error("Gate name already exists");
+      }
+    }
+
+    if (editIndex > 0 && editIndex < data.length) {
+      // Update existing gate
+      sheet.getRange(editIndex + 1, 1).setValue(cleanGateName);
+      return { success: true, action: 'updated' };
+    } else {
+      // Create new gate
+      sheet.appendRow([cleanGateName]);
+      return { success: true, action: 'created' };
+    }
+  } catch (error) {
+    console.error('Error saving gate:', error);
+    throw error;
+  }
+}
+
+// Delete gate (simple)
+function deleteGate(gateIndex, userRole) {
+  if (!['super-admin', 'admin', 'supervisor'].includes(userRole)) {
+    throw new Error("Unauthorized: Supervisor access or higher required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    if (gateIndex < 1 || gateIndex >= data.length) {
+      throw new Error("Invalid gate index");
+    }
+    
+    sheet.deleteRow(gateIndex + 1);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting gate:', error);
+    throw error;
+  }
+}
+
+// Get active gates for dropdown selection (simplified)
+function getActiveGates() {
+  try {
+    const data = getGateList();
+    const gates = [];
+    
+    for (let i = 1; i < data.length; i++) {
+      if (data[i] && data[i][0]) {
+        gates.push({
+          id: data[i][0],
+          name: data[i][0]
+        });
+      }
+    }
+    
+    return gates.length > 0 ? gates : [
+      { id: 'Main Gate', name: 'Main Gate' },
+      { id: 'Back Gate', name: 'Back Gate' }
+    ];
+  } catch (error) {
+    console.error('Error getting active gates:', error);
+    return [
+      { id: 'Main Gate', name: 'Main Gate' },
+      { id: 'Back Gate', name: 'Back Gate' }
+    ];
+  }
+}
+
+// Validate gate access for vehicles
+function validateGateAccess(gateId, action, plateNumber) {
+  try {
+    const gateSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
+    const vehicleSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    
+    if (!gateSheet) {
+      // If no gates sheet exists, allow access (backward compatibility)
+      return { allowed: true, reason: 'Gate validation bypassed - no gate configuration' };
+    }
+    
+    const gateData = gateSheet.getDataRange().getValues();
+    let gate = null;
+    
+    // Find the gate
+    for (let i = 1; i < gateData.length; i++) {
+      if (gateData[i][0] === gateId) {
+        gate = {
+          id: gateData[i][0],
+          name: gateData[i][1],
+          location: gateData[i][2],
+          type: gateData[i][3],
+          status: gateData[i][4],
+          accessLevel: gateData[i][5],
+          operatingHours: gateData[i][6],
+          description: gateData[i][7]
+        };
+        break;
+      }
+    }
+    
+    if (!gate) {
+      return { allowed: false, reason: `Gate ${gateId} not found` };
+    }
+    
+    // Check gate status
+    if (gate.status !== 'active') {
+      return { allowed: false, reason: `Gate is ${gate.status}` };
+    }
+    
+    // Check gate type vs action
+    if (gate.type === 'entry' && action === 'OUT') {
+      return { allowed: false, reason: 'This gate is for entry only' };
+    }
+    if (gate.type === 'exit' && action === 'IN') {
+      return { allowed: false, reason: 'This gate is for exit only' };
+    }
+    
+    // Check emergency gate restrictions
+    if (gate.accessLevel === 'emergency-only') {
+      return { allowed: false, reason: 'Emergency gate - authorized use only' };
+    }
+    
+    // Check operating hours (basic validation)
+    if (gate.operatingHours && gate.operatingHours !== '24/7') {
+      const now = new Date();
+      const currentHour = now.getHours();
+      
+      // Simple hour range validation (e.g., "06:00-18:00")
+      const hourMatch = gate.operatingHours.match(/(\d{1,2}):?\d{0,2}-(\d{1,2}):?\d{0,2}/);
+      if (hourMatch) {
+        const startHour = parseInt(hourMatch[1]);
+        const endHour = parseInt(hourMatch[2]);
+        
+        if (currentHour < startHour || currentHour >= endHour) {
+          return { allowed: false, reason: `Gate operating hours: ${gate.operatingHours}` };
+        }
+      }
+    }
+    
+    // High-security gate additional checks
+    if (gate.accessLevel === 'high-security') {
+      // Get vehicle information for additional validation
+      if (vehicleSheet) {
+        const vehicleData = vehicleSheet.getDataRange().getValues();
+        let vehicle = null;
+        
+        for (let i = 1; i < vehicleData.length; i++) {
+          if (vehicleData[i][0] === plateNumber) {
+            vehicle = vehicleData[i];
+            break;
+          }
+        }
+        
+        if (vehicle) {
+          const department = vehicle[3] || '';
+          // Allow high-security access for specific departments
+          const authorizedDepartments = ['Security', 'Executive', 'IT Department'];
+          
+          if (!authorizedDepartments.some(dept => department.toLowerCase().includes(dept.toLowerCase()))) {
+            return { allowed: false, reason: 'High-security gate requires special authorization' };
+          }
+        }
+      }
+    }
+    
+    return { allowed: true, reason: 'Access granted' };
+  } catch (error) {
+    console.error('Error validating gate access:', error);
+    // On error, allow access but log the issue
+    return { allowed: true, reason: 'Gate validation error - access granted by default' };
+  }
+}
+
+// Get gate statistics
+function getGateStatistics() {
+  try {
+    console.log('getGateStatistics called');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const gateSheet = ss.getSheetByName(GATES_SHEET);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    
+    if (!gateSheet) {
+      console.log('No gates sheet found');
+      return { totalGates: 0, activeGates: 0, usageToday: {}, busyGates: [], error: 'No gates configured' };
+    }
+    
+    const gateData = gateSheet.getDataRange().getValues();
+    console.log('Gate data length:', gateData.length);
+    
+    // Count gates
+    let totalGates = Math.max(0, gateData.length - 1); // Exclude header
+    let activeGates = 0;
+    
+    for (let i = 1; i < gateData.length; i++) {
+      if (gateData[i] && gateData[i][4] === 'active') {
+        activeGates++;
+      }
+    }
+    
+    let usageToday = {};
+    let busyGates = [];
+    
+    if (logSheet) {
+      try {
+        const logData = logSheet.getDataRange().getValues();
+        console.log('Log data length:', logData.length);
+        
+        // Calculate today's usage
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const gateActivity = {};
+        
+        for (let i = 1; i < logData.length; i++) {
+          if (logData[i] && logData[i][0] && logData[i][4]) {
+            const logDate = new Date(logData[i][0]);
+            if (logDate >= today) {
+              const gate = logData[i][4];
+              usageToday[gate] = (usageToday[gate] || 0) + 1;
+              gateActivity[gate] = (gateActivity[gate] || 0) + 1;
+            }
+          }
+        }
+        
+        // Find busiest gates
+        busyGates = Object.entries(gateActivity)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([gate, count]) => ({ gate, count }));
+      } catch (logError) {
+        console.error('Error processing log data:', logError);
+      }
+    }
+    
+    const result = {
+      totalGates,
+      activeGates,
+      usageToday,
+      busyGates
+    };
+    
+    console.log('Gate statistics result:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error getting gate statistics:', error);
+    return { 
+      totalGates: 0, 
+      activeGates: 0, 
+      usageToday: {}, 
+      busyGates: [],
+      error: error.message
+    };
+  }
+}
+
+// Get gate activity report
+function getGateActivityReport(gateId, dateFrom, dateTo) {
+  try {
+    const logSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOG_SHEET);
+    if (!logSheet) {
+      return { error: 'No activity logs found' };
+    }
+    
+    const logData = logSheet.getDataRange().getValues();
+    const activities = [];
+    
+    // Parse date filters
+    const fromDate = dateFrom ? new Date(dateFrom) : null;
+    const toDate = dateTo ? new Date(dateTo) : null;
+    
+    for (let i = 1; i < logData.length; i++) {
+      const logEntry = logData[i];
+      const logDate = new Date(logEntry[0]);
+      const logGate = logEntry[4];
+      
+      // Filter by gate if specified
+      if (gateId && logGate !== gateId) continue;
+      
+      // Filter by date range if specified
+      if (fromDate && logDate < fromDate) continue;
+      if (toDate && logDate > toDate) continue;
+      
+      activities.push({
+        timestamp: logEntry[0],
+        plateNumber: logEntry[1],
+        driverId: logEntry[2],
+        action: logEntry[3],
+        gate: logEntry[4],
+        remarks: logEntry[5],
+        loggedBy: logEntry[6],
+        accessStatus: logEntry[7]
+      });
+    }
+    
+    // Calculate summary statistics
+    const summary = {
+      totalActivities: activities.length,
+      entriesCount: activities.filter(a => a.action === 'IN').length,
+      exitsCount: activities.filter(a => a.action === 'OUT').length,
+      uniqueVehicles: [...new Set(activities.map(a => a.plateNumber))].length,
+      uniqueDrivers: [...new Set(activities.map(a => a.driverId))].length,
+      accessDeniedCount: activities.filter(a => a.accessStatus && a.accessStatus !== 'Access').length
+    };
+    
+    // Group by hour for activity patterns
+    const hourlyActivity = {};
+    activities.forEach(activity => {
+      const hour = new Date(activity.timestamp).getHours();
+      hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;
+    });
+    
+    return {
+      success: true,
+      activities: activities.slice(0, 100), // Limit to 100 most recent
+      summary: summary,
+      hourlyActivity: hourlyActivity,
+      dateRange: {
+        from: fromDate?.toISOString() || null,
+        to: toDate?.toISOString() || null
+      }
+    };
+  } catch (error) {
+    console.error('Error generating gate activity report:', error);
+    return { error: 'Failed to generate report: ' + error.message };
+  }
+}
+
+// Get comprehensive gate usage analytics
+function getGateAnalytics() {
+  try {
+    const gateSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
+    const logSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOG_SHEET);
+    
+    if (!gateSheet || !logSheet) {
+      return { error: 'Required sheets not found' };
+    }
+    
+    const gateData = gateSheet.getDataRange().getValues();
+    const logData = logSheet.getDataRange().getValues();
+    
+    // Calculate analytics for each gate
+    const gateAnalytics = [];
+    
+    for (let i = 1; i < gateData.length; i++) {
+      const gate = gateData[i];
+      const gateId = gate[0];
+      
+      // Count activities for this gate
+      const gateActivities = logData.filter(log => log[4] === gateId);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayActivities = gateActivities.filter(log => {
+        const logDate = new Date(log[0]);
+        return logDate >= today;
+      });
+      
+      const thisWeek = new Date();
+      thisWeek.setDate(thisWeek.getDate() - 7);
+      
+      const weekActivities = gateActivities.filter(log => {
+        const logDate = new Date(log[0]);
+        return logDate >= thisWeek;
+      });
+      
+      gateAnalytics.push({
+        gate: {
+          id: gateId,
+          name: gate[1],
+          location: gate[2],
+          type: gate[3],
+          status: gate[4],
+          accessLevel: gate[5]
+        },
+        usage: {
+          totalActivities: gateActivities.length,
+          todayActivities: todayActivities.length,
+          weekActivities: weekActivities.length,
+          entriesTotal: gateActivities.filter(log => log[3] === 'IN').length,
+          exitsTotal: gateActivities.filter(log => log[3] === 'OUT').length,
+          lastActivity: gateActivities.length > 0 ? gateActivities[gateActivities.length - 1][0] : null
+        }
+      });
+    }
+    
+    // Sort by activity level
+    gateAnalytics.sort((a, b) => b.usage.totalActivities - a.usage.totalActivities);
+    
+    return {
+      success: true,
+      analytics: gateAnalytics,
+      generatedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Error generating gate analytics:', error);
+    return { error: 'Failed to generate analytics: ' + error.message };
+  }
+}
+
 // Create sample data for initial setup
 function createSampleData() {
   try {
@@ -758,6 +1538,33 @@ function createSampleData() {
           usersSheet.appendRow(user);
         });
         console.log('Sample users added successfully');
+      }
+    }
+    
+    // Add sample gates if needed (simplified)
+    const gatesSheet = ss.getSheetByName(GATES_SHEET);
+    if (gatesSheet) {
+      let gateData;
+      try {
+        gateData = gatesSheet.getDataRange().getValues();
+      } catch (e) {
+        console.log('Error getting gate data range');
+        gateData = [];
+      }
+      
+      if (gateData.length <= 1) {
+        console.log('Adding sample gates...');
+        const sampleGates = [
+          ['Main Gate'],
+          ['Back Gate'],
+          ['Service Gate'],
+          ['Emergency Gate']
+        ];
+        
+        sampleGates.forEach(gate => {
+          gatesSheet.appendRow(gate);
+        });
+        console.log('Sample gates added successfully');
       }
     }
     
