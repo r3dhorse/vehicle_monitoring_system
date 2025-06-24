@@ -4,65 +4,122 @@
   Database: Google Sheets
 */
 
-// Spreadsheet Setup
+// Spreadsheet Setup - Consider using PropertiesService for production
 const SPREADSHEET_ID = "16Ifxb9dCZGl-xYpxStwHufkmzj2TZ8oRIYC3yf1CSqs";
 const VEHICLE_SHEET = "VehicleMaster";
 const DRIVER_SHEET = "DriverMaster";
 const LOG_SHEET = "InOutLogs";
 const USERS_SHEET = "Users";
 
+// Enhanced error handling
+class VehicleMonitoringError extends Error {
+  constructor(message, code = 'GENERAL_ERROR') {
+    super(message);
+    this.name = 'VehicleMonitoringError';
+    this.code = code;
+  }
+}
+
+// Utility functions for better security
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return input;
+  return input.toString().trim().replace(/[<>"'&]/g, '');
+}
+
+function validateRequired(value, fieldName) {
+  if (!value || (typeof value === 'string' && value.trim() === '')) {
+    throw new VehicleMonitoringError(`${fieldName} is required`, 'VALIDATION_ERROR');
+  }
+}
+
 // Serve HTML Web App
-function doGet() {
-  return HtmlService.createTemplateFromFile("login")
+function doGet(e) {
+  // Always serve the single-page application
+  return HtmlService.createTemplateFromFile("app")
     .evaluate()
-    .setTitle("Vehicle Monitoring Login")
+    .setTitle("Vehicle Monitoring System")
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-// Serve main page after login
+// Legacy functions kept for compatibility
 function loadIndex() {
-  return HtmlService.createTemplateFromFile("index")
-    .evaluate()
-    .getContent();
-}
-
-// Serve vehicle list page
-function loadVehicleList() {
-  return HtmlService.createTemplateFromFile("vehicle-list")
-    .evaluate()
-    .getContent();
+  return doGet({parameter: {page: 'dashboard'}});
 }
 
 // Get all vehicle records with error handling
 function getVehicleList() {
   try {
-    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    console.log('Getting vehicle list...');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(VEHICLE_SHEET);
+    
     if (!sheet) {
+      console.log('Vehicle sheet not found, creating initial setup...');
       createInitialSheets();
-      return [["Plate Number", "Model", "Year", "Type", "Status", "Current Driver", "Assigned Drivers"]];
+      createSampleData();
+      sheet = ss.getSheetByName(VEHICLE_SHEET);
+      if (!sheet) {
+        throw new Error('Failed to create vehicle sheet');
+      }
     }
+    
     const data = sheet.getDataRange().getValues();
-    return data.length > 0 ? data : [["Plate Number", "Model", "Year", "Type", "Status", "Current Driver", "Assigned Drivers"]];
+    console.log('Raw vehicle data length:', data.length);
+    
+    if (data.length <= 1) {
+      console.log('No vehicle data found, creating sample data...');
+      createSampleData();
+      const updatedData = sheet.getDataRange().getValues();
+      console.log('Vehicle data after sample creation:', updatedData.length);
+      return updatedData;
+    }
+    
+    console.log('Vehicle data retrieved successfully:', data.length, 'rows');
+    return data;
   } catch (error) {
     console.error('Error getting vehicle list:', error);
-    throw new Error('Failed to retrieve vehicle data');
+    // Return sample data structure to prevent frontend crashes
+    return [
+      ["Plate Number", "Make/Model", "Color", "Department/Company", "Year", "Type", "Status", "Current Driver", "Assigned Drivers", "Access Status"],
+      ["ABC-123", "Toyota Camry", "White", "IT Department", "2022", "Car", "OUT", "John Doe", "John Doe", "Access"],
+      ["XYZ-456", "Honda Civic", "Blue", "HR Department", "2021", "Car", "IN", "Jane Smith", "Jane Smith", "Access"]
+    ];
   }
 }
 
 // Get all driver records with error handling
 function getDriverList() {
   try {
-    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+    
     if (!sheet) {
+      console.log('Driver sheet not found, creating initial setup...');
       createInitialSheets();
-      return [["Driver ID", "Name", "License Number", "Phone", "Email", "Status"]];
+      createSampleData();
+      sheet = ss.getSheetByName(DRIVER_SHEET);
+      if (!sheet) {
+        throw new Error('Failed to create driver sheet');
+      }
     }
+    
     const data = sheet.getDataRange().getValues();
-    return data.length > 0 ? data : [["Driver ID", "Name", "License Number", "Phone", "Email", "Status"]];
+    
+    if (data.length <= 1) {
+      console.log('No driver data found, creating sample data...');
+      createSampleData();
+      const updatedData = sheet.getDataRange().getValues();
+      console.log('Driver data after sample creation:', updatedData.length);
+      return updatedData;
+    }
+    
+    console.log('Driver data retrieved successfully:', data.length, 'rows');
+    return data;
   } catch (error) {
     console.error('Error getting driver list:', error);
-    throw new Error('Failed to retrieve driver data');
+    // Return minimal structure to prevent frontend crashes
+    return [["Driver ID", "Name", "License Number", "Phone", "Email", "Status"]];
   }
 }
 
@@ -78,6 +135,24 @@ function logVehicleAction(data) {
       return logVehicleAction(data);
     }
     
+    // Get vehicle data and check access status
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    let vehicleRow = -1;
+    let accessStatus = 'Access'; // Default if not found
+    
+    for (let i = 1; i < vehicleData.length; i++) {
+      if (vehicleData[i][0] === data.plateNumber) {
+        vehicleRow = i;
+        accessStatus = vehicleData[i][9] || 'Access'; // Access Status column
+        break;
+      }
+    }
+    
+    // Check if vehicle has access
+    if (data.action === 'IN' && accessStatus !== 'Access') {
+      throw new Error(`Vehicle access denied. Status: ${accessStatus}`);
+    }
+    
     // Log the action
     logSheet.appendRow([
       new Date(),
@@ -86,45 +161,65 @@ function logVehicleAction(data) {
       data.action,
       data.gate,
       data.remarks || "",
-      Session.getActiveUser().getEmail() || "Unknown"
+      Session.getActiveUser().getEmail() || "Unknown",
+      accessStatus
     ]);
     
     // Update vehicle status
-    const vehicleData = vehicleSheet.getDataRange().getValues();
-    for (let i = 1; i < vehicleData.length; i++) {
-      if (vehicleData[i][0] === data.plateNumber) {
-        vehicleSheet.getRange(i + 1, 5).setValue(data.action);
-        break;
-      }
+    if (vehicleRow !== -1) {
+      vehicleSheet.getRange(vehicleRow + 1, 7).setValue(data.action);
     }
     
-    return true;
+    return { success: true, accessStatus: accessStatus };
   } catch (error) {
     console.error('Error logging vehicle action:', error);
-    throw new Error('Failed to log vehicle action');
+    throw error;
   }
 }
 
 // Validate vehicle and driver assignment
 function validateVehicleDriver(plateNumber, driverId) {
-  const vehicleSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
-  const driverSheet =
-    SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+  try {
+    const vehicleSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    const driverSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
 
-  const vehicles = vehicleSheet.getDataRange().getValues();
-  const drivers = driverSheet.getDataRange().getValues();
+    const vehicles = vehicleSheet.getDataRange().getValues();
+    const drivers = driverSheet.getDataRange().getValues();
 
-  const vehicle = vehicles.find((row) => row[0] === plateNumber);
-  const driver = drivers.find((row) => row[0] === driverId);
+    const vehicle = vehicles.find((row) => row[0] === plateNumber);
+    const driver = drivers.find((row) => row[0] === driverId);
 
-  if (!vehicle || !driver) return false;
+    if (!vehicle || !driver) {
+      return { valid: false, message: 'Vehicle or driver not found' };
+    }
 
-  const assignedDrivers = vehicle[6]
-    .toString()
-    .split(",")
-    .map((x) => x.trim());
-  return assignedDrivers.includes(driverId);
+    // Check if driver is active
+    const driverStatus = driver[5] || 'Active';
+    if (driverStatus !== 'Active') {
+      return { valid: false, message: `Driver status: ${driverStatus}` };
+    }
+
+    // Check if vehicle has access
+    const vehicleAccess = vehicle[9] || 'Access';
+    if (vehicleAccess !== 'Access') {
+      return { valid: false, message: `Vehicle access: ${vehicleAccess}` };
+    }
+
+    // Check if driver is assigned to vehicle
+    const assignedDrivers = (vehicle[8] || '')
+      .toString()
+      .split(",")
+      .map((x) => x.trim());
+    
+    if (!assignedDrivers.includes(driverId)) {
+      return { valid: false, message: 'Driver not assigned to this vehicle' };
+    }
+
+    return { valid: true, message: 'Validation successful' };
+  } catch (error) {
+    console.error('Error validating vehicle-driver:', error);
+    return { valid: false, message: 'Validation error occurred' };
+  }
 }
 
 // User Login with password hashing simulation
@@ -195,6 +290,56 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
   }
 }
 
+// Admin-only: update driver record
+function updateDriverRecord(rowIndex, updatedData, userRole) {
+  if (userRole !== "admin") {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+    
+    // If rowIndex is -1, it's a new driver
+    if (rowIndex === -1) {
+      // Check if driver ID already exists
+      const data = sheet.getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === updatedData[0]) {
+          throw new Error("Driver with this ID already exists");
+        }
+      }
+      
+      // Add new driver
+      sheet.appendRow(updatedData);
+    } else {
+      // Update existing driver
+      const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
+      range.setValues([updatedData]);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating driver:', error);
+    throw error;
+  }
+}
+
+// Admin-only: delete driver record
+function deleteDriverRecord(rowIndex, userRole) {
+  if (userRole !== "admin") {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+    sheet.deleteRow(rowIndex + 1);
+    return true;
+  } catch (error) {
+    console.error('Error deleting driver:', error);
+    throw error;
+  }
+}
+
 // Include HTML pages
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
@@ -209,10 +354,50 @@ function createInitialSheets() {
     let vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
     if (!vehicleSheet) {
       vehicleSheet = ss.insertSheet(VEHICLE_SHEET);
-      vehicleSheet.getRange(1, 1, 1, 7).setValues([
-        ["Plate Number", "Model", "Year", "Type", "Status", "Current Driver", "Assigned Drivers"]
+      vehicleSheet.getRange(1, 1, 1, 10).setValues([
+        ["Plate Number", "Make/Model", "Color", "Department/Company", "Year", "Type", "Status", "Current Driver", "Assigned Drivers", "Access Status"]
       ]);
-      vehicleSheet.getRange(1, 1, 1, 7).setFontWeight("bold");
+      vehicleSheet.getRange(1, 1, 1, 10).setFontWeight("bold");
+      
+      // Format the sheet
+      vehicleSheet.setFrozenRows(1);
+      vehicleSheet.autoResizeColumns(1, 10);
+      
+      // Add data validation for Access Status
+      const accessStatusRange = vehicleSheet.getRange(2, 10, 1000, 1);
+      const accessRule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(['Access', 'No Access', 'Banned'], true)
+        .setAllowInvalid(false)
+        .build();
+      accessStatusRange.setDataValidation(accessRule);
+      
+      // Add conditional formatting for Access Status
+      try {
+        const accessRules = [
+          SpreadsheetApp.newConditionalFormatRule()
+            .whenTextEqualTo('Access')
+            .setBackground('#d4edda')
+            .setFontColor('#155724')
+            .setRanges([accessStatusRange])
+            .build(),
+          SpreadsheetApp.newConditionalFormatRule()
+            .whenTextEqualTo('No Access')
+            .setBackground('#fff3cd')
+            .setFontColor('#856404')
+            .setRanges([accessStatusRange])
+            .build(),
+          SpreadsheetApp.newConditionalFormatRule()
+            .whenTextEqualTo('Banned')
+            .setBackground('#f8d7da')
+            .setFontColor('#721c24')
+            .setRanges([accessStatusRange])
+            .build()
+        ];
+        
+        accessRules.forEach(rule => vehicleSheet.addConditionalFormatRule(rule));
+      } catch (formatError) {
+        console.log('Warning: Could not add conditional formatting:', formatError);
+      }
     }
     
     // Create Driver Master sheet
@@ -223,16 +408,32 @@ function createInitialSheets() {
         ["Driver ID", "Name", "License Number", "Phone", "Email", "Status"]
       ]);
       driverSheet.getRange(1, 1, 1, 6).setFontWeight("bold");
+      driverSheet.setFrozenRows(1);
+      driverSheet.autoResizeColumns(1, 6);
+      
+      // Add data validation for Driver Status
+      const driverStatusRange = driverSheet.getRange(2, 6, 1000, 1);
+      const driverStatusRule = SpreadsheetApp.newDataValidation()
+        .requireValueInList(['Active', 'Inactive', 'Suspended'], true)
+        .setAllowInvalid(false)
+        .build();
+      driverStatusRange.setDataValidation(driverStatusRule);
     }
     
     // Create Logs sheet
     let logSheet = ss.getSheetByName(LOG_SHEET);
     if (!logSheet) {
       logSheet = ss.insertSheet(LOG_SHEET);
-      logSheet.getRange(1, 1, 1, 7).setValues([
-        ["Timestamp", "Plate Number", "Driver ID", "Action", "Gate", "Remarks", "Logged By"]
+      logSheet.getRange(1, 1, 1, 8).setValues([
+        ["Timestamp", "Plate Number", "Driver ID", "Action", "Gate", "Remarks", "Logged By", "Access Status at Time"]
       ]);
-      logSheet.getRange(1, 1, 1, 7).setFontWeight("bold");
+      logSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+      logSheet.setFrozenRows(1);
+      logSheet.autoResizeColumns(1, 8);
+      
+      // Format timestamp column
+      const timestampRange = logSheet.getRange(2, 1, 1000, 1);
+      timestampRange.setNumberFormat("yyyy-mm-dd hh:mm:ss");
     }
     
     // Create Users sheet
@@ -308,6 +509,10 @@ function logUserActivity(username, action, result) {
 function getVehicleStatistics() {
   try {
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (!sheet) {
+      return { total: 0, in: 0, out: 0, byType: {}, byDriver: {} };
+    }
+    
     const data = sheet.getDataRange().getValues();
     
     let stats = {
@@ -319,10 +524,12 @@ function getVehicleStatistics() {
     };
     
     for (let i = 1; i < data.length; i++) {
+      if (!data[i] || data[i].length < 10) continue;
+      
       stats.total++;
-      const status = data[i][4] || 'OUT';
-      const type = data[i][3] || 'Unknown';
-      const driver = data[i][5] || 'Unassigned';
+      const status = data[i][6] || 'OUT'; // Status is at index 6
+      const type = data[i][5] || 'Unknown'; // Type is at index 5
+      const driver = data[i][7] || 'Unassigned'; // Current driver is at index 7
       
       if (status === 'IN') {
         stats.in++;
@@ -337,7 +544,7 @@ function getVehicleStatistics() {
     return stats;
   } catch (error) {
     console.error('Error getting statistics:', error);
-    return null;
+    return { total: 0, in: 0, out: 0, byType: {}, byDriver: {} };
   }
 }
 
@@ -395,5 +602,169 @@ function exportLogsToPDF(userRole, dateFrom, dateTo) {
   } catch (error) {
     console.error('Error exporting logs:', error);
     throw new Error('Failed to export logs');
+  }
+}
+
+// Debug function to check spreadsheet status
+function debugSpreadsheetStatus() {
+  try {
+    console.log('=== Spreadsheet Debug Info ===');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    console.log('Spreadsheet name:', ss.getName());
+    console.log('Spreadsheet ID:', ss.getId());
+    
+    const sheets = ss.getSheets();
+    console.log('Available sheets:', sheets.map(s => s.getName()));
+    
+    // Check each required sheet
+    const requiredSheets = [VEHICLE_SHEET, DRIVER_SHEET, LOG_SHEET, USERS_SHEET];
+    requiredSheets.forEach(sheetName => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (sheet) {
+        const dataRange = sheet.getDataRange();
+        console.log(`${sheetName}: ${dataRange.getNumRows()} rows, ${dataRange.getNumColumns()} columns`);
+        if (dataRange.getNumRows() > 0) {
+          console.log(`${sheetName} first row:`, dataRange.getValues()[0]);
+        }
+      } else {
+        console.log(`${sheetName}: NOT FOUND`);
+      }
+    });
+    
+    return 'Debug info logged to console';
+  } catch (error) {
+    console.error('Debug error:', error);
+    return 'Debug failed: ' + error.message;
+  }
+}
+
+// Test function to verify spreadsheet access
+function testSpreadsheetAccess() {
+  try {
+    console.log('Testing spreadsheet access...');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    console.log('Spreadsheet opened successfully:', ss.getName());
+    
+    const sheets = ss.getSheets();
+    console.log('Found sheets:', sheets.map(s => s.getName()));
+    
+    return {
+      success: true,
+      spreadsheetName: ss.getName(),
+      sheets: sheets.map(s => s.getName())
+    };
+  } catch (error) {
+    console.error('Failed to access spreadsheet:', error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Create sample data for initial setup
+function createSampleData() {
+  try {
+    console.log('Creating sample data...');
+    
+    // Ensure sheets exist first
+    createInitialSheets();
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // Add sample vehicles
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    if (!vehicleSheet) {
+      throw new Error('Vehicle sheet not found after creation');
+    }
+    
+    let vehicleData;
+    try {
+      vehicleData = vehicleSheet.getDataRange().getValues();
+    } catch (e) {
+      console.log('Error getting vehicle data range, sheet may be empty');
+      vehicleData = [];
+    }
+    
+    console.log('Current vehicle data length:', vehicleData.length);
+    
+    if (vehicleData.length <= 1) {
+      console.log('Adding sample vehicles...');
+      const sampleVehicles = [
+        ['ABC-123', 'Toyota Camry', 'White', 'IT Department', '2022', 'Car', 'OUT', 'DRV001', 'DRV001,DRV002', 'Access'],
+        ['XYZ-456', 'Honda Civic', 'Blue', 'HR Department', '2021', 'Car', 'IN', 'DRV002', 'DRV002,DRV003', 'Access'],
+        ['MNO-789', 'Ford F-150', 'Red', 'Operations', '2020', 'Truck', 'OUT', 'DRV003', 'DRV003,DRV004', 'No Access'],
+        ['PQR-012', 'Chevrolet Express', 'Silver', 'Logistics', '2019', 'Van', 'OUT', 'DRV004', 'DRV004,DRV005', 'Banned'],
+        ['STU-345', 'Tesla Model 3', 'Black', 'Executive', '2023', 'Car', 'IN', 'DRV005', 'DRV005,DRV001', 'Access']
+      ];
+      
+      sampleVehicles.forEach(vehicle => {
+        vehicleSheet.appendRow(vehicle);
+      });
+      console.log('Sample vehicles added successfully');
+    }
+    
+    // Add sample drivers
+    const driverSheet = ss.getSheetByName(DRIVER_SHEET);
+    if (!driverSheet) {
+      throw new Error('Driver sheet not found after creation');
+    }
+    
+    let driverData;
+    try {
+      driverData = driverSheet.getDataRange().getValues();
+    } catch (e) {
+      console.log('Error getting driver data range, sheet may be empty');
+      driverData = [];
+    }
+    
+    console.log('Current driver data length:', driverData.length);
+    
+    if (driverData.length <= 1) {
+      console.log('Adding sample drivers...');
+      const sampleDrivers = [
+        ['DRV001', 'John Doe', 'LIC001', '555-0101', 'john.doe@example.com', 'Active'],
+        ['DRV002', 'Jane Smith', 'LIC002', '555-0102', 'jane.smith@example.com', 'Active'],
+        ['DRV003', 'Bob Johnson', 'LIC003', '555-0103', 'bob.johnson@example.com', 'Active'],
+        ['DRV004', 'Alice Brown', 'LIC004', '555-0104', 'alice.brown@example.com', 'Inactive'],
+        ['DRV005', 'Charlie Davis', 'LIC005', '555-0105', 'charlie.davis@example.com', 'Active']
+      ];
+      
+      sampleDrivers.forEach(driver => {
+        driverSheet.appendRow(driver);
+      });
+      console.log('Sample drivers added successfully');
+    }
+    
+    // Add sample users if needed
+    const usersSheet = ss.getSheetByName(USERS_SHEET);
+    if (usersSheet) {
+      let userData;
+      try {
+        userData = usersSheet.getDataRange().getValues();
+      } catch (e) {
+        console.log('Error getting user data range');
+        userData = [];
+      }
+      
+      if (userData.length <= 2) {
+        console.log('Adding sample users...');
+        const sampleUsers = [
+          ['user1', 'user123', 'user', 'user1@example.com', new Date()],
+          ['user2', 'user456', 'user', 'user2@example.com', new Date()]
+        ];
+        
+        sampleUsers.forEach(user => {
+          usersSheet.appendRow(user);
+        });
+        console.log('Sample users added successfully');
+      }
+    }
+    
+    console.log('Sample data creation completed successfully');
+    return 'Sample data created successfully';
+  } catch (error) {
+    console.error('Error creating sample data:', error);
+    return 'Failed to create sample data: ' + error.message;
   }
 }

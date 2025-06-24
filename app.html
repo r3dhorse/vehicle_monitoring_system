@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>Vehicle Monitoring System</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <style>
+        .login-page {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 2rem 1.5rem 1.5rem;
+            text-align: center;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .alert { border-radius: 10px; border: none; }
+        .hidden { display: none !important; }
+        
+        .dashboard-page { min-height: 100vh; background: #f8f9fa; }
+        .navbar-brand { font-weight: 600; }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+        .vehicle-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            border-radius: 15px;
+        }
+        .vehicle-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .status-in { background-color: #28a745; color: white; }
+        .status-out { background-color: #dc3545; color: white; }
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-page">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6 col-lg-5">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <i class="bi bi-truck fs-1 mb-3"></i>
+                            <h1 class="h3 mb-0">Vehicle Monitoring System</h1>
+                            <p class="mb-0 mt-2 opacity-75">Sign in to your account</p>
+                        </div>
+                        
+                        <div class="p-4">
+                            <div id="loginMsg" class="mb-3"></div>
+                            
+                            <form onsubmit="event.preventDefault(); login();">
+                                <div class="mb-3">
+                                    <label class="form-label" for="username">
+                                        <i class="bi bi-person me-2"></i>Username
+                                    </label>
+                                    <input type="text" class="form-control" id="username" required>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="form-label" for="password">
+                                        <i class="bi bi-lock me-2"></i>Password
+                                    </label>
+                                    <input type="password" class="form-control" id="password" required>
+                                </div>
+                                
+                                <button type="submit" id="loginBtn" class="btn btn-primary w-100">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                                </button>
+                            </form>
+                            
+                            <div class="text-center mt-4">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Default admin: admin / admin123
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="dashboard-page hidden">
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-truck me-2"></i>Vehicle Monitoring System
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text me-3">
+                        <i class="bi bi-person-circle me-1"></i>Role: <span id="userRole"></span>
+                    </span>
+                    <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-1"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container-fluid py-4">
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0" id="totalVehicles">0</h3>
+                            <p class="mb-0">Total Vehicles</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0" id="vehiclesIn">0</h3>
+                            <p class="mb-0">Vehicles In</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body text-center">
+                            <h3 class="mb-0" id="vehiclesOut">0</h3>
+                            <p class="mb-0">Vehicles Out</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="searchInput" 
+                           placeholder="Search by plate or model..." 
+                           onkeyup="filterVehicles()">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filterStatus" onchange="filterVehicles()">
+                        <option value="">All Statuses</option>
+                        <option value="IN">Checked In</option>
+                        <option value="OUT">Checked Out</option>
+                    </select>
+                </div>
+                <div class="col-md-5 text-end">
+                    <button class="btn btn-primary" onclick="loadVehicles()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vehicle Cards -->
+            <div class="row" id="vehicleContainer">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading vehicles...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner hidden">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentUser = null;
+        let vehicleData = [];
+        let allVehicles = [];
+
+        // Initialize the application
+        window.onload = function() {
+            console.log('Application starting...');
+            showLoginPage();
+        };
+
+        function showLoginPage() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('dashboardPage').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            document.getElementById('userRole').textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
+            loadVehicles();
+        }
+
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!username || !password) {
+                showMessage('Please enter both username and password', 'danger');
+                return;
+            }
+
+            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
+            loginBtn.disabled = true;
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        currentUser = { username: username, role: result.role };
+                        showMessage('Login successful!', 'success');
+                        setTimeout(() => {
+                            showDashboard();
+                        }, 1000);
+                    } else {
+                        showMessage('Invalid username or password', 'danger');
+                        resetLoginForm();
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Login error:', error);
+                    showMessage('Login failed. Please try again.', 'danger');
+                    resetLoginForm();
+                })
+                .loginUser(username, password);
+        }
+
+        function resetLoginForm() {
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Sign In';
+            loginBtn.disabled = false;
+            document.getElementById('password').value = '';
+        }
+
+        function loadVehicles() {
+            showLoading(true);
+            
+            google.script.run
+                .withSuccessHandler(function(vehicles) {
+                    console.log('Vehicles loaded:', vehicles.length);
+                    allVehicles = vehicles || [];
+                    vehicleData = allVehicles;
+                    displayVehicles();
+                    updateStatistics();
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Error loading vehicles:', error);
+                    showToast('Failed to load vehicles: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .getVehicleList();
+        }
+
+        function displayVehicles() {
+            const container = document.getElementById('vehicleContainer');
+            container.innerHTML = '';
+
+            if (vehicleData.length <= 1) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="bi bi-truck fs-1 text-muted mb-3"></i>
+                        <p class="text-muted">No vehicles found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            for (let i = 1; i < vehicleData.length; i++) {
+                const vehicle = vehicleData[i];
+                if (!vehicle || vehicle.length < 7) continue;
+
+                const plateNumber = vehicle[0] || '';
+                const model = vehicle[1] || '';
+                const status = vehicle[6] || 'OUT';
+                const driver = vehicle[7] || 'Unassigned';
+
+                const card = createVehicleCard(plateNumber, model, status, driver, i);
+                container.appendChild(card);
+            }
+        }
+
+        function createVehicleCard(plateNumber, model, status, driver, index) {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 mb-4';
+
+            col.innerHTML = `
+                <div class="card vehicle-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title mb-0">${plateNumber}</h5>
+                            <span class="badge ${status === 'IN' ? 'status-in' : 'status-out'}">${status}</span>
+                        </div>
+                        <p class="card-text">
+                            <i class="bi bi-truck me-2"></i>${model}<br>
+                            <i class="bi bi-person-fill me-2"></i>${driver}
+                        </p>
+                        <div class="mt-3">
+                            <button class="btn btn-sm ${status === 'IN' ? 'btn-danger' : 'btn-success'}" 
+                                    onclick="toggleVehicleStatus(${index})">
+                                <i class="bi ${status === 'IN' ? 'bi-box-arrow-right' : 'bi-box-arrow-in-left'} me-1"></i>
+                                ${status === 'IN' ? 'Check Out' : 'Check In'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return col;
+        }
+
+        function toggleVehicleStatus(index) {
+            const vehicle = vehicleData[index];
+            const currentStatus = vehicle[6] || 'OUT';
+            const newStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
+            
+            const gate = prompt('Enter gate number:');
+            if (!gate) return;
+
+            const logData = {
+                plateNumber: vehicle[0],
+                driverId: vehicle[7] || 'Unknown',
+                action: newStatus,
+                gate: gate,
+                remarks: ''
+            };
+
+            showLoading(true);
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result && result.success) {
+                        vehicleData[index][6] = newStatus;
+                        displayVehicles();
+                        updateStatistics();
+                        showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} successfully!`, 'success');
+                    }
+                    showLoading(false);
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Failed to update vehicle status: ' + error, 'danger');
+                    showLoading(false);
+                })
+                .logVehicleAction(logData);
+        }
+
+        function filterVehicles() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filterStatus = document.getElementById('filterStatus').value;
+
+            vehicleData = allVehicles.filter((vehicle, index) => {
+                if (index === 0) return true; // Keep header
+
+                const plateNumber = (vehicle[0] || '').toLowerCase();
+                const model = (vehicle[1] || '').toLowerCase();
+                const status = vehicle[6] || 'OUT';
+
+                const matchesSearch = !searchTerm || 
+                    plateNumber.includes(searchTerm) || 
+                    model.includes(searchTerm);
+
+                const matchesStatus = !filterStatus || status === filterStatus;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            displayVehicles();
+        }
+
+        function updateStatistics() {
+            if (!vehicleData || vehicleData.length <= 1) {
+                document.getElementById('totalVehicles').textContent = '0';
+                document.getElementById('vehiclesIn').textContent = '0';
+                document.getElementById('vehiclesOut').textContent = '0';
+                return;
+            }
+
+            let total = vehicleData.length - 1;
+            let vehiclesIn = 0;
+            let vehiclesOut = 0;
+
+            for (let i = 1; i < vehicleData.length; i++) {
+                if (vehicleData[i] && vehicleData[i][6] === 'IN') {
+                    vehiclesIn++;
+                } else {
+                    vehiclesOut++;
+                }
+            }
+
+            document.getElementById('totalVehicles').textContent = total;
+            document.getElementById('vehiclesIn').textContent = vehiclesIn;
+            document.getElementById('vehiclesOut').textContent = vehiclesOut;
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginMsg').innerHTML = '';
+            showLoginPage();
+        }
+
+        function showLoading(show) {
+            const spinner = document.getElementById('loadingSpinner');
+            if (show) {
+                spinner.classList.remove('hidden');
+            } else {
+                spinner.classList.add('hidden');
+            }
+        }
+
+        function showMessage(message, type) {
+            const loginMsg = document.getElementById('loginMsg');
+            const icons = {
+                success: 'bi-check-circle-fill',
+                danger: 'bi-exclamation-triangle-fill'
+            };
+
+            loginMsg.className = `alert alert-${type} mb-3 d-flex align-items-center`;
+            loginMsg.innerHTML = `
+                <i class="bi ${icons[type]} me-2"></i>
+                <div>${message}</div>
+            `;
+        }
+
+        function showToast(message, type) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toastId = 'toast-' + Date.now();
+            
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.innerHTML += toastHtml;
+            const toast = new bootstrap.Toast(document.getElementById(toastId));
+            toast.show();
+            
+            setTimeout(() => {
+                const toastElement = document.getElementById(toastId);
+                if (toastElement) {
+                    toastElement.remove();
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
