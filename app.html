@@ -936,86 +936,60 @@
                 </div>
                 <div class="modal-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">System Users</h6>
-                        <button class="btn btn-success btn-sm" onclick="showAddUserModal()">
-                            <i class="bi bi-person-plus me-1"></i>Add User
+                        <h6 class="mb-0">Manage Users</h6>
+                        <button class="btn btn-primary btn-sm" onclick="showAddUserForm()">
+                            <i class="bi bi-plus-lg me-1"></i>Add User
                         </button>
                     </div>
-                    <div id="usersList">
-                        <!-- Users will be loaded here -->
+                    
+                    <!-- Add/Edit Form -->
+                    <div id="userForm" class="mb-3" style="display: none;">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 id="userFormTitle">Add New User</h6>
+                                <form id="addEditUserForm">
+                                    <input type="hidden" id="editUserIndex" value="-1">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="userUsername" class="form-label">Username *</label>
+                                                <input type="text" class="form-control" id="userUsername" required 
+                                                       placeholder="e.g., john_doe">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="userRole" class="form-label">Role *</label>
+                                                <select class="form-select" id="userRole" required>
+                                                    <option value="user">User</option>
+                                                    <option value="security">Security</option>
+                                                    <option value="supervisor">Supervisor</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="super-admin">Super Admin</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="saveUser()">
+                                            <i class="bi bi-check-lg me-1"></i>Save
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="cancelUserForm()">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add/Edit User Modal -->
-    <div class="modal fade" id="addEditUserModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="addEditUserTitle">
-                        <i class="bi bi-person-plus me-2"></i>Add User
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addEditUserForm">
-                        <input type="hidden" id="editUserIndex">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Username <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="userUsername" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="userFullName" required>
-                                </div>
-                            </div>
+                    
+                    <!-- User List -->
+                    <div id="userListContainer">
+                        <div class="text-center py-3">
+                            <div class="spinner-border" role="status"></div>
+                            <p class="mt-2 text-muted">Loading users...</p>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="userEmail">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Role <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="userRole" required>
-                                        <option value="user">User</option>
-                                        <option value="security">Security</option>
-                                        <option value="supervisor">Supervisor</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="super-admin">Super Admin</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3" id="passwordSection">
-                            <label class="form-label">Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="userPassword">
-                            <div class="form-text">Leave blank when editing to keep current password</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-select" id="userStatus">
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="suspended">Suspended</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" onclick="saveUser()">
-                        <i class="bi bi-check-lg me-2"></i>Save User
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1531,6 +1505,22 @@
             const color = vehicle[2] || 'Unknown';
             const department = vehicle[3] || 'Unknown';
             const year = vehicle[4] || '';
+            const assignedDrivers = vehicle[8] || '';
+
+            // Format assigned drivers display
+            let assignedDriversDisplay = '';
+            if (assignedDrivers && assignedDrivers.trim()) {
+                const drivers = assignedDrivers.split(',').map(d => d.trim()).filter(d => d);
+                if (drivers.length > 0) {
+                    if (drivers.length === 1) {
+                        assignedDriversDisplay = drivers[0];
+                    } else if (drivers.length <= 3) {
+                        assignedDriversDisplay = drivers.join(', ');
+                    } else {
+                        assignedDriversDisplay = `${drivers.slice(0, 2).join(', ')} +${drivers.length - 2} more`;
+                    }
+                }
+            }
 
             item.innerHTML = `
                 <div class="card-body p-3">
@@ -1557,8 +1547,14 @@
                         </div>
                         <div class="mb-1">
                             <i class="bi bi-person-fill me-2 text-success"></i>
-                            <small>${driver}</small>
+                            <small><strong>Current:</strong> ${driver}</small>
                         </div>
+                        ${assignedDriversDisplay ? `
+                        <div class="mb-1">
+                            <i class="bi bi-people-fill me-2 text-info"></i>
+                            <small><strong>Assigned:</strong> ${assignedDriversDisplay}</small>
+                        </div>
+                        ` : ''}
                         <div>
                             <i class="bi bi-building me-2 text-warning"></i>
                             <small>${department}</small>
@@ -1846,6 +1842,35 @@
             modal.show();
         }
 
+        function updateCurrentDriverDropdown() {
+            const assignedDriversValue = document.getElementById('editAssignedDrivers').value.trim();
+            const currentDriverSelect = document.getElementById('editDriver');
+            const currentValue = currentDriverSelect.value; // Save current selection
+            
+            // Clear existing options
+            currentDriverSelect.innerHTML = '<option value="">Select a driver...</option>';
+            
+            if (assignedDriversValue) {
+                // Split the assigned drivers by comma and trim whitespace
+                const assignedDrivers = assignedDriversValue.split(',')
+                    .map(driver => driver.trim())
+                    .filter(driver => driver.length > 0);
+                
+                // Add each assigned driver as an option
+                assignedDrivers.forEach(driver => {
+                    const option = document.createElement('option');
+                    option.value = driver;
+                    option.textContent = driver;
+                    currentDriverSelect.appendChild(option);
+                });
+                
+                // Restore previous selection if it's still in the list
+                if (currentValue && assignedDrivers.includes(currentValue)) {
+                    currentDriverSelect.value = currentValue;
+                }
+            }
+        }
+
         function editVehicle(index) {
             if (currentUser.role !== 'admin') {
                 showToast('Only administrators can edit vehicles', 'danger');
@@ -1857,9 +1882,6 @@
             // Hide details modal and show edit modal
             bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
             
-            // Load driver options before showing form
-            loadDriverOptions();
-            
             // Populate edit form
             document.getElementById('editVehicleIndex').value = index;
             document.getElementById('editPlateNumber').value = vehicle[0] || '';
@@ -1869,9 +1891,19 @@
             document.getElementById('editYear').value = vehicle[4] || '';
             document.getElementById('editType').value = vehicle[5] || 'Car';
             document.getElementById('editStatus').value = vehicle[6] || 'OUT';
-            document.getElementById('editDriver').value = vehicle[7] || '';
             document.getElementById('editAssignedDrivers').value = vehicle[8] || '';
             document.getElementById('editAccessStatus').value = vehicle[9] || 'Access';
+            
+            // Populate current driver dropdown from assigned drivers
+            updateCurrentDriverDropdown();
+            document.getElementById('editDriver').value = vehicle[7] || '';
+            
+            // Add event listener to assigned drivers field to update current driver options
+            const assignedDriversField = document.getElementById('editAssignedDrivers');
+            if (!assignedDriversField.hasAttribute('data-listener-added')) {
+                assignedDriversField.addEventListener('input', updateCurrentDriverDropdown);
+                assignedDriversField.setAttribute('data-listener-added', 'true');
+            }
             
             // Show edit modal
             const modal = new bootstrap.Modal(document.getElementById('editVehicleModal'));
@@ -1983,135 +2015,96 @@
                 showToast('Access denied: Insufficient permissions', 'danger');
                 return;
             }
-            
-            loadUsers();
+
             const modal = new bootstrap.Modal(document.getElementById('userManagementModal'));
             modal.show();
+            
+            loadUsers();
         }
 
         function loadUsers() {
-            showLoading(true);
             google.script.run
-                .withSuccessHandler(function(users) {
-                    allUsers = users || [];
+                .withSuccessHandler(function(data) {
+                    allUsers = data;
                     displayUsers();
-                    showLoading(false);
                 })
                 .withFailureHandler(function(error) {
                     showToast('Failed to load users: ' + error, 'danger');
-                    showLoading(false);
                 })
                 .getUserList();
         }
 
         function displayUsers() {
-            const container = document.getElementById('usersList');
-            container.innerHTML = '';
-
+            const container = document.getElementById('userListContainer');
+            
             if (allUsers.length <= 1) {
                 container.innerHTML = '<div class="text-center py-3 text-muted">No users found</div>';
                 return;
             }
 
+            let usersHtml = '<div class="list-group">';
+            
             for (let i = 1; i < allUsers.length; i++) {
                 const user = allUsers[i];
-                if (!user || user.length < 5) continue;
-
-                const userCard = createUserCard(user, i);
-                container.appendChild(userCard);
-            }
-        }
-
-        function createUserCard(user, index) {
-            const card = document.createElement('div');
-            card.className = `card user-card ${user[2]} mb-2`;
-
-            const status = user[5] || 'active';
-            const statusClass = status === 'active' ? 'success' : status === 'inactive' ? 'secondary' : 'danger';
-
-            card.innerHTML = `
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
+                const role = user[2] || 'user';
+                const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+                
+                usersHtml += `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="mb-1">${user[3] || user[0]}</h6>
-                            <small class="text-muted">@${user[0]}</small>
-                            <div class="mt-1">
-                                <span class="badge role-badge ${user[2]}">${(user[2] || 'user').charAt(0).toUpperCase() + (user[2] || 'user').slice(1)}</span>
-                                <span class="badge bg-${statusClass} ms-1">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-                            </div>
+                            <span class="fw-bold">${user[0]}</span>
+                            <span class="badge role-badge ${role} ms-2">${roleDisplay}</span>
                         </div>
                         <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editUser(${index})" title="Edit User">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editUser(${i})" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${index})" title="Delete User">
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${i})" title="Delete">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
                     </div>
-                    ${user[4] ? `<small class="text-muted"><i class="bi bi-envelope me-1"></i>${user[4]}</small>` : ''}
-                </div>
-            `;
-
-            return card;
+                `;
+            }
+            
+            usersHtml += '</div>';
+            container.innerHTML = usersHtml;
         }
 
-        function showAddUserModal() {
-            if (!hasPermission('manage_users')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
-                return;
-            }
-
-            // Clear form
-            document.getElementById('addEditUserForm').reset();
+        function showAddUserForm() {
+            document.getElementById('userForm').style.display = 'block';
+            document.getElementById('userFormTitle').textContent = 'Add New User';
             document.getElementById('editUserIndex').value = '-1';
-            document.getElementById('addEditUserTitle').innerHTML = '<i class="bi bi-person-plus me-2"></i>Add User';
-            document.getElementById('passwordSection').querySelector('.form-text').style.display = 'none';
-
-            const modal = new bootstrap.Modal(document.getElementById('addEditUserModal'));
-            modal.show();
+            document.getElementById('userUsername').value = '';
+            document.getElementById('userRole').value = 'user';
+            document.getElementById('userUsername').focus();
         }
 
         function editUser(index) {
-            if (!hasPermission('manage_users')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
-                return;
-            }
-
             const user = allUsers[index];
+            document.getElementById('userForm').style.display = 'block';
+            document.getElementById('userFormTitle').textContent = 'Edit User';
+            document.getElementById('editUserIndex').value = index;
             
             // Populate form
-            document.getElementById('editUserIndex').value = index;
             document.getElementById('userUsername').value = user[0] || '';
-            document.getElementById('userFullName').value = user[3] || '';
-            document.getElementById('userEmail').value = user[4] || '';
             document.getElementById('userRole').value = user[2] || 'user';
-            document.getElementById('userStatus').value = user[5] || 'active';
-            document.getElementById('userPassword').value = '';
             
-            document.getElementById('addEditUserTitle').innerHTML = '<i class="bi bi-pencil me-2"></i>Edit User';
-            document.getElementById('passwordSection').querySelector('.form-text').style.display = 'block';
+            document.getElementById('userUsername').focus();
+        }
 
-            const modal = new bootstrap.Modal(document.getElementById('addEditUserModal'));
-            modal.show();
+        function cancelUserForm() {
+            document.getElementById('userForm').style.display = 'none';
+            document.getElementById('addEditUserForm').reset();
         }
 
         function saveUser() {
             const index = parseInt(document.getElementById('editUserIndex').value);
             const username = document.getElementById('userUsername').value.trim();
-            const fullName = document.getElementById('userFullName').value.trim();
-            const email = document.getElementById('userEmail').value.trim();
             const role = document.getElementById('userRole').value;
-            const status = document.getElementById('userStatus').value;
-            const password = document.getElementById('userPassword').value;
 
-            if (!username || !fullName) {
-                showToast('Username and full name are required', 'danger');
-                return;
-            }
-
-            if (index === -1 && !password) {
-                showToast('Password is required for new users', 'danger');
+            if (!username || !role) {
+                showToast('Username and role are required', 'danger');
                 return;
             }
 
@@ -2123,41 +2116,23 @@
                 }
             }
 
-            const userData = [
-                username,
-                password || null, // null means don't change password
-                role,
-                fullName,
-                email,
-                status,
-                new Date().toISOString()
-            ];
+            const userData = {
+                username: username,
+                role: role
+            };
 
-            showLoading(true);
             google.script.run
-                .withSuccessHandler(function(success) {
-                    if (success) {
-                        if (index === -1) {
-                            allUsers.push(userData);
-                        } else {
-                            // Keep existing password if not provided
-                            if (!password) {
-                                userData[1] = allUsers[index][1];
-                            }
-                            allUsers[index] = userData;
-                        }
-                        
-                        displayUsers();
-                        bootstrap.Modal.getInstance(document.getElementById('addEditUserModal')).hide();
-                        showToast('User saved successfully!', 'success');
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadUsers();
+                        cancelUserForm();
+                        showToast(`User ${result.action} successfully!`, 'success');
                     }
-                    showLoading(false);
                 })
                 .withFailureHandler(function(error) {
                     showToast('Failed to save user: ' + error, 'danger');
-                    showLoading(false);
                 })
-                .saveUser(index, userData, currentUser.role);
+                .saveUser(userData, currentUser.role, index);
         }
 
         function deleteUser(index) {
@@ -2175,23 +2150,19 @@
                 return;
             }
 
-            if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone.`)) {
+            if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
                 return;
             }
 
-            showLoading(true);
             google.script.run
-                .withSuccessHandler(function(success) {
-                    if (success) {
-                        allUsers.splice(index, 1);
-                        displayUsers();
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        loadUsers();
                         showToast('User deleted successfully!', 'success');
                     }
-                    showLoading(false);
                 })
                 .withFailureHandler(function(error) {
                     showToast('Failed to delete user: ' + error, 'danger');
-                    showLoading(false);
                 })
                 .deleteUser(index, currentUser.role);
         }
