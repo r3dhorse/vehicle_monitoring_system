@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Vehicle Monitoring System">
+    <meta name="generator" content="Vehicle Monitoring System">
+    <meta name="description" content="Professional Vehicle Monitoring and Management System">
     <base target="_top">
     <title>Vehicle Monitoring System</title>
     
@@ -1516,6 +1519,7 @@
             showLoading(true);
             const startTime = performance.now();
             
+            // Load vehicles only - transactions removed for better performance
             google.script.run
                 .withSuccessHandler(function(vehicles) {
                     const loadTime = performance.now() - startTime;
@@ -1523,13 +1527,30 @@
                     
                     allVehicles = vehicles || [];
                     vehicleData = allVehicles;
+                    
+                    // Display vehicles
                     displayVehicles();
                     updateStatistics();
                     showLoading(false);
                     
-                    // Show performance warning if load time is slow
+                    // Enhanced performance monitoring with actionable insights
                     if (loadTime > 3000) {
-                        console.warn('Slow vehicle load detected. Consider server-side pagination.');
+                        console.warn('%c⚠️ Performance Alert', 'color: #ffc107; font-weight: bold;',
+                            `\n📈 Load Time: ${(loadTime / 1000).toFixed(2)}s (Target: <3s)`
+                            + `\n📊 Vehicle Count: ${vehicles.length} records loaded`
+                            + '\n🔧 Recommendations:'
+                            + '\n   • Enable server-side pagination for large datasets'
+                            + '\n   • Consider implementing virtual scrolling'
+                            + '\n   • Check network connection stability'
+                            + '\n   • Contact administrator if issue persists'
+                            + '\n💡 Current system uses lazy loading to improve user experience');
+                        
+                        // Show user-friendly notification for very slow loads
+                        if (loadTime > 5000) {
+                            showToast('Large dataset detected. Consider refreshing if loading seems slow.', 'info');
+                        }
+                    } else {
+                        console.log(`%c✅ Performance Good`, 'color: #28a745; font-weight: bold;', `Load time: ${(loadTime / 1000).toFixed(2)}s`);
                     }
                 })
                 .withFailureHandler(function(error) {
@@ -1706,6 +1727,7 @@
                 }
             }
 
+
             item.innerHTML = `
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -1792,6 +1814,7 @@
                         todayActivity++;
                         sessionStorage.setItem('todayActivity', todayActivity.toString());
                         document.getElementById('recentActivity').textContent = todayActivity;
+                        
                     }
                     showLoading(false);
                 })
@@ -3058,10 +3081,18 @@
                 })
                 .saveVehicleRecord(vehicleData, currentUser.role, -1);
         }
-
-
-
-
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check session and initialize
+            const savedSession = sessionStorage.getItem('currentUser');
+            if (savedSession) {
+                currentUser = JSON.parse(savedSession);
+                showDashboard();
+            } else {
+                showLoginPage();
+            }
+        });
 
     </script>
 </body>
