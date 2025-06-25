@@ -367,6 +367,14 @@
             border-left-color: #dc3545;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         }
+        .vehicle-card.access-banned {
+            border: 3px solid #dc3545 !important;
+            border-left: 4px solid #dc3545 !important;
+        }
+        .vehicle-card.access-no-access {
+            border: 3px solid #fd7e14 !important;
+            border-left: 4px solid #fd7e14 !important;
+        }
         .vehicle-status-columns .card {
             border: 1px solid #dee2e6;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -591,12 +599,13 @@
                                 </button>
                             </form>
                             
-                            <div class="text-center mt-4">
+                            <!-- <div class="text-center mt-4">
                                 <small class="text-muted">
                                     <i class="bi bi-info-circle me-1"></i>
                                     Default admin: admin / admin123
                                 </small>
-                            </div>
+                            </div> -->
+
                         </div>
                     </div>
                 </div>
@@ -612,6 +621,11 @@
                 <a class="navbar-brand" href="#">
                     <i class="bi bi-truck me-2"></i><span class="d-none d-sm-inline">Vehicle Monitoring System</span><span class="d-inline d-sm-none">VMS</span>
                 </a>
+                  <span class="navbar-text me-3">
+                      <i class="bi bi-person-circle me-1"></i>
+                      <span id="userRole" class="badge role-badge"></span>
+                      <small class="text-light ms-1">(<span id="currentUsername"></span>)</small>
+                  </span>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -636,11 +650,7 @@
                             </a></li>
                         </ul>
                     </div>
-                    <span class="navbar-text me-3">
-                        <i class="bi bi-person-circle me-1"></i>
-                        <span id="userRole" class="badge role-badge"></span>
-                        <small class="text-light ms-1">(<span id="currentUsername"></span>)</small>
-                    </span>
+                   
                     <button class="btn btn-outline-light btn-sm" onclick="logout()">
                         <i class="bi bi-box-arrow-right me-1"></i>Logout
                     </button>
@@ -1628,8 +1638,7 @@
 
         function createVehicleListItem(plateNumber, model, status, driver, index) {
             const item = document.createElement('div');
-            item.className = `card vehicle-card status-${status.toLowerCase()}`;
-
+            
             // Get vehicle details for enhanced display
             const vehicle = vehicleData[index];
             const color = vehicle[2] || 'Unknown';
@@ -1637,6 +1646,17 @@
             const year = vehicle[4] || '';
             const type = vehicle[5] || 'Car';
             const assignedDrivers = vehicle[8] || '';
+            const accessStatus = vehicle[9] || 'Access';
+            
+            // Build CSS classes including access status
+            let cssClasses = `card vehicle-card status-${status.toLowerCase()}`;
+            if (accessStatus === 'Banned') {
+                cssClasses += ' access-banned';
+            } else if (accessStatus === 'No Access') {
+                cssClasses += ' access-no-access';
+            }
+            
+            item.className = cssClasses;
 
             // Get appropriate icon for vehicle type
             let typeIcon = 'bi-truck';
@@ -1869,7 +1889,7 @@
             // Add enhanced search placeholder
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {
-                searchInput.setAttribute('placeholder', 'Search plate, model, driver, department...');
+                searchInput.setAttribute('placeholder', 'Search plate number');
             }
         }
 
@@ -2115,6 +2135,13 @@
                         <i class="bi bi-trash me-2"></i>Delete
                     </button>
                 `;
+            } else if (currentUser.role === 'security') {
+                footer.innerHTML = `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
+                        <i class="bi bi-person-gear me-2"></i>Change Driver
+                    </button>
+                `;
             } else {
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -2154,8 +2181,8 @@
         }
 
         function editVehicle(index) {
-            if (currentUser.role !== 'admin') {
-                showToast('Only administrators can edit vehicles', 'danger');
+            if (currentUser.role !== 'admin' && currentUser.role !== 'security') {
+                showToast('Only administrators and security personnel can edit vehicles', 'danger');
                 return;
             }
             
@@ -2187,6 +2214,62 @@
                 assignedDriversField.setAttribute('data-listener-added', 'true');
             }
             
+            // Restrict Security role to only edit current driver field
+            if (currentUser.role === 'security') {
+                // Disable all fields except current driver
+                const fieldsToDisable = [
+                    'editPlateNumber', 'editModel', 'editColor', 'editDepartment', 
+                    'editYear', 'editType', 'editStatus', 'editAssignedDrivers', 'editAccessStatus'
+                ];
+                
+                fieldsToDisable.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.disabled = true;
+                        field.style.backgroundColor = '#f8f9fa';
+                        field.style.opacity = '0.6';
+                    }
+                });
+                
+                // Ensure current driver field is enabled and highlighted
+                const driverField = document.getElementById('editDriver');
+                if (driverField) {
+                    driverField.disabled = false;
+                    driverField.style.backgroundColor = '';
+                    driverField.style.opacity = '';
+                    driverField.style.borderColor = '#007bff';
+                    driverField.focus();
+                }
+                
+                // Update modal title for Security users
+                const modalTitle = document.querySelector('#editVehicleModal .modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Change Current Driver';
+                }
+            } else {
+                // Reset all fields for admin users
+                const allFields = [
+                    'editPlateNumber', 'editModel', 'editColor', 'editDepartment', 
+                    'editYear', 'editType', 'editStatus', 'editAssignedDrivers', 'editAccessStatus', 'editDriver'
+                ];
+                
+                allFields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.disabled = false;
+                        field.style.backgroundColor = '';
+                        field.style.opacity = '';
+                        field.style.borderColor = '';
+                    }
+                });
+                
+                // Reset modal title for admin users
+                const modalTitle = document.querySelector('#editVehicleModal .modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = 'Edit Vehicle';
+                }
+            }
+            
             // Show edit modal
             const modal = new bootstrap.Modal(document.getElementById('editVehicleModal'));
             modal.show();
@@ -2194,6 +2277,44 @@
 
         function saveVehicleEdit() {
             const index = parseInt(document.getElementById('editVehicleIndex').value);
+            
+            // Handle Security role - only update current driver
+            if (currentUser.role === 'security') {
+                const newDriverValue = document.getElementById('editDriver').value || '';
+                
+                // Create updated vehicle data with only driver field changed
+                const currentVehicle = allVehicles[index];
+                const updatedVehicleData = [...currentVehicle]; // Copy existing data
+                updatedVehicleData[7] = newDriverValue; // Update only current driver field
+                
+                showLoading(true);
+                google.script.run
+                    .withSuccessHandler(function(success) {
+                        if (success) {
+                            // Update local data
+                            allVehicles[index] = updatedVehicleData;
+                            
+                            // Update UI
+                            displayVehicles();
+                            
+                            // Hide modal and show success
+                            bootstrap.Modal.getInstance(document.getElementById('editVehicleModal')).hide();
+                            showToast('Driver updated successfully', 'success');
+                        } else {
+                            showToast('Failed to update driver', 'danger');
+                        }
+                        showLoading(false);
+                    })
+                    .withFailureHandler(function(error) {
+                        showToast('Error updating driver: ' + error, 'danger');
+                        showLoading(false);
+                    })
+                    .updateVehicleRecord(index, updatedVehicleData, currentUser.role);
+                
+                return; // Exit early for Security users
+            }
+            
+            // Handle Admin role - full edit capability
             const plateNumber = document.getElementById('editPlateNumber').value.trim();
             const model = document.getElementById('editModel').value.trim();
             

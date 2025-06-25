@@ -552,16 +552,21 @@ function loginUser(username, password) {
   }
 }
 
-// Admin-only: update vehicle record
+// Admin and Security: update vehicle record
 function updateVehicleRecord(rowIndex, updatedData, userRole) {
-  if (userRole !== "admin") {
-    throw new Error("Unauthorized: Admin access required.");
+  if (userRole !== "admin" && userRole !== "security") {
+    throw new Error("Unauthorized: Admin or Security access required.");
   }
 
   try {
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
     
-    // If rowIndex is -1, it's a new vehicle
+    // Security users cannot create new vehicles
+    if (rowIndex === -1 && userRole === "security") {
+      throw new Error("Security users cannot create new vehicles");
+    }
+    
+    // If rowIndex is -1, it's a new vehicle (admin only)
     if (rowIndex === -1) {
       // Check if plate number already exists
       const data = sheet.getDataRange().getValues();
@@ -575,8 +580,23 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
       sheet.appendRow(updatedData);
     } else {
       // Update existing vehicle
-      const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
-      range.setValues([updatedData]);
+      if (userRole === "security") {
+        // Security users can only update the current driver field (index 7)
+        const currentData = sheet.getDataRange().getValues();
+        if (rowIndex >= 0 && rowIndex < currentData.length) {
+          // Only update the driver field, keep everything else the same
+          const currentVehicle = currentData[rowIndex];
+          currentVehicle[7] = updatedData[7]; // Update only current driver field
+          const range = sheet.getRange(rowIndex + 1, 1, 1, currentVehicle.length);
+          range.setValues([currentVehicle]);
+        } else {
+          throw new Error("Invalid vehicle index");
+        }
+      } else {
+        // Admin users can update all fields
+        const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
+        range.setValues([updatedData]);
+      }
     }
     
     return true;
