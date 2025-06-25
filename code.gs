@@ -683,6 +683,147 @@ function getVehicleStatistics() {
 
 
 
+// Get transaction logs for a specific vehicle
+function getVehicleTransactionLogs(plateNumber, limit = 20) {
+  const startTime = new Date();
+  
+  try {
+    console.log(`Getting transaction logs for vehicle: ${plateNumber}`);
+    
+    // Check cache first
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `vehicle_logs_${plateNumber}_${limit}`;
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+      console.log('Returning cached vehicle transaction data');
+      return JSON.parse(cachedData);
+    }
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    
+    if (!logSheet) {
+      console.log('Log sheet not found');
+      return { logs: [], totalCount: 0 };
+    }
+    
+    // Get all data
+    const allData = logSheet.getDataRange().getValues();
+    
+    if (allData.length <= 1) {
+      return { logs: [], totalCount: 0 };
+    }
+    
+    // Filter logs for specific vehicle (skip header row)
+    const vehicleLogs = [];
+    for (let i = allData.length - 1; i >= 1; i--) { // Start from end for most recent
+      if (allData[i][1] === plateNumber) { // Column B is plate number
+        vehicleLogs.push({
+          timestamp: allData[i][0],
+          plateNumber: allData[i][1],
+          driverId: allData[i][2] || 'Unknown',
+          action: allData[i][3] || 'Unknown',
+          gate: allData[i][4] || 'Unknown',
+          remarks: allData[i][5] || '',
+          username: allData[i][6] || 'System',
+          accessStatus: allData[i][7] || 'Unknown'
+        });
+        
+        if (vehicleLogs.length >= limit) {
+          break;
+        }
+      }
+    }
+    
+    const result = {
+      logs: vehicleLogs,
+      totalCount: vehicleLogs.length,
+      loadTime: new Date() - startTime
+    };
+    
+    // Cache for 2 minutes
+    cache.put(cacheKey, JSON.stringify(result), 120);
+    
+    console.log(`Vehicle logs retrieved in ${result.loadTime}ms: ${vehicleLogs.length} logs`);
+    return result;
+  } catch (error) {
+    console.error('Error getting vehicle transaction logs:', error);
+    return { logs: [], totalCount: 0, error: error.toString() };
+  }
+}
+
+// Get transaction logs for all vehicles (optimized for dashboard)
+function getAllVehicleTransactionLogs(limit = 10) {
+  const startTime = new Date();
+  
+  try {
+    console.log('Getting transaction logs for all vehicles');
+    
+    // Check cache first
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `all_vehicle_logs_${limit}`;
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+      console.log('Returning cached all vehicle transaction data');
+      return JSON.parse(cachedData);
+    }
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    
+    if (!logSheet) {
+      console.log('Log sheet not found');
+      return {};
+    }
+    
+    // Get all data
+    const allData = logSheet.getDataRange().getValues();
+    
+    if (allData.length <= 1) {
+      return {};
+    }
+    
+    // Group logs by vehicle
+    const vehicleLogsMap = {};
+    
+    // Process from end to beginning for most recent first
+    for (let i = allData.length - 1; i >= 1; i--) {
+      const plateNumber = allData[i][1];
+      
+      if (!vehicleLogsMap[plateNumber]) {
+        vehicleLogsMap[plateNumber] = [];
+      }
+      
+      if (vehicleLogsMap[plateNumber].length < limit) {
+        vehicleLogsMap[plateNumber].push({
+          timestamp: allData[i][0],
+          plateNumber: allData[i][1],
+          driverId: allData[i][2] || 'Unknown',
+          action: allData[i][3] || 'Unknown',
+          gate: allData[i][4] || 'Unknown',
+          remarks: allData[i][5] || ''
+        });
+      }
+    }
+    
+    const result = {
+      vehicleLogs: vehicleLogsMap,
+      loadTime: new Date() - startTime
+    };
+    
+    // Cache for 2 minutes
+    cache.put(cacheKey, JSON.stringify(result), 120);
+    
+    console.log(`All vehicle logs retrieved in ${result.loadTime}ms`);
+    return result;
+  } catch (error) {
+    console.error('Error getting all vehicle transaction logs:', error);
+    return { vehicleLogs: {}, error: error.toString() };
+  }
+}
+
 // Export logs to PDF (admin only)
 function exportLogsToPDF(userRole, dateFrom, dateTo) {
   if (userRole !== 'admin') {
