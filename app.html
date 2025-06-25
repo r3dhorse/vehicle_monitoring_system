@@ -475,8 +475,43 @@
         
         /* Transaction logs table styles */
         #transactionLogsContainer {
-            max-height: 600px;
+            height: calc(100vh - 400px); /* Dynamic height based on viewport */
+            min-height: 400px;
+            max-height: 800px;
             overflow-y: auto;
+        }
+        
+        /* Ensure the transaction logs card body fills available space */
+        .transaction-logs-card .card-body {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .transaction-logs-card #transactionLogsContainer {
+            flex: 1;
+            height: auto;
+            min-height: 0; /* Allow flex item to shrink */
+        }
+        
+        /* Responsive adjustments for transaction logs */
+        @media (max-width: 992px) {
+            #transactionLogsContainer {
+                height: calc(100vh - 500px);
+                min-height: 300px;
+                max-height: 600px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #transactionLogsContainer {
+                height: 400px;
+                min-height: 300px;
+            }
+            
+            .transaction-logs-card .card-body {
+                padding: 0.5rem;
+            }
         }
         #transactionLogsContainer::-webkit-scrollbar {
             width: 6px;
@@ -953,7 +988,7 @@
             <div class="row vehicle-status-columns">
                 <!-- Transaction Logs Column -->
                 <div class="col-lg-4">
-                    <div class="card h-100">
+                    <div class="card h-100 transaction-logs-card">
                         <div class="card-header bg-info text-white">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h5 class="mb-0">
