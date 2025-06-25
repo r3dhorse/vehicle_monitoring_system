@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Vehicle Monitoring System">
+    <meta name="generator" content="Vehicle Monitoring System">
+    <meta name="description" content="Professional Vehicle Monitoring and Management System">
     <base target="_top">
     <title>Vehicle Monitoring System</title>
     
@@ -561,6 +564,229 @@
         .table-responsive::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Transaction Logs Styles */
+        .transaction-log-item {
+            border: 1px solid #e0e7ff;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .transaction-log-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .transaction-log-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .transaction-log-item.action-in::before {
+            background: linear-gradient(180deg, #28a745 0%, #20c997 100%);
+        }
+
+        .transaction-log-item.action-out::before {
+            background: linear-gradient(180deg, #dc3545 0%, #fd7e14 100%);
+        }
+
+        .transaction-timestamp {
+            font-size: 0.875rem;
+            color: #6b7280;
+            background: rgba(107, 114, 128, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .transaction-action {
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .transaction-action.action-in {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .transaction-action.action-out {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .transaction-plate {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            display: inline-block;
+            font-size: 1rem;
+        }
+
+        .transaction-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .transaction-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .transaction-meta-item i {
+            width: 16px;
+            text-align: center;
+        }
+
+        .transaction-remarks {
+            background: rgba(102, 126, 234, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-top: 8px;
+            font-style: italic;
+            color: #4b5563;
+            font-size: 0.875rem;
+        }
+
+        .logs-pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
+            padding: 16px;
+        }
+
+        .logs-load-more {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .logs-load-more:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .logs-load-more:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .logs-loading {
+            text-align: center;
+            padding: 24px;
+            color: #6b7280;
+        }
+
+        .logs-loading .spinner-border {
+            width: 2rem;
+            height: 2rem;
+            border-width: 3px;
+        }
+
+        .logs-stats {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .logs-stats-item {
+            text-align: center;
+            padding: 8px;
+        }
+
+        .logs-stats-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2d3748;
+            display: block;
+        }
+
+        .logs-stats-label {
+            font-size: 0.875rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .logs-container {
+            min-height: 400px;
+        }
+
+        .logs-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .logs-empty i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Responsive adjustments for transaction logs */
+        @media (max-width: 768px) {
+            .transaction-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .transaction-plate {
+                font-size: 0.9rem;
+                padding: 4px 8px;
+            }
+
+            .logs-stats {
+                margin-bottom: 16px;
+            }
+
+            .logs-stats-item {
+                padding: 4px;
+            }
+
+            .logs-stats-number {
+                font-size: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -636,6 +862,9 @@
                     </button>
                     <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
                         <i class="bi bi-door-open me-1"></i>Manage Gates
+                    </button>
+                    <button class="btn btn-outline-light btn-sm me-3" id="transactionLogsBtn" style="display: none;" onclick="showTransactionLogs()">
+                        <i class="bi bi-list-ul me-1"></i>Transaction Logs
                     </button>
                     <div class="dropdown me-3" id="userManagementDropdown" style="display: none;">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -1298,6 +1527,80 @@
         </div>
     </div>
 
+    <!-- Transaction Logs Modal -->
+    <div class="modal fade" id="transactionLogsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-list-ul me-2 text-primary" style="font-size: 1.25rem;"></i>
+                        <h5 class="modal-title mb-0">Transaction Logs</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Stats Summary -->
+                    <div class="logs-stats" id="logsStats">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="logs-stats-item">
+                                    <span class="logs-stats-number" id="totalLogsCount">-</span>
+                                    <span class="logs-stats-label">Total Logs</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="logs-stats-item">
+                                    <span class="logs-stats-number text-success" id="entriesCount">-</span>
+                                    <span class="logs-stats-label">Entries (IN)</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="logs-stats-item">
+                                    <span class="logs-stats-number text-danger" id="exitsCount">-</span>
+                                    <span class="logs-stats-label">Exits (OUT)</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="logs-stats-item">
+                                    <span class="logs-stats-number text-info" id="loadTimeDisplay">-</span>
+                                    <span class="logs-stats-label">Load Time</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Logs Container -->
+                    <div class="logs-container" id="transactionLogsContainer">
+                        <!-- Logs will be loaded here -->
+                    </div>
+
+                    <!-- Loading Indicator -->
+                    <div class="logs-loading" id="logsLoading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="mt-2">Loading transaction logs...</div>
+                    </div>
+
+                    <!-- Load More Button -->
+                    <div class="logs-pagination" id="logsPagination" style="display: none;">
+                        <button class="btn logs-load-more" id="loadMoreBtn" onclick="loadMoreLogs()">
+                            <i class="bi bi-arrow-down-circle me-2"></i>Load More Logs
+                        </button>
+                        <div class="ms-3 text-muted" id="logsInfo"></div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div class="logs-empty" id="logsEmpty" style="display: none;">
+                        <i class="bi bi-inbox"></i>
+                        <h6 class="mt-2">No Transaction Logs Found</h6>
+                        <p class="text-muted">There are no transaction logs to display at this time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
@@ -1316,6 +1619,13 @@
         let vehiclesInObserver = null;
         let vehiclesOutObserver = null;
         let filterTimeout = null;
+
+        // Transaction logs variables
+        let currentLogsPage = 1;
+        let totalLogsCount = 0;
+        let hasMoreLogs = false;
+        let isLoadingLogs = false;
+        let allLoadedLogs = [];
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -1455,15 +1765,23 @@
             } else {
                 gateManagementBtn.style.display = 'none';
             }
+            
+            // Show/hide transaction logs button
+            const transactionLogsBtn = document.getElementById('transactionLogsBtn');
+            if (hasPermission('view_transaction_logs')) {
+                transactionLogsBtn.style.display = 'inline-block';
+            } else {
+                transactionLogsBtn.style.display = 'none';
+            }
         }
 
         function hasPermission(permission) {
             const role = currentUser.role;
             const permissions = {
-                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config'],
-                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'manage_regular_users'],
-                'supervisor': ['view_all', 'vehicle_operations', 'manage_gates', 'generate_reports'],
-                'security': ['vehicle_operations', 'gate_operations', 'view_assigned'],
+                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config', 'view_transaction_logs'],
+                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'manage_regular_users', 'view_transaction_logs'],
+                'supervisor': ['view_all', 'vehicle_operations', 'manage_gates', 'generate_reports', 'view_transaction_logs'],
+                'security': ['vehicle_operations', 'gate_operations', 'view_assigned', 'view_transaction_logs'],
                 'user': ['view_own', 'basic_operations']
             };
             
@@ -1516,6 +1834,7 @@
             showLoading(true);
             const startTime = performance.now();
             
+            // Load vehicles only - transactions removed for better performance
             google.script.run
                 .withSuccessHandler(function(vehicles) {
                     const loadTime = performance.now() - startTime;
@@ -1523,13 +1842,30 @@
                     
                     allVehicles = vehicles || [];
                     vehicleData = allVehicles;
+                    
+                    // Display vehicles
                     displayVehicles();
                     updateStatistics();
                     showLoading(false);
                     
-                    // Show performance warning if load time is slow
+                    // Enhanced performance monitoring with actionable insights
                     if (loadTime > 3000) {
-                        console.warn('Slow vehicle load detected. Consider server-side pagination.');
+                        console.warn('%c⚠️ Performance Alert', 'color: #ffc107; font-weight: bold;',
+                            `\n📈 Load Time: ${(loadTime / 1000).toFixed(2)}s (Target: <3s)`
+                            + `\n📊 Vehicle Count: ${vehicles.length} records loaded`
+                            + '\n🔧 Recommendations:'
+                            + '\n   • Enable server-side pagination for large datasets'
+                            + '\n   • Consider implementing virtual scrolling'
+                            + '\n   • Check network connection stability'
+                            + '\n   • Contact administrator if issue persists'
+                            + '\n💡 Current system uses lazy loading to improve user experience');
+                        
+                        // Show user-friendly notification for very slow loads
+                        if (loadTime > 5000) {
+                            showToast('Large dataset detected. Consider refreshing if loading seems slow.', 'info');
+                        }
+                    } else {
+                        console.log(`%c✅ Performance Good`, 'color: #28a745; font-weight: bold;', `Load time: ${(loadTime / 1000).toFixed(2)}s`);
                     }
                 })
                 .withFailureHandler(function(error) {
@@ -1706,6 +2042,7 @@
                 }
             }
 
+
             item.innerHTML = `
                 <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -1792,6 +2129,7 @@
                         todayActivity++;
                         sessionStorage.setItem('todayActivity', todayActivity.toString());
                         document.getElementById('recentActivity').textContent = todayActivity;
+                        
                     }
                     showLoading(false);
                 })
@@ -3058,10 +3396,332 @@
                 })
                 .saveVehicleRecord(vehicleData, currentUser.role, -1);
         }
-
-
-
-
+        
+        // ===== TRANSACTION LOGS FUNCTIONS =====
+        
+        function showTransactionLogs() {
+            // Check if user has permission to view logs
+            if (!currentUser || !['super-admin', 'admin', 'supervisor', 'security'].includes(currentUser.role)) {
+                showToast('You do not have permission to view transaction logs.', 'warning');
+                return;
+            }
+            
+            // Reset pagination state
+            currentLogsPage = 1;
+            allLoadedLogs = [];
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('transactionLogsModal'));
+            modal.show();
+            
+            // Load initial logs
+            loadTransactionLogs(1);
+        }
+        
+        // Debug function - remove after testing
+        function testTransactionLogsUI() {
+            console.log('Testing transaction logs UI with sample data');
+            
+            // Create sample data for testing
+            allLoadedLogs = [
+                {
+                    timestamp: new Date(),
+                    plateNumber: 'ABC-123',
+                    driverId: 'DRV001',
+                    action: 'IN',
+                    gate: 'Main Gate',
+                    remarks: 'Regular entry'
+                },
+                {
+                    timestamp: new Date(Date.now() - 60000),
+                    plateNumber: 'XYZ-456',
+                    driverId: 'DRV002', 
+                    action: 'OUT',
+                    gate: 'Back Gate',
+                    remarks: 'Delivery run'
+                }
+            ];
+            
+            totalLogsCount = 2;
+            hasMoreLogs = false;
+            
+            displayTransactionLogs(false);
+            updateLogsStats({ totalCount: 2, loadTime: 100 });
+            updatePagination();
+            
+            showToast('Test data loaded - check console for details', 'info');
+        }
+        
+        // Debug function to check backend log sheet
+        function debugBackendLogSheet() {
+            console.log('Checking backend log sheet status...');
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log('Debug result:', result);
+                    if (!result) {
+                        console.error('Backend returned null or undefined result');
+                        showToast('Error: No response from debug function', 'danger');
+                        return;
+                    }
+                    if (result.error) {
+                        showToast('Debug Error: ' + result.error, 'danger');
+                    } else {
+                        showToast('Debug completed - check console for details', 'info');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Debug failed:', error);
+                    showToast('Debug failed: ' + error, 'danger');
+                })
+                .debugLogSheet();
+        }
+        
+        function loadTransactionLogs(page = 1, append = false) {
+            if (isLoadingLogs) return;
+            
+            isLoadingLogs = true;
+            
+            // Show loading state
+            const logsLoading = document.getElementById('logsLoading');
+            const logsContainer = document.getElementById('transactionLogsContainer');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            
+            if (!append) {
+                logsLoading.style.display = 'block';
+                logsContainer.innerHTML = '';
+            } else {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<i class="bi bi-arrow-repeat spin me-2"></i>Loading...';
+            }
+            
+            // Call backend function
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log('Transaction logs loaded successfully:', result);
+                    isLoadingLogs = false;
+                    logsLoading.style.display = 'none';
+                    
+                    // Handle null or undefined result
+                    if (!result) {
+                        console.error('Backend returned null or undefined result');
+                        showToast('Error: No response from server', 'danger');
+                        return;
+                    }
+                    
+                    if (result.error) {
+                        console.error('Backend error:', result.error);
+                        showToast('Error loading logs: ' + result.error, 'danger');
+                        return;
+                    }
+                    
+                    console.log('Processing result - logs count:', result.logs ? result.logs.length : 0);
+                    
+                    if (append) {
+                        allLoadedLogs = allLoadedLogs.concat(result.logs || []);
+                    } else {
+                        allLoadedLogs = result.logs || [];
+                    }
+                    
+                    totalLogsCount = result.totalCount || 0;
+                    hasMoreLogs = result.hasMore || false;
+                    currentLogsPage = result.page || 1;
+                    
+                    console.log('Updated state - allLoadedLogs.length:', allLoadedLogs.length);
+                    console.log('totalLogsCount:', totalLogsCount);
+                    console.log('hasMoreLogs:', hasMoreLogs);
+                    
+                    displayTransactionLogs(append);
+                    updateLogsStats(result || {});
+                    updatePagination();
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Failed to load transaction logs:', error);
+                    isLoadingLogs = false;
+                    logsLoading.style.display = 'none';
+                    if (loadMoreBtn) {
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.innerHTML = '<i class="bi bi-arrow-down-circle me-2"></i>Load More Logs';
+                    }
+                    showToast('Failed to load transaction logs: ' + error, 'danger');
+                })
+                .getTransactionLogs(page, 20);
+        }
+        
+        function displayTransactionLogs(append = false) {
+            console.log('displayTransactionLogs called with append:', append);
+            console.log('allLoadedLogs.length:', allLoadedLogs.length);
+            
+            const container = document.getElementById('transactionLogsContainer');
+            const emptyState = document.getElementById('logsEmpty');
+            
+            if (allLoadedLogs.length === 0) {
+                console.log('No logs to display, showing empty state');
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            console.log('Hiding empty state and displaying logs');
+            emptyState.style.display = 'none';
+            
+            if (!append) {
+                container.innerHTML = '';
+            }
+            
+            // Get logs to display (only new ones if appending)
+            const logsToDisplay = append ? 
+                allLoadedLogs.slice(container.children.length) : 
+                allLoadedLogs;
+            
+            console.log('logsToDisplay.length:', logsToDisplay.length);
+            
+            logsToDisplay.forEach((log, index) => {
+                console.log(`Creating log item ${index}:`, log);
+                const logItem = createTransactionLogItem(log);
+                container.appendChild(logItem);
+            });
+            
+            console.log('Container now has', container.children.length, 'child elements');
+        }
+        
+        function createTransactionLogItem(log) {
+            const item = document.createElement('div');
+            item.className = `transaction-log-item action-${log.action.toLowerCase()}`;
+            
+            // Format timestamp
+            const timestamp = new Date(log.timestamp);
+            const timeStr = timestamp.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            // Create remarks section if exists
+            const remarksHtml = log.remarks ? `
+                <div class="transaction-remarks">
+                    <i class="bi bi-chat-left-text me-2"></i>${log.remarks}
+                </div>
+            ` : '';
+            
+            item.innerHTML = `
+                <div class="p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="transaction-plate">${log.plateNumber}</div>
+                            <span class="transaction-action action-${log.action.toLowerCase()}">${log.action}</span>
+                        </div>
+                        <div class="transaction-timestamp">${timeStr}</div>
+                    </div>
+                    
+                    <div class="transaction-meta">
+                        <div class="transaction-meta-item">
+                            <i class="bi bi-person-badge"></i>
+                            <span>${log.driverId}</span>
+                        </div>
+                        <div class="transaction-meta-item">
+                            <i class="bi bi-door-open"></i>
+                            <span>${log.gate}</span>
+                        </div>
+                    </div>
+                    
+                    ${remarksHtml}
+                </div>
+            `;
+            
+            return item;
+        }
+        
+        function updateLogsStats(result) {
+            console.log('updateLogsStats called with:', result);
+            
+            // Safely update total count
+            const totalElement = document.getElementById('totalLogsCount');
+            if (totalElement) {
+                totalElement.textContent = (result.totalCount || 0).toLocaleString();
+            }
+            
+            // Calculate IN/OUT counts from loaded logs
+            let entriesCount = 0;
+            let exitsCount = 0;
+            
+            if (allLoadedLogs && Array.isArray(allLoadedLogs)) {
+                allLoadedLogs.forEach(log => {
+                    if (log && log.action === 'IN') entriesCount++;
+                    else if (log && log.action === 'OUT') exitsCount++;
+                });
+            }
+            
+            // Safely update counts
+            const entriesElement = document.getElementById('entriesCount');
+            const exitsElement = document.getElementById('exitsCount');
+            const loadTimeElement = document.getElementById('loadTimeDisplay');
+            
+            if (entriesElement) {
+                entriesElement.textContent = entriesCount.toLocaleString();
+            }
+            if (exitsElement) {
+                exitsElement.textContent = exitsCount.toLocaleString();
+            }
+            if (loadTimeElement) {
+                const loadTime = (result && result.loadTime) ? `${result.loadTime}ms` : '-';
+                loadTimeElement.textContent = loadTime;
+            }
+        }
+        
+        function updatePagination() {
+            const pagination = document.getElementById('logsPagination');
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const logsInfo = document.getElementById('logsInfo');
+            
+            if (hasMoreLogs) {
+                pagination.style.display = 'flex';
+                loadMoreBtn.disabled = false;
+                loadMoreBtn.innerHTML = '<i class="bi bi-arrow-down-circle me-2"></i>Load More Logs';
+                
+                const remainingLogs = totalLogsCount - allLoadedLogs.length;
+                logsInfo.textContent = `Showing ${allLoadedLogs.length} of ${totalLogsCount.toLocaleString()} logs (${remainingLogs} more)`;
+            } else {
+                pagination.style.display = allLoadedLogs.length > 0 ? 'flex' : 'none';
+                loadMoreBtn.style.display = 'none';
+                
+                if (allLoadedLogs.length > 0) {
+                    logsInfo.textContent = `Showing all ${allLoadedLogs.length} logs`;
+                }
+            }
+        }
+        
+        function loadMoreLogs() {
+            if (!hasMoreLogs || isLoadingLogs) return;
+            
+            loadTransactionLogs(currentLogsPage + 1, true);
+        }
+        
+        // Add CSS for loading animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .spin {
+                animation: spin 1s linear infinite;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check session and initialize
+            const savedSession = sessionStorage.getItem('currentUser');
+            if (savedSession) {
+                currentUser = JSON.parse(savedSession);
+                showDashboard();
+            } else {
+                showLoginPage();
+            }
+        });
 
     </script>
 </body>
