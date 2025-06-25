@@ -6,10 +6,165 @@
     <base target="_top">
     <title>Vehicle Monitoring System</title>
     
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <!-- Preconnect to CDN for faster loading -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    
+    <!-- Load CSS with media attribute for better performance -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" media="all">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" media="all">
     
     <style>
+        /* CSS Reset and Performance Optimizations */
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* Optimize rendering performance */
+        .vehicle-card, .btn, .modal {
+            will-change: transform;
+        }
+        
+        /* Mobile-first responsive design */
+        @media (max-width: 767px) {
+            .navbar-nav {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            
+            .stats-card {
+                margin-bottom: 1rem;
+            }
+            
+            .vehicle-status-columns .col-lg-6 {
+                margin-bottom: 1rem;
+            }
+            
+            .vehicle-list {
+                max-height: 400px;
+            }
+            
+            .add-vehicle-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+            }
+            
+            .login-card {
+                margin: 1rem;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .vehicle-info {
+                font-size: 0.8rem;
+            }
+            
+            .plate-number {
+                font-size: 1rem;
+            }
+            
+            /* Optimize form layouts for mobile */
+            .row.mb-4 > div[class*="col-"] {
+                margin-bottom: 1rem;
+            }
+            
+            /* Touch-friendly button sizes */
+            .btn {
+                min-height: 44px;
+                padding: 0.5rem 1rem;
+            }
+            
+            .btn-sm {
+                min-height: 36px;
+            }
+            
+            /* Responsive table in modals */
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Tablet responsive adjustments */
+        @media (min-width: 768px) and (max-width: 991px) {
+            .vehicle-status-columns .col-lg-6 {
+                margin-bottom: 1rem;
+            }
+        }
+        
+        /* Performance optimizations */
+        img, svg, video {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Reduce animations on low-power devices */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Touch device optimizations */
+        .touch-device .vehicle-card {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .touch-active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        
+        /* Loading state optimizations */
+        .skeleton-loader {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Viewport height fix for mobile */
+        .dashboard-page {
+            min-height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
+        }
+        
+        /* Optimize modal for mobile */
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 0;
+                width: 100%;
+                max-width: 100%;
+                height: 100%;
+            }
+            
+            .modal-content {
+                height: 100%;
+                border-radius: 0;
+            }
+            
+            .modal-body {
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
         .login-page {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -55,18 +210,154 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .stats-card .card-body {
+            position: relative;
+            z-index: 2;
+        }
+        .stats-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+        }
+        .stats-card:hover::before {
+            top: -60%;
+            right: -60%;
+        }
+        .stats-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0;
+            transition: all 0.3s ease;
+        }
+        .stats-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        .stats-percentage {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+        .stats-progress {
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        .stats-progress-bar {
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            border-radius: 2px;
+            transition: width 1s ease;
+        }
+        
+        @keyframes pulse-once {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse-once {
+            animation: pulse-once 0.6s ease-in-out;
+        }
+        
+        /* Summary card styles */
+        .summary-card {
+            background: white;
+            border: 1px solid #e3e6f0;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .summary-item {
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+        
+        .summary-item i {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .summary-item .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .summary-item .label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-number {
+                font-size: 2rem;
+            }
+            .stats-icon {
+                font-size: 2rem;
+                right: 15px;
+            }
+            .summary-stats {
+                gap: 0.5rem;
+            }
         }
         .vehicle-card {
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
             border: none;
             border-radius: 10px;
             margin-bottom: 15px;
             border-left: 4px solid transparent;
+            -webkit-tap-highlight-color: transparent;
         }
         .vehicle-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        @media (hover: none) {
+            .vehicle-card:hover {
+                transform: none;
+            }
+            .vehicle-card:active {
+                transform: scale(0.98);
+            }
         }
         .vehicle-card.status-in {
             border-left-color: #28a745;
@@ -101,6 +392,23 @@
         }
         .vehicle-list::-webkit-scrollbar-thumb:hover {
             background: #555;
+        }
+        .lazy-loading-indicator {
+            padding: 20px;
+            opacity: 0.7;
+        }
+        .vehicle-card {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         .vehicle-info {
             font-size: 0.9rem;
@@ -164,6 +472,7 @@
             box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
             z-index: 1000;
             transition: all 0.3s ease;
+            display: none; /* Hidden by default */
         }
         .add-vehicle-btn:hover {
             transform: scale(1.1);
@@ -219,6 +528,30 @@
             border: 1px solid #dee2e6;
             border-radius: 8px;
             background: #f8f9fa;
+        }
+        
+        /* Vehicle Management Enhancements */
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .table-responsive::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
@@ -277,14 +610,15 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" href="#">
-                    <i class="bi bi-truck me-2"></i>Vehicle Monitoring System
+                    <i class="bi bi-truck me-2"></i><span class="d-none d-sm-inline">Vehicle Monitoring System</span><span class="d-inline d-sm-none">VMS</span>
                 </a>
-                <div class="navbar-nav ms-auto">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <div class="navbar-nav ms-auto">
                     <button class="btn btn-outline-light btn-sm me-3" id="vehicleManagementBtn" style="display: none;" onclick="showVehicleManagement()">
                         <i class="bi bi-truck me-1"></i>Manage Vehicles
-                    </button>
-                    <button class="btn btn-outline-light btn-sm me-3" id="driverManagementBtn" style="display: none;" onclick="showDriverManagement()">
-                        <i class="bi bi-person-badge me-1"></i>Manage Drivers
                     </button>
                     <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
                         <i class="bi bi-door-open me-1"></i>Manage Gates
@@ -310,6 +644,7 @@
                     <button class="btn btn-outline-light btn-sm" onclick="logout()">
                         <i class="bi bi-box-arrow-right me-1"></i>Logout
                     </button>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -318,27 +653,90 @@
         <div class="container-fluid py-4">
             <!-- Statistics Cards -->
             <div class="row mb-4">
-                <div class="col-md-4">
+                <div class="col-md-4 mb-3">
                     <div class="card stats-card">
-                        <div class="card-body text-center">
-                            <h3 class="mb-0" id="totalVehicles">0</h3>
-                            <p class="mb-0">Total Vehicles</p>
+                        <div class="card-body">
+                            <i class="bi bi-truck stats-icon"></i>
+                            <h3 class="stats-number" id="totalVehicles">0</h3>
+                            <p class="stats-label">Total Vehicles</p>
+                            <div class="stats-percentage" id="totalVehiclesChange">
+                                <i class="bi bi-dash"></i> Registered
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card bg-success text-white">
-                        <div class="card-body text-center">
-                            <h3 class="mb-0" id="vehiclesIn">0</h3>
-                            <p class="mb-0">Vehicles In</p>
+                <div class="col-md-4 mb-3">
+                    <div class="card stats-card" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                        <div class="card-body">
+                            <i class="bi bi-arrow-down-circle stats-icon"></i>
+                            <h3 class="stats-number" id="vehiclesIn">0</h3>
+                            <p class="stats-label">Vehicles In</p>
+                            <div class="stats-percentage" id="vehiclesInPercentage">
+                                <i class="bi bi-percent"></i> <span>0%</span> of total
+                            </div>
+                            <div class="stats-progress">
+                                <div class="stats-progress-bar" id="vehiclesInProgress" style="width: 0%"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card bg-danger text-white">
-                        <div class="card-body text-center">
-                            <h3 class="mb-0" id="vehiclesOut">0</h3>
-                            <p class="mb-0">Vehicles Out</p>
+                <div class="col-md-4 mb-3">
+                    <div class="card stats-card" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                        <div class="card-body">
+                            <i class="bi bi-arrow-up-circle stats-icon"></i>
+                            <h3 class="stats-number" id="vehiclesOut">0</h3>
+                            <p class="stats-label">Vehicles Out</p>
+                            <div class="stats-percentage" id="vehiclesOutPercentage">
+                                <i class="bi bi-percent"></i> <span>0%</span> of total
+                            </div>
+                            <div class="stats-progress">
+                                <div class="stats-progress-bar" id="vehiclesOutProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Summary Card -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="summary-card">
+                        <div class="summary-stats">
+                            <div class="summary-item">
+                                <i class="bi bi-activity text-primary"></i>
+                                <p class="value" id="occupancyRate">0%</p>
+                                <p class="label">Occupancy Rate</p>
+                            </div>
+                            <div class="summary-item">
+                                <i class="bi bi-clock-history text-info"></i>
+                                <p class="value" id="lastUpdate">Just now</p>
+                                <p class="label">Last Update</p>
+                            </div>
+                            <div class="summary-item">
+                                <i class="bi bi-geo-alt-fill text-warning"></i>
+                                <p class="value" id="activeGateDisplay">-</p>
+                                <p class="label">Active Gate</p>
+                            </div>
+                            <div class="summary-item">
+                                <i class="bi bi-arrow-left-right text-secondary"></i>
+                                <p class="value" id="recentActivity">0</p>
+                                <p class="label">Today's Activity</p>
+                            </div>
+                            <div class="summary-item">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <p class="value" id="accessCount">0</p>
+                                <p class="label">Access Allowed</p>
+                            </div>
+                            <div class="summary-item">
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                <p class="value" id="noAccessCount">0</p>
+                                <p class="label">No Access</p>
+                            </div>
+                            <div class="summary-item">
+                                <i class="bi bi-x-circle-fill text-danger"></i>
+                                <p class="value" id="bannedCount">0</p>
+                                <p class="label">Banned</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -346,41 +744,41 @@
 
             <!-- Search and Filter -->
             <div class="row mb-4">
-                <div class="col-md-3">
-                    <label class="form-label mb-1">
+                <div class="col-12 col-md-3 mb-2 mb-md-0">
+                    <label class="form-label mb-1 d-none d-md-block">
                         <small><i class="bi bi-search me-1"></i>Search by:</small>
                     </label>
                     <input type="text" class="form-control" id="searchInput" 
-                           placeholder="Plate, model, or driver..." 
-                           onkeyup="filterVehicles()">
+                           placeholder="Search vehicles..." 
+                           onkeyup="debounceFilter()">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label mb-1">
+                <div class="col-6 col-md-2 mb-2 mb-md-0">
+                    <label class="form-label mb-1 d-none d-md-block">
                         <small><i class="bi bi-filter me-1"></i>Status:</small>
                     </label>
                     <select class="form-select" id="filterStatus" onchange="filterVehicles()">
-                        <option value="">All Statuses</option>
-                        <option value="IN">Checked In</option>
-                        <option value="OUT">Checked Out</option>
+                        <option value="">All Vehicles</option>
+                        <option value="IN">🟢 Checked IN</option>
+                        <option value="OUT">🔴 Checked OUT</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">
-                        <small><i class="bi bi-geo-alt me-1"></i>Active Gate:</small>
+                <div class="col-6 col-md-3 mb-2 mb-md-0">
+                    <label class="form-label mb-1 d-none d-md-block">
+                        <small><i class="bi bi-geo-alt me-1"></i>Gate:</small>
                     </label>
                     <div class="input-group">
                         <select class="form-select gate-selector" id="gateSelector">
-                            <option value="">🔄 Loading gates...</option>
+                            <option value="">Loading...</option>
                         </select>
-                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="refreshGateSelector()" title="Refresh gates">
+                        <button class="btn btn-outline-secondary" type="button" onclick="refreshGateSelector()" title="Refresh gates">
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>
                     </div>
-                    <div class="form-text">
-                        <small class="text-muted">Select the current gate for vehicle operations</small>
-                    </div>
                 </div>
-                <div class="col-md-4 text-end d-flex align-items-end">
+                <div class="col-12 col-md-4 text-center text-md-end mt-2 mt-md-0 d-flex align-items-end justify-content-center justify-content-md-end gap-2">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()" title="Clear all filters">
+                        <i class="bi bi-x-circle me-1"></i><span class="d-none d-lg-inline">Clear</span>
+                    </button>
                     <button class="btn btn-primary" onclick="loadVehicles()">
                         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                     </button>
@@ -446,113 +844,10 @@
     </div>
 
     <!-- Add Vehicle Button -->
-    <button class="btn btn-primary add-vehicle-btn" onclick="showAddVehicleModal()" title="Add New Vehicle" id="addVehicleBtn">
+    <button class="btn btn-primary add-vehicle-btn" onclick="showVehicleManagement()" title="Manage Vehicles" id="addVehicleBtn">
         <i class="bi bi-plus-lg fs-4"></i>
     </button>
 
-    <!-- Add Vehicle Modal -->
-    <div class="modal fade" id="addVehicleModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-truck me-2"></i>Add New Vehicle
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addVehicleForm">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Plate Number <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="newPlateNumber" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Make/Model <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="newModel" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Color</label>
-                                    <input type="text" class="form-control" id="newColor">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Year</label>
-                                    <input type="number" class="form-control" id="newYear" min="1900" max="2030">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Type</label>
-                                    <select class="form-select" id="newType">
-                                        <option value="Car">Car</option>
-                                        <option value="Truck">Truck</option>
-                                        <option value="Van">Van</option>
-                                        <option value="Motorcycle">Motorcycle</option>
-                                        <option value="Bus">Bus</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Department/Company</label>
-                                    <input type="text" class="form-control" id="newDepartment">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Assigned Driver</label>
-                                    <select class="form-select" id="newDriver">
-                                        <option value="">Select a driver...</option>
-                                        <!-- Options will be loaded dynamically -->
-                                    </select>
-                                    <div class="form-text">Primary driver for this vehicle</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Access Status</label>
-                                    <select class="form-select" id="newAccessStatus">
-                                        <option value="Access">Access</option>
-                                        <option value="No Access">No Access</option>
-                                        <option value="Banned">Banned</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Initial Status</label>
-                                    <select class="form-select" id="newStatus">
-                                        <option value="OUT">Checked Out</option>
-                                        <option value="IN">Checked In</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="saveNewVehicle()">
-                        <i class="bi bi-check-lg me-2"></i>Add Vehicle
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Vehicle Details Modal -->
     <div class="modal fade" id="vehicleDetailsModal" tabindex="-1">
@@ -683,246 +978,6 @@
         </div>
     </div>
 
-    <!-- Driver Management Modal -->
-    <div class="modal fade" id="driverManagementModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-person-badge me-2"></i>Driver Management
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">All Drivers</h6>
-                        <button class="btn btn-success btn-sm" onclick="showAddDriverModal()">
-                            <i class="bi bi-person-plus me-1"></i>Add Driver
-                        </button>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="driversTable">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th>Driver ID</th>
-                                    <th>Name</th>
-                                    <th>License Number</th>
-                                    <th>Phone</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="driversTableBody">
-                                <!-- Driver rows will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Driver Modal -->
-    <div class="modal fade" id="addDriverModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-person-plus me-2"></i>Add New Driver
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addDriverForm">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Driver ID <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="newDriverId" required>
-                                    <div class="form-text">Unique identifier for the driver</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="newDriverName" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">License Number <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="newDriverLicense" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">License Type</label>
-                                    <select class="form-select" id="newDriverLicenseType">
-                                        <option value="Regular">Regular</option>
-                                        <option value="Commercial">Commercial (CDL)</option>
-                                        <option value="Motorcycle">Motorcycle</option>
-                                        <option value="Chauffeur">Chauffeur</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="newDriverPhone">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="newDriverEmail">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Department</label>
-                                    <input type="text" class="form-control" id="newDriverDepartment">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">License Expiry</label>
-                                    <input type="date" class="form-control" id="newDriverLicenseExpiry">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Status</label>
-                                    <select class="form-select" id="newDriverStatus">
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                        <option value="Suspended">Suspended</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" id="newDriverNotes" rows="3" placeholder="Additional notes about the driver..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" onclick="saveNewDriver()">
-                        <i class="bi bi-check-lg me-2"></i>Add Driver
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Driver Modal -->
-    <div class="modal fade" id="editDriverModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">
-                        <i class="bi bi-pencil-square me-2"></i>Edit Driver
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editDriverForm">
-                        <input type="hidden" id="editDriverIndex">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Driver ID <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editDriverId" required>
-                                    <div class="form-text">Unique identifier for the driver</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editDriverName" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">License Number <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editDriverLicense" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">License Type</label>
-                                    <select class="form-select" id="editDriverLicenseType">
-                                        <option value="Regular">Regular</option>
-                                        <option value="Commercial">Commercial (CDL)</option>
-                                        <option value="Motorcycle">Motorcycle</option>
-                                        <option value="Chauffeur">Chauffeur</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="editDriverPhone">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="editDriverEmail">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Department</label>
-                                    <input type="text" class="form-control" id="editDriverDepartment">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">License Expiry</label>
-                                    <input type="date" class="form-control" id="editDriverLicenseExpiry">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Status</label>
-                                    <select class="form-select" id="editDriverStatus">
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                        <option value="Suspended">Suspended</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" id="editDriverNotes" rows="3" placeholder="Additional notes about the driver..."></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-warning" onclick="saveDriverEdit()">
-                        <i class="bi bi-check-lg me-2"></i>Save Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- User Management Modal -->
     <div class="modal fade user-management-modal" id="userManagementModal" tabindex="-1">
@@ -1129,128 +1184,105 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Manage Vehicles</h6>
-                        <button class="btn btn-primary btn-sm" onclick="showAddVehicleForm()">
-                            <i class="bi bi-plus-lg me-1"></i>Add Vehicle
-                        </button>
-                    </div>
+                    <h6 class="mb-3">Add New Vehicle</h6>
                     
-                    <!-- Add/Edit Form -->
-                    <div id="vehicleForm" class="mb-3" style="display: none;">
-                        <div class="card">
-                            <div class="card-body">
-                                <h6 id="vehicleFormTitle">Add New Vehicle</h6>
-                                <form id="addEditVehicleForm">
-                                    <input type="hidden" id="editVehicleIndex" value="-1">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="vehiclePlateNumber" class="form-label">Plate Number *</label>
-                                                <input type="text" class="form-control" id="vehiclePlateNumber" required 
-                                                       placeholder="e.g., ABC-123">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="vehicleModel" class="form-label">Make/Model *</label>
-                                                <input type="text" class="form-control" id="vehicleModel" required 
-                                                       placeholder="e.g., Toyota Camry">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="vehicleColor" class="form-label">Color</label>
-                                                <input type="text" class="form-control" id="vehicleColor" 
-                                                       placeholder="e.g., White">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="vehicleDepartment" class="form-label">Department/Company</label>
-                                                <input type="text" class="form-control" id="vehicleDepartment" 
-                                                       placeholder="e.g., IT Department">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="vehicleYear" class="form-label">Year</label>
-                                                <input type="number" class="form-control" id="vehicleYear" 
-                                                       placeholder="2023" min="1900" max="2030">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="vehicleType" class="form-label">Type</label>
-                                                <select class="form-select" id="vehicleType">
-                                                    <option value="Car">Car</option>
-                                                    <option value="Truck">Truck</option>
-                                                    <option value="Van">Van</option>
-                                                    <option value="SUV">SUV</option>
-                                                    <option value="Motorcycle">Motorcycle</option>
-                                                    <option value="Bus">Bus</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="mb-3">
-                                                <label for="vehicleStatus" class="form-label">Status</label>
-                                                <select class="form-select" id="vehicleStatus">
-                                                    <option value="OUT">OUT</option>
-                                                    <option value="IN">IN</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="vehicleDriver" class="form-label">Current Driver</label>
-                                                <input type="text" class="form-control" id="vehicleDriver" 
-                                                       placeholder="Driver name or ID">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="vehicleAccessStatus" class="form-label">Access Status</label>
-                                                <select class="form-select" id="vehicleAccessStatus">
-                                                    <option value="Access">Access</option>
-                                                    <option value="No Access">No Access</option>
-                                                    <option value="Banned">Banned</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="vehicleAssignedDrivers" class="form-label">Assigned Drivers</label>
-                                        <input type="text" class="form-control" id="vehicleAssignedDrivers" 
-                                               placeholder="Comma-separated driver names or IDs">
-                                        <small class="text-muted">Enter multiple drivers separated by commas</small>
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-primary" onclick="saveVehicle()">
-                                            <i class="bi bi-check-lg me-1"></i>Save
-                                        </button>
-                                        <button type="button" class="btn btn-secondary" onclick="cancelVehicleForm()">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </form>
+                    <!-- Add Vehicle Form -->
+                    <form id="addVehicleForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vehiclePlateNumber" class="form-label">Plate Number *</label>
+                                    <input type="text" class="form-control" id="vehiclePlateNumber" required 
+                                           placeholder="e.g., ABC-123">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vehicleModel" class="form-label">Make/Model *</label>
+                                    <input type="text" class="form-control" id="vehicleModel" required 
+                                           placeholder="e.g., Toyota Camry">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Vehicle List -->
-                    <div id="vehicleListContainer">
-                        <div class="text-center py-3">
-                            <div class="spinner-border" role="status"></div>
-                            <p class="mt-2 text-muted">Loading vehicles...</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vehicleColor" class="form-label">Color</label>
+                                    <input type="text" class="form-control" id="vehicleColor" 
+                                           placeholder="e.g., White">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vehicleDepartment" class="form-label">Department/Company</label>
+                                    <input type="text" class="form-control" id="vehicleDepartment" 
+                                           placeholder="e.g., IT Department">
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="vehicleYear" class="form-label">Year</label>
+                                    <input type="number" class="form-control" id="vehicleYear" 
+                                           placeholder="2023" min="1900" max="2030">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="vehicleType" class="form-label">Type</label>
+                                    <select class="form-select" id="vehicleType">
+                                        <option value="Car">Car</option>
+                                        <option value="Truck">Truck</option>
+                                        <option value="Van">Van</option>
+                                        <option value="SUV">SUV</option>
+                                        <option value="Motorcycle">Motorcycle</option>
+                                        <option value="Bus">Bus</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="vehicleStatus" class="form-label">Status</label>
+                                    <select class="form-select" id="vehicleStatus">
+                                        <option value="OUT">OUT</option>
+                                        <option value="IN">IN</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vehicleDriver" class="form-label">Current Driver</label>
+                                    <input type="text" class="form-control" id="vehicleDriver" 
+                                           placeholder="Driver name or ID">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="vehicleAccessStatus" class="form-label">Access Status</label>
+                                    <select class="form-select" id="vehicleAccessStatus">
+                                        <option value="Access">Access</option>
+                                        <option value="No Access">No Access</option>
+                                        <option value="Banned">Banned</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="vehicleAssignedDrivers" class="form-label">Assigned Drivers</label>
+                            <input type="text" class="form-control" id="vehicleAssignedDrivers" 
+                                   placeholder="Comma-separated driver names or IDs">
+                            <small class="text-muted">Enter multiple drivers separated by commas</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveVehicle()">
+                        <i class="bi bi-check-lg me-2"></i>Add Vehicle
+                    </button>
                 </div>
             </div>
         </div>
@@ -1259,17 +1291,92 @@
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Load scripts with defer for better performance -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
     <script>
         let currentUser = null;
         let vehicleData = [];
         let allVehicles = [];
+        
+        // Lazy loading configuration
+        const VEHICLES_PER_BATCH = window.innerWidth <= 768 ? 5 : 10; // Smaller batch for mobile
+        let vehiclesInIndex = 0;
+        let vehiclesOutIndex = 0;
+        let isLoadingMore = false;
+        let vehiclesInObserver = null;
+        let vehiclesOutObserver = null;
+        let filterTimeout = null;
 
         // Initialize the application
-        window.onload = function() {
+        document.addEventListener('DOMContentLoaded', function() {
             console.log('Application starting...');
+            
+            // Check for existing session first
+            checkExistingSession();
+            
+            // Preload critical resources
+            preloadResources();
+        });
+        
+        function checkExistingSession() {
+            // Check if user session exists in sessionStorage
+            const storedUser = sessionStorage.getItem('currentUser');
+            
+            if (storedUser) {
+                try {
+                    currentUser = JSON.parse(storedUser);
+                    console.log('Restored user session:', currentUser.username);
+                    showDashboard();
+                    return;
+                } catch (error) {
+                    console.error('Error parsing stored user session:', error);
+                    // Clear invalid session data
+                    sessionStorage.removeItem('currentUser');
+                }
+            }
+            
+            // No valid session found, show login page
             showLoginPage();
-        };
+        }
+
+        function saveSession() {
+            // Save current user session to sessionStorage
+            if (currentUser) {
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            }
+        }
+
+        function clearSession() {
+            // Clear user session from storage
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('selectedGate');
+            sessionStorage.removeItem('todayActivity');
+        }
+
+        function preloadResources() {
+            // Preload images and icons that will be used
+            const imagesToPreload = [
+                'bi-truck', 'bi-arrow-down-circle', 'bi-arrow-up-circle',
+                'bi-person-fill', 'bi-people-fill', 'bi-building'
+            ];
+            
+            // Create a hidden div to trigger icon font loading
+            const preloadDiv = document.createElement('div');
+            preloadDiv.style.position = 'absolute';
+            preloadDiv.style.left = '-9999px';
+            preloadDiv.style.visibility = 'hidden';
+            
+            imagesToPreload.forEach(icon => {
+                const i = document.createElement('i');
+                i.className = `bi ${icon}`;
+                preloadDiv.appendChild(i);
+            });
+            
+            document.body.appendChild(preloadDiv);
+            
+            // Remove after a short delay
+            setTimeout(() => preloadDiv.remove(), 100);
+        }
 
         function showLoginPage() {
             document.getElementById('loginPage').classList.remove('hidden');
@@ -1292,6 +1399,15 @@
             
             loadVehicles();
             loadActiveGates();
+            
+            // Setup scroll listeners for manual scroll-based loading as fallback
+            setupScrollListeners();
+            
+            // Optimize for mobile
+            optimizeForMobile();
+            
+            // Initialize filter UI
+            initializeFilterUI();
         }
 
         function updateUIBasedOnRole() {
@@ -1321,13 +1437,6 @@
                 vehicleManagementBtn.style.display = 'none';
             }
             
-            // Show/hide driver management button
-            const driverManagementBtn = document.getElementById('driverManagementBtn');
-            if (hasPermission('manage_drivers')) {
-                driverManagementBtn.style.display = 'inline-block';
-            } else {
-                driverManagementBtn.style.display = 'none';
-            }
             
             // Show/hide gate management button
             const gateManagementBtn = document.getElementById('gateManagementBtn');
@@ -1368,6 +1477,7 @@
                 .withSuccessHandler(function(result) {
                     if (result.success) {
                         currentUser = { username: username, role: result.role };
+                        saveSession(); // Save session to prevent logout on refresh
                         showMessage('Login successful!', 'success');
                         setTimeout(() => {
                             showDashboard();
@@ -1394,20 +1504,37 @@
 
         function loadVehicles() {
             showLoading(true);
+            const startTime = performance.now();
             
             google.script.run
                 .withSuccessHandler(function(vehicles) {
-                    console.log('Vehicles loaded:', vehicles.length);
+                    const loadTime = performance.now() - startTime;
+                    console.log(`Vehicles loaded: ${vehicles.length} in ${loadTime.toFixed(2)}ms`);
+                    
                     allVehicles = vehicles || [];
                     vehicleData = allVehicles;
                     displayVehicles();
                     updateStatistics();
                     showLoading(false);
+                    
+                    // Show performance warning if load time is slow
+                    if (loadTime > 3000) {
+                        console.warn('Slow vehicle load detected. Consider server-side pagination.');
+                    }
                 })
                 .withFailureHandler(function(error) {
                     console.error('Error loading vehicles:', error);
                     showToast('Failed to load vehicles: ' + error, 'danger');
                     showLoading(false);
+                    
+                    // Show retry option for network errors
+                    if (error.toString().includes('NetworkError')) {
+                        setTimeout(() => {
+                            if (confirm('Network error detected. Would you like to retry?')) {
+                                loadVehicles();
+                            }
+                        }, 1000);
+                    }
                 })
                 .getVehicleList();
         }
@@ -1416,9 +1543,17 @@
             const vehiclesInContainer = document.getElementById('vehiclesInContainer');
             const vehiclesOutContainer = document.getElementById('vehiclesOutContainer');
             
+            // Disconnect existing observers
+            if (vehiclesInObserver) vehiclesInObserver.disconnect();
+            if (vehiclesOutObserver) vehiclesOutObserver.disconnect();
+            
             // Clear containers
             vehiclesInContainer.innerHTML = '';
             vehiclesOutContainer.innerHTML = '';
+            
+            // Reset indices
+            vehiclesInIndex = 0;
+            vehiclesOutIndex = 0;
 
             if (vehicleData.length <= 1) {
                 vehiclesInContainer.innerHTML = `
@@ -1436,8 +1571,9 @@
                 return;
             }
 
-            let vehiclesIn = [];
-            let vehiclesOut = [];
+            // Separate and store vehicles globally for lazy loading
+            window.vehiclesInArray = [];
+            window.vehiclesOutArray = [];
 
             // Separate vehicles by status
             for (let i = 1; i < vehicleData.length; i++) {
@@ -1452,14 +1588,14 @@
                 const vehicleData_item = { plateNumber, model, status, driver, index: i };
 
                 if (status === 'IN') {
-                    vehiclesIn.push(vehicleData_item);
+                    window.vehiclesInArray.push(vehicleData_item);
                 } else {
-                    vehiclesOut.push(vehicleData_item);
+                    window.vehiclesOutArray.push(vehicleData_item);
                 }
             }
 
-            // Display vehicles in respective columns
-            if (vehiclesIn.length === 0) {
+            // Display vehicles with lazy loading
+            if (window.vehiclesInArray.length === 0) {
                 vehiclesInContainer.innerHTML = `
                     <div class="no-vehicles">
                         <i class="bi bi-truck"></i>
@@ -1467,15 +1603,12 @@
                     </div>
                 `;
             } else {
-                vehiclesInContainer.innerHTML = '<div class="vehicle-list"></div>';
-                const inList = vehiclesInContainer.querySelector('.vehicle-list');
-                vehiclesIn.forEach(vehicle => {
-                    const card = createVehicleListItem(vehicle.plateNumber, vehicle.model, vehicle.status, vehicle.driver, vehicle.index);
-                    inList.appendChild(card);
-                });
+                vehiclesInContainer.innerHTML = '<div class="vehicle-list" id="vehiclesInList"></div>';
+                loadMoreVehicles('in');
+                setupIntersectionObserver('in');
             }
 
-            if (vehiclesOut.length === 0) {
+            if (window.vehiclesOutArray.length === 0) {
                 vehiclesOutContainer.innerHTML = `
                     <div class="no-vehicles">
                         <i class="bi bi-truck"></i>
@@ -1483,17 +1616,14 @@
                     </div>
                 `;
             } else {
-                vehiclesOutContainer.innerHTML = '<div class="vehicle-list"></div>';
-                const outList = vehiclesOutContainer.querySelector('.vehicle-list');
-                vehiclesOut.forEach(vehicle => {
-                    const card = createVehicleListItem(vehicle.plateNumber, vehicle.model, vehicle.status, vehicle.driver, vehicle.index);
-                    outList.appendChild(card);
-                });
+                vehiclesOutContainer.innerHTML = '<div class="vehicle-list" id="vehiclesOutList"></div>';
+                loadMoreVehicles('out');
+                setupIntersectionObserver('out');
             }
 
-            // Update badge counts
-            document.getElementById('vehiclesInBadge').textContent = vehiclesIn.length;
-            document.getElementById('vehiclesOutBadge').textContent = vehiclesOut.length;
+            // Update badge counts with total counts
+            document.getElementById('vehiclesInBadge').textContent = window.vehiclesInArray.length;
+            document.getElementById('vehiclesOutBadge').textContent = window.vehiclesOutArray.length;
         }
 
         function createVehicleListItem(plateNumber, model, status, driver, index) {
@@ -1505,7 +1635,41 @@
             const color = vehicle[2] || 'Unknown';
             const department = vehicle[3] || 'Unknown';
             const year = vehicle[4] || '';
+            const type = vehicle[5] || 'Car';
             const assignedDrivers = vehicle[8] || '';
+
+            // Get appropriate icon for vehicle type
+            let typeIcon = 'bi-truck';
+            let typeColor = 'text-secondary';
+            switch(type.toLowerCase()) {
+                case 'car':
+                    typeIcon = 'bi-car-front-fill';
+                    typeColor = 'text-primary';
+                    break;
+                case 'truck':
+                    typeIcon = 'bi-truck';
+                    typeColor = 'text-danger';
+                    break;
+                case 'van':
+                    typeIcon = 'bi-minecart';
+                    typeColor = 'text-info';
+                    break;
+                case 'suv':
+                    typeIcon = 'bi-car-front';
+                    typeColor = 'text-success';
+                    break;
+                case 'motorcycle':
+                    typeIcon = 'bi-bicycle';
+                    typeColor = 'text-warning';
+                    break;
+                case 'bus':
+                    typeIcon = 'bi-bus-front-fill';
+                    typeColor = 'text-purple';
+                    break;
+                default:
+                    typeIcon = 'bi-truck';
+                    typeColor = 'text-secondary';
+            }
 
             // Format assigned drivers display
             let assignedDriversDisplay = '';
@@ -1542,8 +1706,8 @@
                     </div>
                     <div class="vehicle-info">
                         <div class="mb-1">
-                            <i class="bi bi-truck me-2 text-primary"></i>
-                            <small class="fw-medium">${model}</small>
+                            <i class="bi ${typeIcon} me-2 ${typeColor}"></i>
+                            <small class="fw-medium">${type} - ${model}</small>
                         </div>
                         <div class="mb-1">
                             <i class="bi bi-person-fill me-2 text-success"></i>
@@ -1602,6 +1766,12 @@
                         displayVehicles();
                         updateStatistics();
                         showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`, 'success');
+                        
+                        // Increment today's activity
+                        let todayActivity = parseInt(sessionStorage.getItem('todayActivity') || '0');
+                        todayActivity++;
+                        sessionStorage.setItem('todayActivity', todayActivity.toString());
+                        document.getElementById('recentActivity').textContent = todayActivity;
                     }
                     showLoading(false);
                 })
@@ -1612,62 +1782,246 @@
                 .logVehicleAction(logData);
         }
 
+        function debounceFilter() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(() => {
+                filterVehicles();
+            }, 300);
+        }
+
         function filterVehicles() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const filterStatus = document.getElementById('filterStatus').value;
 
+            // Show filter feedback
+            showFilterFeedback(searchTerm, filterStatus);
+
+            // Reset to all vehicles if no filters
+            if (!searchTerm && !filterStatus) {
+                vehicleData = allVehicles;
+                displayVehicles();
+                updateStatistics();
+                return;
+            }
+
+            // Apply filters
             vehicleData = allVehicles.filter((vehicle, index) => {
                 if (index === 0) return true; // Keep header
 
                 const plateNumber = (vehicle[0] || '').toLowerCase();
                 const model = (vehicle[1] || '').toLowerCase();
                 const driver = (vehicle[7] || '').toLowerCase();
+                const department = (vehicle[3] || '').toLowerCase();
+                const assignedDrivers = (vehicle[8] || '').toLowerCase();
                 const status = vehicle[6] || 'OUT';
 
                 const matchesSearch = !searchTerm || 
                     plateNumber.includes(searchTerm) || 
                     model.includes(searchTerm) ||
-                    driver.includes(searchTerm);
+                    driver.includes(searchTerm) ||
+                    department.includes(searchTerm) ||
+                    assignedDrivers.includes(searchTerm);
 
                 const matchesStatus = !filterStatus || status === filterStatus;
 
                 return matchesSearch && matchesStatus;
             });
 
+            // Reset lazy loading and display filtered results
             displayVehicles();
+            updateStatistics();
+        }
+
+        function clearFilters() {
+            // Clear all filter inputs
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatus').value = '';
+            
+            // Reset data and display
+            vehicleData = allVehicles;
+            displayVehicles();
+            updateStatistics();
+            
+            // Show feedback
+            showToast('Filters cleared - showing all vehicles', 'info');
+        }
+
+        function showFilterFeedback(searchTerm, filterStatus) {
+            // Update clear button visibility
+            const clearBtn = document.querySelector('button[onclick="clearFilters()"]');
+            if (searchTerm || filterStatus) {
+                clearBtn.style.opacity = '1';
+                clearBtn.disabled = false;
+            } else {
+                clearBtn.style.opacity = '0.5';
+                clearBtn.disabled = true;
+            }
+        }
+
+        function initializeFilterUI() {
+            // Initialize clear button state
+            const clearBtn = document.querySelector('button[onclick="clearFilters()"]');
+            if (clearBtn) {
+                clearBtn.style.opacity = '0.5';
+                clearBtn.disabled = true;
+            }
+            
+            // Add enhanced search placeholder
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.setAttribute('placeholder', 'Search plate, model, driver, department...');
+            }
         }
 
         function updateStatistics() {
             if (!vehicleData || vehicleData.length <= 1) {
-                document.getElementById('totalVehicles').textContent = '0';
-                document.getElementById('vehiclesIn').textContent = '0';
-                document.getElementById('vehiclesOut').textContent = '0';
+                animateNumber('totalVehicles', 0);
+                animateNumber('vehiclesIn', 0);
+                animateNumber('vehiclesOut', 0);
+                animateNumber('accessCount', 0);
+                animateNumber('noAccessCount', 0);
+                animateNumber('bannedCount', 0);
+                updatePercentages(0, 0, 0);
+                updateSummaryStats(0);
                 return;
             }
 
             let total = vehicleData.length - 1;
             let vehiclesIn = 0;
             let vehiclesOut = 0;
+            let accessCount = 0;
+            let noAccessCount = 0;
+            let bannedCount = 0;
 
             for (let i = 1; i < vehicleData.length; i++) {
-                if (vehicleData[i] && vehicleData[i][6] === 'IN') {
-                    vehiclesIn++;
-                } else {
-                    vehiclesOut++;
+                if (vehicleData[i]) {
+                    // Count by status
+                    if (vehicleData[i][6] === 'IN') {
+                        vehiclesIn++;
+                    } else {
+                        vehiclesOut++;
+                    }
+                    
+                    // Count by access status
+                    const accessStatus = vehicleData[i][9] || 'Access';
+                    if (accessStatus === 'Access') {
+                        accessCount++;
+                    } else if (accessStatus === 'No Access') {
+                        noAccessCount++;
+                    } else if (accessStatus === 'Banned') {
+                        bannedCount++;
+                    }
                 }
             }
 
-            document.getElementById('totalVehicles').textContent = total;
-            document.getElementById('vehiclesIn').textContent = vehiclesIn;
-            document.getElementById('vehiclesOut').textContent = vehiclesOut;
+            // Animate numbers
+            animateNumber('totalVehicles', total);
+            animateNumber('vehiclesIn', vehiclesIn);
+            animateNumber('vehiclesOut', vehiclesOut);
+            animateNumber('accessCount', accessCount);
+            animateNumber('noAccessCount', noAccessCount);
+            animateNumber('bannedCount', bannedCount);
+
+            // Update percentages and progress bars
+            updatePercentages(total, vehiclesIn, vehiclesOut);
+            
+            // Update summary stats
+            updateSummaryStats(vehiclesIn);
+            
+            // Add pulse effect on update
+            addPulseEffect();
+        }
+
+        function animateNumber(elementId, targetNumber) {
+            const element = document.getElementById(elementId);
+            const currentNumber = parseInt(element.textContent) || 0;
+            const increment = targetNumber > currentNumber ? 1 : -1;
+            const steps = Math.abs(targetNumber - currentNumber);
+            const duration = Math.min(1000, steps * 50); // Max 1 second animation
+            const stepDuration = duration / steps;
+
+            if (steps === 0) return;
+
+            let current = currentNumber;
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current;
+                
+                if (current === targetNumber) {
+                    clearInterval(timer);
+                    // Add a subtle scale effect when complete
+                    element.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        element.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            }, stepDuration);
+        }
+
+        function updatePercentages(total, vehiclesIn, vehiclesOut) {
+            if (total === 0) {
+                document.querySelector('#vehiclesInPercentage span').textContent = '0%';
+                document.querySelector('#vehiclesOutPercentage span').textContent = '0%';
+                document.getElementById('vehiclesInProgress').style.width = '0%';
+                document.getElementById('vehiclesOutProgress').style.width = '0%';
+                return;
+            }
+
+            const inPercentage = Math.round((vehiclesIn / total) * 100);
+            const outPercentage = Math.round((vehiclesOut / total) * 100);
+
+            // Update percentage text
+            document.querySelector('#vehiclesInPercentage span').textContent = inPercentage + '%';
+            document.querySelector('#vehiclesOutPercentage span').textContent = outPercentage + '%';
+
+            // Animate progress bars
+            setTimeout(() => {
+                document.getElementById('vehiclesInProgress').style.width = inPercentage + '%';
+                document.getElementById('vehiclesOutProgress').style.width = outPercentage + '%';
+            }, 100);
+        }
+
+        function addPulseEffect() {
+            const cards = document.querySelectorAll('.stats-card');
+            cards.forEach(card => {
+                card.classList.add('pulse-once');
+                setTimeout(() => {
+                    card.classList.remove('pulse-once');
+                }, 600);
+            });
+        }
+
+        function updateSummaryStats(vehiclesIn) {
+            // Update occupancy rate
+            const total = vehicleData ? vehicleData.length - 1 : 0;
+            const occupancyRate = total > 0 ? Math.round((vehiclesIn / total) * 100) : 0;
+            document.getElementById('occupancyRate').textContent = occupancyRate + '%';
+            
+            // Update last update time
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdate').textContent = timeString;
+            
+            // Update active gate display
+            const currentGate = getCurrentGate();
+            if (currentGate) {
+                document.getElementById('activeGateDisplay').textContent = currentGate.name;
+            }
+            
+            // Update today's activity (this would need actual data from logs)
+            // For now, we'll just show a placeholder
+            const todayActivity = sessionStorage.getItem('todayActivity') || '0';
+            document.getElementById('recentActivity').textContent = todayActivity;
         }
 
         function logout() {
             currentUser = null;
+            clearSession(); // Clear stored session data
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
             document.getElementById('loginMsg').innerHTML = '';
             showLoginPage();
+            showToast('You have been logged out successfully', 'info');
         }
 
         function showLoading(show) {
@@ -1718,78 +2072,6 @@
             }, 5000);
         }
 
-        function showAddVehicleModal() {
-            if (currentUser.role !== 'admin') {
-                showToast('Only administrators can add vehicles', 'danger');
-                return;
-            }
-            
-            // Clear form
-            document.getElementById('addVehicleForm').reset();
-            
-            // Load driver options
-            loadDriverOptions();
-            
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('addVehicleModal'));
-            modal.show();
-        }
-
-        function saveNewVehicle() {
-            const plateNumber = document.getElementById('newPlateNumber').value.trim();
-            const model = document.getElementById('newModel').value.trim();
-            
-            if (!plateNumber || !model) {
-                showToast('Plate number and model are required', 'danger');
-                return;
-            }
-            
-            // Check if plate number already exists
-            for (let i = 1; i < allVehicles.length; i++) {
-                if (allVehicles[i][0] === plateNumber) {
-                    showToast('Vehicle with this plate number already exists', 'danger');
-                    return;
-                }
-            }
-            
-            const newVehicleData = [
-                plateNumber,
-                model,
-                document.getElementById('newColor').value || '',
-                document.getElementById('newDepartment').value || '',
-                document.getElementById('newYear').value || '',
-                document.getElementById('newType').value || 'Car',
-                document.getElementById('newStatus').value || 'OUT',
-                document.getElementById('newDriver').value || '',
-                document.getElementById('newDriver').value || '', // Assigned drivers same as current driver
-                document.getElementById('newAccessStatus').value || 'Access'
-            ];
-            
-            showLoading(true);
-            google.script.run
-                .withSuccessHandler(function(success) {
-                    if (success) {
-                        // Add to local data
-                        allVehicles.push(newVehicleData);
-                        vehicleData = allVehicles;
-                        
-                        // Update display
-                        displayVehicles();
-                        updateStatistics();
-                        
-                        // Hide modal
-                        bootstrap.Modal.getInstance(document.getElementById('addVehicleModal')).hide();
-                        
-                        showToast('Vehicle added successfully!', 'success');
-                    }
-                    showLoading(false);
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to add vehicle: ' + error, 'danger');
-                    showLoading(false);
-                })
-                .updateVehicleRecord(-1, newVehicleData, currentUser.role);
-        }
 
         function showVehicleDetails(index) {
             const vehicle = vehicleData[index];
@@ -2422,8 +2704,6 @@
                 .deleteGate(index, currentUser.role);
         }
 
-        // Vehicle Management Functions - CRUD
-        let allVehiclesManagement = [];
 
         function showVehicleManagement() {
             if (!hasPermission('manage_vehicles')) {
@@ -2431,106 +2711,199 @@
                 return;
             }
 
+            document.getElementById('addVehicleForm').reset();
             const modal = new bootstrap.Modal(document.getElementById('vehicleManagementModal'));
             modal.show();
             
-            loadVehiclesForManagement();
+            // Focus on first input field
+            setTimeout(() => {
+                document.getElementById('vehiclePlateNumber').focus();
+            }, 300);
         }
 
-        function loadVehiclesForManagement() {
-            google.script.run
-                .withSuccessHandler(function(data) {
-                    allVehiclesManagement = data;
-                    displayVehiclesForManagement();
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to load vehicles: ' + error, 'danger');
-                })
-                .getVehicleListForManagement();
-        }
 
-        function displayVehiclesForManagement() {
-            const container = document.getElementById('vehicleListContainer');
+
+
+        function loadMoreVehicles(type) {
+            if (isLoadingMore) return;
+            isLoadingMore = true;
+
+            const listElement = type === 'in' ? 
+                document.getElementById('vehiclesInList') : 
+                document.getElementById('vehiclesOutList');
             
-            if (allVehiclesManagement.length <= 1) {
-                container.innerHTML = '<div class="text-center py-3 text-muted">No vehicles found</div>';
+            const vehiclesArray = type === 'in' ? window.vehiclesInArray : window.vehiclesOutArray;
+            const currentIndex = type === 'in' ? vehiclesInIndex : vehiclesOutIndex;
+            
+            if (!listElement || !vehiclesArray || currentIndex >= vehiclesArray.length) {
+                isLoadingMore = false;
                 return;
             }
 
-            let vehiclesHtml = '<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr>';
-            vehiclesHtml += '<th>Plate Number</th><th>Make/Model</th><th>Status</th><th>Access</th><th>Actions</th>';
-            vehiclesHtml += '</tr></thead><tbody>';
+            // Remove any existing loading indicator
+            const existingLoader = listElement.querySelector('.lazy-loading-indicator');
+            if (existingLoader) existingLoader.remove();
+
+            // Load next batch
+            const endIndex = Math.min(currentIndex + VEHICLES_PER_BATCH, vehiclesArray.length);
+            const fragment = document.createDocumentFragment();
             
-            for (let i = 1; i < allVehiclesManagement.length; i++) {
-                const vehicle = allVehiclesManagement[i];
-                const status = vehicle[6] || 'OUT';
-                const statusClass = status === 'IN' ? 'text-success' : 'text-danger';
-                const accessStatus = vehicle[9] || 'Access';
-                const accessClass = accessStatus === 'Access' ? 'text-success' : 
-                                   accessStatus === 'No Access' ? 'text-warning' : 'text-danger';
-                
-                vehiclesHtml += `
-                    <tr>
-                        <td><strong>${vehicle[0]}</strong></td>
-                        <td>${vehicle[1]} ${vehicle[2] ? '(' + vehicle[2] + ')' : ''}</td>
-                        <td><span class="${statusClass}"><i class="bi bi-circle-fill me-1"></i>${status}</span></td>
-                        <td><span class="${accessClass}">${accessStatus}</span></td>
-                        <td>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-primary" onclick="editVehicleRecord(${i})" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteVehicleRecord(${i})" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+            for (let i = currentIndex; i < endIndex; i++) {
+                const vehicle = vehiclesArray[i];
+                const card = createVehicleListItem(
+                    vehicle.plateNumber, 
+                    vehicle.model, 
+                    vehicle.status, 
+                    vehicle.driver, 
+                    vehicle.index
+                );
+                fragment.appendChild(card);
             }
             
-            vehiclesHtml += '</tbody></table></div>';
-            container.innerHTML = vehiclesHtml;
-        }
-
-        function showAddVehicleForm() {
-            document.getElementById('vehicleForm').style.display = 'block';
-            document.getElementById('vehicleFormTitle').textContent = 'Add New Vehicle';
-            document.getElementById('editVehicleIndex').value = '-1';
-            document.getElementById('addEditVehicleForm').reset();
-            document.getElementById('vehiclePlateNumber').focus();
-        }
-
-        function editVehicleRecord(index) {
-            const vehicle = allVehiclesManagement[index];
-            document.getElementById('vehicleForm').style.display = 'block';
-            document.getElementById('vehicleFormTitle').textContent = 'Edit Vehicle';
-            document.getElementById('editVehicleIndex').value = index;
+            listElement.appendChild(fragment);
             
-            // Populate form
-            document.getElementById('vehiclePlateNumber').value = vehicle[0] || '';
-            document.getElementById('vehicleModel').value = vehicle[1] || '';
-            document.getElementById('vehicleColor').value = vehicle[2] || '';
-            document.getElementById('vehicleDepartment').value = vehicle[3] || '';
-            document.getElementById('vehicleYear').value = vehicle[4] || '';
-            document.getElementById('vehicleType').value = vehicle[5] || 'Car';
-            document.getElementById('vehicleStatus').value = vehicle[6] || 'OUT';
-            document.getElementById('vehicleDriver').value = vehicle[7] || '';
-            document.getElementById('vehicleAssignedDrivers').value = vehicle[8] || '';
-            document.getElementById('vehicleAccessStatus').value = vehicle[9] || 'Access';
+            // Update index
+            if (type === 'in') {
+                vehiclesInIndex = endIndex;
+            } else {
+                vehiclesOutIndex = endIndex;
+            }
             
-            document.getElementById('vehiclePlateNumber').focus();
+            // Add loading indicator if more items remain
+            if (endIndex < vehiclesArray.length) {
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'lazy-loading-indicator text-center py-3';
+                loadingIndicator.innerHTML = `
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading more vehicles...</span>
+                    </div>
+                    <p class="text-muted small mt-2">Loading more vehicles...</p>
+                `;
+                listElement.appendChild(loadingIndicator);
+            }
+            
+            setTimeout(() => { isLoadingMore = false; }, 100);
         }
 
-        function cancelVehicleForm() {
-            document.getElementById('vehicleForm').style.display = 'none';
-            document.getElementById('addEditVehicleForm').reset();
+        function setupIntersectionObserver(type) {
+            const options = {
+                root: null,
+                rootMargin: '100px',
+                threshold: 0.1
+            };
+
+            const callback = (entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        loadMoreVehicles(type);
+                    }
+                });
+            };
+
+            const observer = new IntersectionObserver(callback, options);
+            const listElement = type === 'in' ? 
+                document.getElementById('vehiclesInList') : 
+                document.getElementById('vehiclesOutList');
+            
+            if (listElement) {
+                // Observe the list container for when it comes into view
+                const observerTarget = setInterval(() => {
+                    const loader = listElement.querySelector('.lazy-loading-indicator');
+                    if (loader) {
+                        observer.observe(loader);
+                        clearInterval(observerTarget);
+                    }
+                }, 100);
+                
+                // Store observer reference
+                if (type === 'in') {
+                    vehiclesInObserver = observer;
+                } else {
+                    vehiclesOutObserver = observer;
+                }
+            }
+        }
+
+        function setupScrollListeners() {
+            // Set up scroll event listeners for the vehicle list containers
+            const vehiclesInContainer = document.querySelector('#vehiclesInContainer');
+            const vehiclesOutContainer = document.querySelector('#vehiclesOutContainer');
+            
+            if (vehiclesInContainer) {
+                vehiclesInContainer.addEventListener('scroll', function() {
+                    const list = this.querySelector('.vehicle-list');
+                    if (list && this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
+                        loadMoreVehicles('in');
+                    }
+                }, { passive: true }); // Passive listener for better scroll performance
+            }
+            
+            if (vehiclesOutContainer) {
+                vehiclesOutContainer.addEventListener('scroll', function() {
+                    const list = this.querySelector('.vehicle-list');
+                    if (list && this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
+                        loadMoreVehicles('out');
+                    }
+                }, { passive: true }); // Passive listener for better scroll performance
+            }
+        }
+        
+        function optimizeForMobile() {
+            // Detect if mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile || window.innerWidth <= 768) {
+                // Reduce animation durations for better performance
+                document.documentElement.style.setProperty('--animation-duration', '0.1s');
+                
+                // Add touch-friendly classes
+                document.body.classList.add('touch-device');
+                
+                // Optimize vehicle card interactions
+                const vehicleCards = document.querySelectorAll('.vehicle-card');
+                vehicleCards.forEach(card => {
+                    card.addEventListener('touchstart', function() {
+                        this.classList.add('touch-active');
+                    }, { passive: true });
+                    
+                    card.addEventListener('touchend', function() {
+                        setTimeout(() => this.classList.remove('touch-active'), 100);
+                    }, { passive: true });
+                });
+                
+                // Improve modal backdrop for mobile
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    modal.addEventListener('shown.bs.modal', function() {
+                        // Prevent body scroll when modal is open
+                        document.body.style.overflow = 'hidden';
+                        document.body.style.position = 'fixed';
+                        document.body.style.width = '100%';
+                    });
+                    
+                    modal.addEventListener('hidden.bs.modal', function() {
+                        // Restore body scroll
+                        document.body.style.overflow = '';
+                        document.body.style.position = '';
+                        document.body.style.width = '';
+                    });
+                });
+            }
+            
+            // Add viewport height fix for mobile browsers
+            function setViewportHeight() {
+                const vh = window.innerHeight * 0.01;
+                document.documentElement.style.setProperty('--vh', `${vh}px`);
+            }
+            
+            setViewportHeight();
+            window.addEventListener('resize', setViewportHeight);
+            window.addEventListener('orientationchange', setViewportHeight);
         }
 
         function saveVehicle() {
             const plateNumber = document.getElementById('vehiclePlateNumber').value.trim();
             const model = document.getElementById('vehicleModel').value.trim();
-            const editIndex = parseInt(document.getElementById('editVehicleIndex').value);
 
             if (!plateNumber || !model) {
                 showToast('Plate number and make/model are required', 'danger');
@@ -2553,293 +2926,22 @@
             google.script.run
                 .withSuccessHandler(function(result) {
                     if (result.success) {
-                        loadVehiclesForManagement();
                         loadVehicles(); // Refresh main dashboard
-                        cancelVehicleForm();
-                        showToast(`Vehicle ${result.action} successfully!`, 'success');
+                        document.getElementById('addVehicleForm').reset();
+                        bootstrap.Modal.getInstance(document.getElementById('vehicleManagementModal')).hide();
+                        showToast('Vehicle added successfully!', 'success');
                     }
                 })
                 .withFailureHandler(function(error) {
                     showToast('Failed to save vehicle: ' + error, 'danger');
                 })
-                .saveVehicleRecord(vehicleData, currentUser.role, editIndex);
+                .saveVehicleRecord(vehicleData, currentUser.role, -1);
         }
 
-        function deleteVehicleRecord(index) {
-            const vehicle = allVehiclesManagement[index];
-            
-            if (!confirm(`Are you sure you want to delete vehicle "${vehicle[0]}"?\n\nNote: If the vehicle has recent activity, access will be revoked instead of deleting.`)) {
-                return;
-            }
 
-            google.script.run
-                .withSuccessHandler(function(result) {
-                    if (result.success) {
-                        loadVehiclesForManagement();
-                        loadVehicles(); // Refresh main dashboard
-                        
-                        if (result.action === 'access_revoked') {
-                            showToast('Vehicle access revoked (recent activity detected)', 'warning');
-                        } else {
-                            showToast('Vehicle deleted successfully!', 'success');
-                        }
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to delete vehicle: ' + error, 'danger');
-                })
-                .deleteVehicleRecord(index, currentUser.role);
-        }
 
-        // Driver Management Functions - CRUD
-        let allDriversManagement = [];
 
-        function showDriverManagement() {
-            if (!hasPermission('manage_drivers')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
-                return;
-            }
 
-            const modal = new bootstrap.Modal(document.getElementById('driverManagementModal'));
-            modal.show();
-            
-            loadDriversForManagement();
-        }
-
-        function loadDriversForManagement() {
-            google.script.run
-                .withSuccessHandler(function(data) {
-                    allDriversManagement = data;
-                    displayDriversForManagement();
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to load drivers: ' + error, 'danger');
-                })
-                .getDriverListForManagement();
-        }
-
-        function displayDriversForManagement() {
-            const tbody = document.getElementById('driversTableBody');
-            
-            if (allDriversManagement.length <= 1) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-3 text-muted">No drivers found</td></tr>';
-                return;
-            }
-
-            let driversHtml = '';
-            
-            for (let i = 1; i < allDriversManagement.length; i++) {
-                const driver = allDriversManagement[i];
-                const status = driver[9] || 'Active'; // Status column
-                const statusClass = status === 'Active' ? 'text-success' : 
-                                   status === 'Inactive' ? 'text-warning' : 'text-danger';
-                
-                driversHtml += `
-                    <tr>
-                        <td><strong>${driver[0]}</strong></td>
-                        <td>${driver[1]}</td>
-                        <td>${driver[2]}</td>
-                        <td>${driver[3] || '-'}</td>
-                        <td>${driver[4] || '-'}</td>
-                        <td><span class="${statusClass}"><i class="bi bi-circle-fill me-1"></i>${status}</span></td>
-                        <td>
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-primary" onclick="editDriverRecord(${i})" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteDriverRecord(${i})" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-            
-            tbody.innerHTML = driversHtml;
-        }
-
-        function showAddDriverModal() {
-            if (!hasPermission('manage_drivers')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
-                return;
-            }
-
-            // Clear form
-            document.getElementById('addDriverForm').reset();
-            
-            const modal = new bootstrap.Modal(document.getElementById('addDriverModal'));
-            modal.show();
-        }
-
-        function editDriverRecord(index) {
-            if (!hasPermission('manage_drivers')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
-                return;
-            }
-
-            const driver = allDriversManagement[index];
-            
-            // Populate edit form
-            document.getElementById('editDriverIndex').value = index;
-            document.getElementById('editDriverId').value = driver[0] || '';
-            document.getElementById('editDriverName').value = driver[1] || '';
-            document.getElementById('editDriverLicense').value = driver[2] || '';
-            document.getElementById('editDriverPhone').value = driver[3] || '';
-            document.getElementById('editDriverEmail').value = driver[4] || '';
-            document.getElementById('editDriverLicenseType').value = driver[5] || 'Regular';
-            document.getElementById('editDriverDepartment').value = driver[6] || '';
-            document.getElementById('editDriverLicenseExpiry').value = driver[7] || '';
-            document.getElementById('editDriverNotes').value = driver[8] || '';
-            document.getElementById('editDriverStatus').value = driver[9] || 'Active';
-            
-            const modal = new bootstrap.Modal(document.getElementById('editDriverModal'));
-            modal.show();
-        }
-
-        function saveNewDriver() {
-            const driverData = {
-                driverId: document.getElementById('newDriverId').value.trim(),
-                name: document.getElementById('newDriverName').value.trim(),
-                licenseNumber: document.getElementById('newDriverLicense').value.trim(),
-                phone: document.getElementById('newDriverPhone').value.trim(),
-                email: document.getElementById('newDriverEmail').value.trim(),
-                licenseType: document.getElementById('newDriverLicenseType').value,
-                department: document.getElementById('newDriverDepartment').value.trim(),
-                licenseExpiry: document.getElementById('newDriverLicenseExpiry').value,
-                notes: document.getElementById('newDriverNotes').value.trim(),
-                status: document.getElementById('newDriverStatus').value
-            };
-
-            if (!driverData.driverId || !driverData.name || !driverData.licenseNumber) {
-                showToast('Please fill in all required fields', 'warning');
-                return;
-            }
-
-            google.script.run
-                .withSuccessHandler(function(result) {
-                    if (result.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('addDriverModal')).hide();
-                        loadDriversForManagement();
-                        showToast('Driver added successfully!', 'success');
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to add driver: ' + error, 'danger');
-                })
-                .saveDriverRecord(driverData, currentUser.role);
-        }
-
-        function saveDriverEdit() {
-            const index = parseInt(document.getElementById('editDriverIndex').value);
-            const driverData = {
-                driverId: document.getElementById('editDriverId').value.trim(),
-                name: document.getElementById('editDriverName').value.trim(),
-                licenseNumber: document.getElementById('editDriverLicense').value.trim(),
-                phone: document.getElementById('editDriverPhone').value.trim(),
-                email: document.getElementById('editDriverEmail').value.trim(),
-                licenseType: document.getElementById('editDriverLicenseType').value,
-                department: document.getElementById('editDriverDepartment').value.trim(),
-                licenseExpiry: document.getElementById('editDriverLicenseExpiry').value,
-                notes: document.getElementById('editDriverNotes').value.trim(),
-                status: document.getElementById('editDriverStatus').value
-            };
-
-            if (!driverData.driverId || !driverData.name || !driverData.licenseNumber) {
-                showToast('Please fill in all required fields', 'warning');
-                return;
-            }
-
-            google.script.run
-                .withSuccessHandler(function(result) {
-                    if (result.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('editDriverModal')).hide();
-                        loadDriversForManagement();
-                        showToast('Driver updated successfully!', 'success');
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to update driver: ' + error, 'danger');
-                })
-                .saveDriverRecord(driverData, currentUser.role, index);
-        }
-
-        function deleteDriverRecord(index) {
-            if (!hasPermission('manage_drivers')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
-                return;
-            }
-
-            const driver = allDriversManagement[index];
-            const driverName = driver[1] || driver[0];
-            
-            if (!confirm(`Are you sure you want to delete driver "${driverName}"?`)) {
-                return;
-            }
-
-            google.script.run
-                .withSuccessHandler(function(result) {
-                    if (result.success) {
-                        loadDriversForManagement();
-                        showToast('Driver deleted successfully!', 'success');
-                    }
-                })
-                .withFailureHandler(function(error) {
-                    showToast('Failed to delete driver: ' + error, 'danger');
-                })
-                .deleteDriverRecord(index, currentUser.role);
-        }
-
-        // Driver Integration Functions
-        function loadDriverOptions() {
-            google.script.run
-                .withSuccessHandler(function(drivers) {
-                    populateDriverSelects(drivers);
-                })
-                .withFailureHandler(function(error) {
-                    console.error('Failed to load drivers:', error);
-                })
-                .getDriverListForManagement();
-        }
-
-        function populateDriverSelects(drivers) {
-            const selects = ['newDriver', 'editDriver'];
-            
-            selects.forEach(selectId => {
-                const select = document.getElementById(selectId);
-                if (select) {
-                    const currentValue = select.value; // Save current value before clearing
-                    
-                    // Clear existing options except the first one
-                    select.innerHTML = '<option value="">Select a driver...</option>';
-                    
-                    // Add driver options (skip header row)
-                    for (let i = 1; i < drivers.length; i++) {
-                        const driver = drivers[i];
-                        const driverId = driver[0];
-                        const driverName = driver[1];
-                        const status = driver[9] || 'Active';
-                        
-                        // Show active drivers and preserve existing assignments
-                        if (status === 'Active' || driverId === currentValue) {
-                            const option = document.createElement('option');
-                            option.value = driverId;
-                            option.textContent = `${driverName} (${driverId})`;
-                            if (status !== 'Active') {
-                                option.textContent += ' - Inactive';
-                                option.style.color = '#6c757d';
-                            }
-                            select.appendChild(option);
-                        }
-                    }
-                    
-                    // Restore the previous value if it exists
-                    if (currentValue) {
-                        select.value = currentValue;
-                    }
-                }
-            });
-        }
     </script>
 </body>
 </html>
