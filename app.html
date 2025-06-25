@@ -386,6 +386,7 @@
             max-height: 200px;
             overflow-y: auto;
             font-size: 0.85rem;
+            min-height: 50px;
         }
         .transaction-logs::-webkit-scrollbar {
             width: 4px;
@@ -456,6 +457,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+        }
+        .logs-header:hover {
+            background-color: #dee2e6;
         }
         .logs-toggle {
             cursor: pointer;
@@ -1622,8 +1627,9 @@
                     updateStatistics();
                     showLoading(false);
                     
-                    // Preload transaction logs for better UX
+                    // Test and preload transaction logs for better UX
                     setTimeout(() => {
+                        testTransactionLogsFunction();
                         preloadAllVehicleLogs();
                     }, 500);
                     
@@ -1861,21 +1867,34 @@
                         </div>
                     </div>
                 </div>
-                <div class="logs-header">
+                <div class="logs-header" onclick="toggleLogs('${plateNumber}')">
                     <span><i class="bi bi-clock-history me-1"></i>Recent Activity</span>
-                    <span class="logs-toggle" onclick="toggleLogs('${plateNumber}')">
-                        <i class="bi bi-chevron-down" id="logs-toggle-${plateNumber.replace(/[^a-zA-Z0-9]/g, '-')}"></i>
+                    <span class="logs-toggle">
+                        <i class="bi bi-chevron-up" id="logs-toggle-${plateNumber.replace(/[^a-zA-Z0-9]/g, '-')}"></i>
                     </span>
                 </div>
-                <div class="transaction-logs" id="logs-${plateNumber.replace(/[^a-zA-Z0-9]/g, '-')}" style="display: none;">
-                    <div class="logs-loading">
-                        <div class="spinner-border spinner-border-sm text-secondary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                <div class="transaction-logs" id="logs-${plateNumber.replace(/[^a-zA-Z0-9]/g, '-')}" style="display: block;">
+                    <div class="transaction-log-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="log-timestamp">Loading...</span>
+                                <span class="log-action action-in">INIT</span>
+                            </div>
                         </div>
-                        <div>Loading activity...</div>
+                        <div class="log-details">
+                            <i class="bi bi-person-fill"></i> System • 
+                            <i class="bi bi-geo-alt"></i> Loading transaction logs...
+                        </div>
                     </div>
                 </div>
             `;
+
+            // Auto-load logs when card is created
+            setTimeout(() => {
+                if (!vehicleLogsCache[plateNumber] && !logsLoadingState[plateNumber]) {
+                    loadVehicleLogs(plateNumber);
+                }
+            }, 100);
 
             return item;
         }
@@ -2002,31 +2021,44 @@
         let logsLoadingState = {};
         
         function toggleLogs(plateNumber) {
+            console.log('toggleLogs called for:', plateNumber);
             const cleanPlateNumber = plateNumber.replace(/[^a-zA-Z0-9]/g, '-');
             const logsContainer = document.getElementById(`logs-${cleanPlateNumber}`);
             const toggleIcon = document.getElementById(`logs-toggle-${cleanPlateNumber}`);
             
-            if (!logsContainer) return;
+            console.log('Found container:', !!logsContainer, 'Found icon:', !!toggleIcon);
             
-            if (logsContainer.style.display === 'none') {
+            if (!logsContainer) {
+                console.error('Logs container not found for:', cleanPlateNumber);
+                return;
+            }
+            
+            const isHidden = logsContainer.style.display === 'none' || 
+                            window.getComputedStyle(logsContainer).display === 'none';
+            
+            if (isHidden) {
                 // Show logs
                 logsContainer.style.display = 'block';
-                toggleIcon.className = 'bi bi-chevron-up';
+                if (toggleIcon) toggleIcon.className = 'bi bi-chevron-up';
                 
                 // Load logs if not already loaded
                 if (!vehicleLogsCache[plateNumber] && !logsLoadingState[plateNumber]) {
+                    console.log('Loading logs for:', plateNumber);
                     loadVehicleLogs(plateNumber);
                 }
             } else {
                 // Hide logs
                 logsContainer.style.display = 'none';
-                toggleIcon.className = 'bi bi-chevron-down';
+                if (toggleIcon) toggleIcon.className = 'bi bi-chevron-down';
             }
         }
         
         function loadVehicleLogs(plateNumber) {
+            console.log('loadVehicleLogs called for:', plateNumber);
+            
             // Check cache first
             if (vehicleLogsCache[plateNumber]) {
+                console.log('Using cached logs for:', plateNumber);
                 displayVehicleLogs(plateNumber, vehicleLogsCache[plateNumber]);
                 return;
             }
@@ -2037,7 +2069,10 @@
             // Show loading state
             const cleanPlateNumber = plateNumber.replace(/[^a-zA-Z0-9]/g, '-');
             const logsContainer = document.getElementById(`logs-${cleanPlateNumber}`);
-            if (!logsContainer) return;
+            if (!logsContainer) {
+                console.error('Logs container not found for:', cleanPlateNumber);
+                return;
+            }
             
             logsContainer.innerHTML = `
                 <div class="logs-loading">
@@ -2049,20 +2084,30 @@
             `;
             
             // Fetch logs from server
+            console.log('Calling getVehicleTransactionLogs for:', plateNumber);
             google.script.run
                 .withSuccessHandler(function(result) {
+                    console.log('Success loading logs for', plateNumber, ':', result);
                     logsLoadingState[plateNumber] = false;
                     if (result && result.logs) {
                         vehicleLogsCache[plateNumber] = result.logs;
                         displayVehicleLogs(plateNumber, result.logs);
                     } else {
-                        logsContainer.innerHTML = '<div class="logs-empty">No recent activity</div>';
+                        const cleanPlateNumber = plateNumber.replace(/[^a-zA-Z0-9]/g, '-');
+                        const container = document.getElementById(`logs-${cleanPlateNumber}`);
+                        if (container) {
+                            container.innerHTML = '<div class="logs-empty">No recent activity</div>';
+                        }
                     }
                 })
                 .withFailureHandler(function(error) {
+                    console.error('Error loading vehicle logs for', plateNumber, ':', error);
                     logsLoadingState[plateNumber] = false;
-                    logsContainer.innerHTML = '<div class="logs-empty text-danger">Failed to load activity</div>';
-                    console.error('Error loading vehicle logs:', error);
+                    const cleanPlateNumber = plateNumber.replace(/[^a-zA-Z0-9]/g, '-');
+                    const container = document.getElementById(`logs-${cleanPlateNumber}`);
+                    if (container) {
+                        container.innerHTML = '<div class="logs-empty text-danger">Failed to load activity: ' + error.message + '</div>';
+                    }
                 })
                 .getVehicleTransactionLogs(plateNumber, 10);
         }
@@ -2135,19 +2180,35 @@
             // Only preload if we have a reasonable number of vehicles
             if (vehicleData.length > 50) return;
             
+            console.log('Preloading vehicle logs for', vehicleData.length - 1, 'vehicles');
             google.script.run
                 .withSuccessHandler(function(result) {
+                    console.log('Preload success:', result);
                     if (result && result.vehicleLogs) {
                         // Cache all vehicle logs
                         Object.keys(result.vehicleLogs).forEach(plateNumber => {
                             vehicleLogsCache[plateNumber] = result.vehicleLogs[plateNumber];
                         });
+                        console.log('Cached logs for', Object.keys(result.vehicleLogs).length, 'vehicles');
                     }
                 })
                 .withFailureHandler(function(error) {
                     console.error('Error preloading vehicle logs:', error);
                 })
                 .getAllVehicleTransactionLogs(5);
+        }
+        
+        // Test function to check if backend functions are available
+        function testTransactionLogsFunction() {
+            console.log('Testing transaction logs function...');
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log('Test successful - transaction logs available:', result);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Test failed - transaction logs not available:', error);
+                })
+                .getVehicleTransactionLogs('ABC-123', 5);
         }
 
         function showFilterFeedback(searchTerm, filterStatus) {
