@@ -824,6 +824,79 @@ function getAllVehicleTransactionLogs(limit = 10) {
   }
 }
 
+// Get recent transaction logs for main dashboard table
+function getTransactionLogs(page = 1, limit = 20) {
+  const startTime = new Date();
+  
+  try {
+    console.log(`Getting transaction logs page ${page} with limit ${limit}`);
+    
+    // Check cache first
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `transaction_logs_p${page}_l${limit}`;
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+      console.log('Returning cached transaction logs');
+      return JSON.parse(cachedData);
+    }
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    
+    if (!logSheet) {
+      console.log('Log sheet not found');
+      return { logs: [], totalCount: 0 };
+    }
+    
+    // Get all data
+    const allData = logSheet.getDataRange().getValues();
+    
+    if (allData.length <= 1) {
+      return { logs: [], totalCount: 0 };
+    }
+    
+    // Remove header and reverse for most recent first
+    const dataRows = allData.slice(1).reverse();
+    
+    // Calculate pagination
+    const totalCount = dataRows.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const pageData = dataRows.slice(startIndex, endIndex);
+    
+    // Format logs
+    const logs = pageData.map(row => ({
+      timestamp: row[0],
+      plateNumber: row[1] || 'Unknown',
+      driverId: row[2] || 'Unknown',
+      action: row[3] || 'Unknown',
+      gate: row[4] || 'Unknown',
+      remarks: row[5] || '',
+      username: row[6] || 'System',
+      accessStatus: row[7] || 'Unknown'
+    }));
+    
+    const result = {
+      logs: logs,
+      totalCount: totalCount,
+      page: page,
+      limit: limit,
+      hasMore: endIndex < totalCount,
+      loadTime: new Date() - startTime
+    };
+    
+    // Cache for 1 minute
+    cache.put(cacheKey, JSON.stringify(result), 60);
+    
+    console.log(`Transaction logs retrieved in ${result.loadTime}ms: ${logs.length} logs`);
+    return result;
+  } catch (error) {
+    console.error('Error getting transaction logs:', error);
+    return { logs: [], totalCount: 0, error: error.toString() };
+  }
+}
+
 // Export logs to PDF (admin only)
 function exportLogsToPDF(userRole, dateFrom, dateTo) {
   if (userRole !== 'admin') {
