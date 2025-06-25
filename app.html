@@ -2209,7 +2209,9 @@
             }
             
             let logsHtml = '';
-            logs.forEach(log => {
+            if (Array.isArray(logs)) {
+                logs.forEach(log => {
+                    if (!log) return; // Skip null/undefined log entries
                 const timestamp = new Date(log.timestamp);
                 const formattedTime = formatLogTimestamp(timestamp);
                 const actionClass = log.action === 'IN' ? 'action-in' : 'action-out';
@@ -2229,7 +2231,8 @@
                         </div>
                     </div>
                 `;
-            });
+                });
+            }
             
             logsContainer.innerHTML = logsHtml;
         }
@@ -2270,12 +2273,21 @@
             google.script.run
                 .withSuccessHandler(function(result) {
                     console.log('Preload success:', result);
-                    if (result && result.vehicleLogs) {
-                        // Cache all vehicle logs
-                        Object.keys(result.vehicleLogs).forEach(plateNumber => {
-                            vehicleLogsCache[plateNumber] = result.vehicleLogs[plateNumber];
-                        });
-                        console.log('Cached logs for', Object.keys(result.vehicleLogs).length, 'vehicles');
+                    if (result && result.vehicleLogs && typeof result.vehicleLogs === 'object') {
+                        try {
+                            // Cache all vehicle logs with proper null checking
+                            const vehicleKeys = Object.keys(result.vehicleLogs);
+                            vehicleKeys.forEach(plateNumber => {
+                                if (result.vehicleLogs[plateNumber]) {
+                                    vehicleLogsCache[plateNumber] = result.vehicleLogs[plateNumber];
+                                }
+                            });
+                            console.log('Cached logs for', vehicleKeys.length, 'vehicles');
+                        } catch (error) {
+                            console.error('Error caching vehicle logs:', error);
+                        }
+                    } else {
+                        console.warn('Invalid or missing vehicleLogs in result:', result);
                     }
                 })
                 .withFailureHandler(function(error) {
@@ -2319,8 +2331,14 @@
             google.script.run
                 .withSuccessHandler(function(result) {
                     console.log('Transaction logs loaded:', result);
-                    displayTransactionLogsTable(result.logs || []);
-                    updateTransactionLogsBadge(result.logs ? result.logs.length : 0);
+                    if (result && result.logs && Array.isArray(result.logs)) {
+                        displayTransactionLogsTable(result.logs);
+                        updateTransactionLogsBadge(result.logs.length);
+                    } else {
+                        console.warn('Invalid or missing logs in result:', result);
+                        displayTransactionLogsTable([]);
+                        updateTransactionLogsBadge(0);
+                    }
                 })
                 .withFailureHandler(function(error) {
                     console.error('Error loading transaction logs:', error);
@@ -2358,7 +2376,9 @@
             }
             
             let tableHtml = '';
-            logs.forEach(log => {
+            if (Array.isArray(logs)) {
+                logs.forEach(log => {
+                    if (!log) return; // Skip null/undefined log entries
                 const timestamp = new Date(log.timestamp);
                 const timeStr = formatTransactionTime(timestamp);
                 const actionClass = log.action === 'IN' ? 'action-in' : 'action-out';
@@ -2376,7 +2396,8 @@
                         </td>
                     </tr>
                 `;
-            });
+                });
+            }
             
             tableBody.innerHTML = tableHtml;
         }
