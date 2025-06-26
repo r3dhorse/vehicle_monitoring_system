@@ -395,6 +395,14 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
         }
       } else {
         // Admin users can update all fields
+        // Check if plate number already exists (excluding current vehicle)
+        const data = sheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          if (i !== rowIndex && data[i][0] === updatedData[0]) {
+            throw new Error("Vehicle with this plate number already exists");
+          }
+        }
+        
         const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
         range.setValues([updatedData]);
       }
