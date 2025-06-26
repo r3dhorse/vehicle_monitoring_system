@@ -682,12 +682,36 @@ function getVehicleStatistics() {
 }
 
 /**
- * Get recent transactions from the LOG_SHEET
- * @param {number} limit - Number of records to fetch (default 50)
+ * Get recent transactions from the LOG_SHEET with role-based limits
+ * @param {string} userRole - User role to determine access limits
+ * @param {number} requestedLimit - Number of records requested (default 50)
  * @returns {Array} Array of recent transaction objects
  */
-function getRecentTransactions(limit = 50) {
+function getRecentTransactions(userRole = 'security', requestedLimit = 50) {
   try {
+    // Define role-based limits
+    const roleLimits = {
+      'super-admin': null, // No limit for super-admin
+      'admin': null,       // No limit for admin
+      'supervisor': 200,   // Up to 200 records for supervisor
+      'security': 50,      // Limited to 50 records for security
+      'user': 25          // Limited to 25 records for regular users
+    };
+    
+    // Determine effective limit based on role
+    const roleLimit = roleLimits[userRole];
+    let effectiveLimit;
+    
+    if (roleLimit === null) {
+      // No limit for admin roles, use requested limit or default to reasonable maximum
+      effectiveLimit = requestedLimit || 1000; // Default max for unlimited roles
+    } else {
+      // Apply role-based limit, taking minimum of role limit and requested limit
+      effectiveLimit = Math.min(roleLimit, requestedLimit);
+    }
+    
+    console.log(`getRecentTransactions called by role: ${userRole}, effective limit: ${effectiveLimit}`);
+    
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName(LOG_SHEET);
     
@@ -703,7 +727,7 @@ function getRecentTransactions(limit = 50) {
     }
     
     // Calculate the starting row (we want the most recent records)
-    const startRow = Math.max(2, lastRow - limit + 1);
+    const startRow = Math.max(2, lastRow - effectiveLimit + 1);
     const numRows = lastRow - startRow + 1;
     
     // Get the data
@@ -722,6 +746,7 @@ function getRecentTransactions(limit = 50) {
       accessStatus: row[7] || 'Access' // Default to 'Access' if not specified
     })).reverse();
     
+    console.log(`Returning ${transactions.length} transactions for role: ${userRole}`);
     return transactions;
   } catch (error) {
     console.error('Error in getRecentTransactions:', error);

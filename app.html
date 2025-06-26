@@ -3218,6 +3218,9 @@
                 </tr>
             `;
 
+            // Get user role for determining transaction limit
+            const userRole = getCurrentUser()?.role || 'security';
+            
             google.script.run
                 .withSuccessHandler(displayTransactionLogs)
                 .withFailureHandler(function(error) {
@@ -3231,7 +3234,7 @@
                         </tr>
                     `;
                 })
-                .getRecentTransactions(50);
+                .getRecentTransactions(userRole, 50);
         }
 
         function displayTransactionLogs(transactions) {
@@ -3249,7 +3252,20 @@
 
             logsBody.parentElement.style.display = '';
             noTransactionsMessage.classList.add('d-none');
+            
+            // Update badge with role-based limit information
+            const userRole = getCurrentUser()?.role || 'security';
+            const roleLimits = {
+                'super-admin': 'unlimited',
+                'admin': 'unlimited',
+                'supervisor': 'up to 200',
+                'security': 'up to 50',
+                'user': 'up to 25'
+            };
+            
+            const limitText = roleLimits[userRole] || 'up to 50';
             transactionCount.textContent = transactions.length;
+            transactionCount.title = `Showing ${transactions.length} records (${limitText} for ${userRole})`;
 
             const rows = transactions.map(log => {
                 const actionBadge = log.action === 'IN' 
@@ -3296,6 +3312,9 @@
             refreshBtn.disabled = true;
             refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Refreshing...';
             
+            // Get user role for determining transaction limit
+            const userRole = getCurrentUser()?.role || 'security';
+            
             google.script.run
                 .withSuccessHandler(function(logs) {
                     displayTransactionLogs(logs);
@@ -3313,7 +3332,7 @@
                     refreshBtn.innerHTML = originalContent;
                     alert('Failed to refresh transaction logs');
                 })
-                .getRecentTransactions(50);
+                .getRecentTransactions(userRole, 50);
         }
 
     </script>
