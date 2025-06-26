@@ -824,6 +824,154 @@ function getAllVehicleTransactionLogs(limit = 10) {
   }
 }
 
+// Ultra minimal test - step by step
+function testStepByStep() {
+  // Step 1: Just return a simple object
+  return { step: 1, message: "Basic object return works" };
+}
+
+function testSpreadsheetAccess() {
+  // Step 2: Test spreadsheet access only
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    return { step: 2, message: "Spreadsheet access works", name: ss.getName() };
+  } catch (error) {
+    return { step: 2, error: error.toString() };
+  }
+}
+
+function testSheetAccess() {
+  // Step 3: Test sheet access
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    return { 
+      step: 3, 
+      message: "Sheet access works", 
+      sheetExists: !!logSheet,
+      sheetName: logSheet ? logSheet.getName() : null
+    };
+  } catch (error) {
+    return { step: 3, error: error.toString() };
+  }
+}
+
+function testDataAccess() {
+  // Step 4: Test data access
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    if (!logSheet) {
+      return { step: 4, error: "No log sheet found" };
+    }
+    const allData = logSheet.getDataRange().getValues();
+    return { 
+      step: 4, 
+      message: "Data access works", 
+      rowCount: allData.length,
+      firstRow: allData.length > 0 ? allData[0] : null
+    };
+  } catch (error) {
+    return { step: 4, error: error.toString() };
+  }
+}
+
+// Ultra minimal diagnostic version
+function getRecentTransactionsSimple() {
+  return "SIMPLE_WORKS";
+}
+
+// Step by step diagnostic function
+function testGetRecentTransactionsSteps() {
+  return "DIAGNOSTIC_WORKS";
+}
+
+// Emergency test function
+function emergencyTest() {
+  return 42;
+}
+
+// Brand new function with unique name to test transaction logs
+function getTransactionLogsFresh() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    
+    if (!logSheet) {
+      return { status: "NO_SHEET", message: "LOG_SHEET not found" };
+    }
+    
+    const allData = logSheet.getDataRange().getValues();
+    
+    if (allData.length <= 1) {
+      return { status: "NO_DATA", message: "No data in sheet", rows: allData.length };
+    }
+    
+    // Get last 3 rows of data
+    const logs = [];
+    for (let i = Math.max(1, allData.length - 3); i < allData.length; i++) {
+      const row = allData[i];
+      logs.push({
+        timestamp: row[0],
+        plate: row[1],
+        action: row[3]
+      });
+    }
+    
+    return {
+      status: "SUCCESS",
+      totalRows: allData.length,
+      logs: logs,
+      message: "Fresh function worked!"
+    };
+  } catch (error) {
+    return {
+      status: "ERROR",
+      error: error.toString()
+    };
+  }
+}
+
+// Final diagnostic - minimal transaction function
+function getLogsMinimal() {
+  const ss = SpreadsheetApp.openById("16Ifxb9dCZGl-xYpxStwHufkmzj2TZ8oRIYC3yf1CSqs");
+  const sheet = ss.getSheetByName("InOutLogs");
+  const data = sheet.getDataRange().getValues();
+  return { rows: data.length, first: data[0] };
+}
+
+// Working transaction function based on minimal approach
+function getRecentTransactions(limit = 20) {
+  const ss = SpreadsheetApp.openById("16Ifxb9dCZGl-xYpxStwHufkmzj2TZ8oRIYC3yf1CSqs");
+  const sheet = ss.getSheetByName("InOutLogs");
+  const data = sheet.getDataRange().getValues();
+  
+  if (data.length <= 1) {
+    return { logs: [], totalCount: 0 };
+  }
+  
+  const logs = [];
+  const maxRows = Math.min(limit || 20, data.length - 1);
+  
+  for (let i = data.length - 1; i >= 1 && logs.length < maxRows; i--) {
+    const row = data[i];
+    if (row && row.length >= 4) {
+      logs.push({
+        timestamp: row[0],
+        plateNumber: row[1] || 'Unknown',
+        driverId: row[2] || 'Unknown', 
+        action: row[3] || 'Unknown',
+        gate: row[4] || 'Unknown',
+        remarks: row[5] || '',
+        username: row[6] || 'System',
+        accessStatus: row[7] || 'Unknown'
+      });
+    }
+  }
+  
+  return { logs: logs, totalCount: data.length - 1 };
+}
+
 // Export logs to PDF (admin only)
 function exportLogsToPDF(userRole, dateFrom, dateTo) {
   if (userRole !== 'admin') {
@@ -893,6 +1041,96 @@ function debugSpreadsheetStatus() {
   }
 }
 
+// Ultra simple test - just returns a string
+function ultraSimpleTest() {
+  return "WORKING";
+}
+
+// Minimal test function - no try/catch, no logging
+function minimalTest() {
+  return 42;
+}
+
+// Test with different return types
+function testString() {
+  return "TEST";
+}
+
+function testNumber() {
+  return 123;
+}
+
+function testBoolean() {
+  return true;
+}
+
+function testObject() {
+  return {status: "ok"};
+}
+
+function testArray() {
+  return ["a", "b", "c"];
+}
+
+// Progressive Google Sheets API tests
+function testSpreadsheetOpen() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    return "Spreadsheet opened successfully";
+  } catch (error) {
+    return "Error opening spreadsheet: " + error.toString();
+  }
+}
+
+function testSpreadsheetName() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const name = ss.getName();
+    return "Spreadsheet name: " + name;
+  } catch (error) {
+    return "Error getting spreadsheet name: " + error.toString();
+  }
+}
+
+function testSheetAccess() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(LOG_SHEET);
+    if (sheet) {
+      return "Sheet access successful";
+    } else {
+      return "Sheet not found";
+    }
+  } catch (error) {
+    return "Error accessing sheet: " + error.toString();
+  }
+}
+
+function testDataRead() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(LOG_SHEET);
+    if (!sheet) {
+      return "No sheet found";
+    }
+    const data = sheet.getDataRange().getValues();
+    return "Data read successful: " + data.length + " rows";
+  } catch (error) {
+    return "Error reading data: " + error.toString();
+  }
+}
+
+// Simple connectivity test - returns a basic string
+function simpleConnectivityTest() {
+  console.log('Simple connectivity test called');
+  return "Google Apps Script is working!";
+}
+
+// Test function that returns current timestamp
+function getTimestamp() {
+  return new Date().toISOString();
+}
+
 // Test function to verify spreadsheet access
 function testSpreadsheetAccess() {
   try {
@@ -910,6 +1148,127 @@ function testSpreadsheetAccess() {
     };
   } catch (error) {
     console.error('Failed to access spreadsheet:', error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Test function to debug transaction logs
+function testTransactionLogs() {
+  try {
+    console.log('=== Testing Transaction Logs ===');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // Check if LOG_SHEET exists
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    if (!logSheet) {
+      console.log('LOG_SHEET not found, creating...');
+      createInitialSheets();
+      createSampleData();
+      return testTransactionLogs(); // Try again after creation
+    }
+    
+    // Get raw data
+    const allData = logSheet.getDataRange().getValues();
+    console.log('LOG_SHEET raw data rows:', allData.length);
+    
+    if (allData.length > 0) {
+      console.log('First row (headers):', allData[0]);
+    }
+    
+    if (allData.length > 1) {
+      console.log('Second row (first data):', allData[1]);
+      console.log('Last row (latest data):', allData[allData.length - 1]);
+    }
+    
+    // Test getRecentTransactions function
+    const result = getRecentTransactions(5);
+    console.log('getRecentTransactions result:', result);
+    
+    return {
+      success: true,
+      logSheetExists: !!logSheet,
+      totalRows: allData.length,
+      dataRows: Math.max(0, allData.length - 1),
+      headers: allData.length > 0 ? allData[0] : null,
+      firstDataRow: allData.length > 1 ? allData[1] : null,
+      lastDataRow: allData.length > 1 ? allData[allData.length - 1] : null,
+      getRecentTransactionsResult: result
+    };
+  } catch (error) {
+    console.error('Error testing transaction logs:', error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Force create sample transaction logs (for debugging)
+function forceCreateSampleLogs() {
+  try {
+    console.log('Force creating sample transaction logs...');
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // Ensure sheets exist
+    createInitialSheets();
+    
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    if (!logSheet) {
+      throw new Error('Failed to create log sheet');
+    }
+    
+    // Clear existing data (except headers)
+    const data = logSheet.getDataRange().getValues();
+    if (data.length > 1) {
+      logSheet.getRange(2, 1, data.length - 1, data[0].length).clearContent();
+    }
+    
+    // Add fresh sample logs with current timestamps
+    const now = new Date();
+    const sampleLogs = [
+      [new Date(now.getTime() - 10 * 60 * 1000), 'ABC-123', 'DRV001', 'IN', 'Main Gate', 'Morning entry', 'admin', 'Access'],
+      [new Date(now.getTime() - 30 * 60 * 1000), 'XYZ-456', 'DRV002', 'OUT', 'Back Gate', 'Delivery run', 'admin', 'Access'],
+      [new Date(now.getTime() - 45 * 60 * 1000), 'STU-345', 'DRV005', 'IN', 'Main Gate', 'Return from meeting', 'admin', 'Access'],
+      [new Date(now.getTime() - 90 * 60 * 1000), 'ABC-123', 'DRV001', 'OUT', 'Service Gate', 'Lunch break', 'security', 'Access'],
+      [new Date(now.getTime() - 120 * 60 * 1000), 'MNO-789', 'DRV003', 'IN', 'Parking Gate', 'Service return', 'admin', 'No Access']
+    ];
+    
+    // Add the sample logs
+    const startRow = logSheet.getLastRow() + 1;
+    const range = logSheet.getRange(startRow, 1, sampleLogs.length, sampleLogs[0].length);
+    range.setValues(sampleLogs);
+    
+    console.log('Sample logs created successfully');
+    
+    return {
+      success: true,
+      message: 'Sample transaction logs created successfully',
+      logsAdded: sampleLogs.length,
+      newTotalRows: logSheet.getLastRow()
+    };
+  } catch (error) {
+    console.error('Error force creating sample logs:', error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Simple test function to check if backend is working
+function testBackendConnection() {
+  try {
+    console.log('Testing backend connection...');
+    return {
+      success: true,
+      message: 'Backend connection is working',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Backend connection test failed:', error);
     return {
       success: false,
       error: error.toString()
