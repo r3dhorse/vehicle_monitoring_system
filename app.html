@@ -1613,6 +1613,9 @@
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" onclick="pauseResumeScanner()" id="pauseResumeBtn">
+                        <i class="bi bi-pause-fill me-1"></i>Pause
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="stopQRScanner()">
                         <i class="bi bi-x-lg me-1"></i>Close
                     </button>
@@ -3410,6 +3413,8 @@
         let qrScannerStream = null;
         let qrScannerAnimationFrame = null;
         let qrScannerActive = false;
+        let qrScanCount = 0; // Track successful scans in session
+        let scanSessionStartTime = null; // Track session duration
 
         function showQRScanner() {
             const modal = new bootstrap.Modal(document.getElementById('qrScannerModal'));
@@ -3451,6 +3456,10 @@
             // Reset alert style
             const nextActionInfo = document.getElementById('nextActionInfo');
             nextActionInfo.className = 'alert alert-info';
+            
+            // Reset scan counter and start time when modal is reopened
+            qrScanCount = 0;
+            scanSessionStartTime = new Date();
         }
 
         function loadGatesForQRScanner() {
@@ -3648,7 +3657,13 @@
                     google.script.run
                         .withSuccessHandler(function(result) {
                             if (result.success) {
-                                status.textContent = `✓ ${vehicleInfo.plateNumber} ${nextAction} successful - Ready for next scan`;
+                                qrScanCount++; // Increment successful scan counter
+                                
+                                // Calculate session performance
+                                const sessionDuration = (new Date() - scanSessionStartTime) / 1000 / 60; // minutes
+                                const scansPerMinute = sessionDuration > 0 ? (qrScanCount / sessionDuration).toFixed(1) : '0';
+                                
+                                status.textContent = `✓ ${vehicleInfo.plateNumber} ${nextAction} (#${qrScanCount} @ ${scansPerMinute}/min) - Ready for next`;
                                 status.style.background = 'rgba(40, 167, 69, 0.8)'; // Green background
                                 
                                 // Update local vehicle data for immediate UI refresh
@@ -3658,14 +3673,15 @@
                                 loadVehicles();
                                 loadTransactionLogs();
                                 
-                                // Reset for next scan after a short delay
+                                // Quick toast notification for additional feedback
+                                showToast(`${vehicleInfo.plateNumber} ${nextAction} logged successfully`, 'success');
+                                
+                                // Reset for next scan after a short delay and auto-continue
                                 setTimeout(() => {
                                     resetForNextScan();
-                                    // Restart scanner for continuous scanning
-                                    if (!qrScannerAnimationFrame) {
-                                        qrScannerAnimationFrame = requestAnimationFrame(scanQRCode);
-                                    }
-                                }, 2000);
+                                    // Auto-continue scanning without restart
+                                    continuousScanning();
+                                }, 1200); // Even faster reset for better throughput
                             } else {
                                 showQRScanError('Transaction failed: ' + result.message);
                             }
@@ -3710,7 +3726,34 @@
             
             const gateSelect = document.getElementById('qrGateSelect');
             const selectedGate = gateSelect.options[gateSelect.selectedIndex]?.textContent || 'Gate';
-            status.textContent = `Ready for next scan - Using ${selectedGate}`;
+            if (qrScanCount > 0) {
+                status.textContent = `Ready for scan #${qrScanCount + 1} - Using ${selectedGate}`;
+            } else {
+                status.textContent = `Ready to scan - Using ${selectedGate}`;
+            }
+        }
+
+        function continuousScanning() {
+            // Enhanced continuous scanning without full restart
+            if (qrScannerActive && qrScannerStream) {
+                // Camera is still active, just resume QR detection
+                if (!qrScannerAnimationFrame) {
+                    qrScannerAnimationFrame = requestAnimationFrame(scanQRCode);
+                }
+                
+                const status = document.getElementById('qrScannerStatus');
+                const gateSelect = document.getElementById('qrGateSelect');
+                const selectedGate = gateSelect.options[gateSelect.selectedIndex]?.textContent || 'Gate';
+                if (qrScanCount > 0) {
+                    status.textContent = `🔍 Scanning for vehicle #${qrScanCount + 1} - ${selectedGate}`;
+                } else {
+                    status.textContent = `🔍 Scanning for QR code - ${selectedGate}`;
+                }
+            } else {
+                // Camera was stopped, need to reinitialize
+                console.log('Camera stream lost, reinitializing...');
+                initQRScanner();
+            }
         }
 
         function displayVehicleInfo(vehicleInfo) {
@@ -3749,28 +3792,49 @@
                 nextActionText.parentElement.className = 'alert alert-danger';
             }
 
-            // Show results
+            // Show results briefly for feedback
             noResult.classList.add('d-none');
             scanData.classList.remove('d-none');
             
-            status.textContent = 'Vehicle verified! Processing...';
+            status.textContent = `✓ ${vehicleInfo.plateNumber} verified - Processing...`;
             
-            // Don't stop scanner - let auto-processing handle the flow for continuous scanning
+            // Keep scanner active for continuous scanning
         }
 
         function showQRScanError(message) {
             const status = document.getElementById('qrScannerStatus');
-            status.textContent = message;
+            status.textContent = `❌ ${message}`;
             status.style.background = 'rgba(220, 53, 69, 0.8)'; // Red background
             
             setTimeout(() => {
                 resetForNextScan();
-                
-                // Restart scanning for continuous operation
-                if (qrScannerActive) {
-                    qrScannerAnimationFrame = requestAnimationFrame(scanQRCode);
+                // Continue scanning immediately for better UX
+                continuousScanning();
+            }, 1500); // Faster error recovery
+        }
+
+        function pauseResumeScanner() {
+            const pauseBtn = document.getElementById('pauseResumeBtn');
+            const status = document.getElementById('qrScannerStatus');
+            
+            if (qrScannerActive) {
+                // Pause scanner
+                qrScannerActive = false;
+                if (qrScannerAnimationFrame) {
+                    cancelAnimationFrame(qrScannerAnimationFrame);
+                    qrScannerAnimationFrame = null;
                 }
-            }, 2000); // Reduced delay for faster continuous scanning
+                
+                pauseBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Resume';
+                pauseBtn.className = 'btn btn-success';
+                status.textContent = `⏸️ Scanner paused (${qrScanCount} scans completed)`;
+                status.style.background = 'rgba(255, 193, 7, 0.8)'; // Yellow background
+            } else {
+                // Resume scanner
+                pauseBtn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Pause';
+                pauseBtn.className = 'btn btn-warning';
+                continuousScanning();
+            }
         }
 
         function stopQRScanner() {
@@ -3789,6 +3853,13 @@
             const video = document.getElementById('qrScannerVideo');
             if (video) {
                 video.srcObject = null;
+            }
+            
+            // Reset pause button state
+            const pauseBtn = document.getElementById('pauseResumeBtn');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Pause';
+                pauseBtn.className = 'btn btn-warning';
             }
         }
 
