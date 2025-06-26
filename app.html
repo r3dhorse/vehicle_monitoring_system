@@ -3634,6 +3634,17 @@
         }
 
         function autoProcessTransaction(vehicleInfo) {
+            // Check for restricted access first and show alerts
+            if (vehicleInfo.accessStatus === 'Banned') {
+                showAccessDeniedAlert(vehicleInfo, 'BANNED', 'This vehicle is BANNED from the premises. Contact security supervisor immediately.');
+                return;
+            }
+            
+            if (vehicleInfo.accessStatus === 'No Access' && vehicleInfo.currentStatus === 'OUT') {
+                showAccessDeniedAlert(vehicleInfo, 'NO ACCESS', 'This vehicle does not have access permission to enter the premises.');
+                return;
+            }
+            
             // Auto-process transaction for continuous scanning
             setTimeout(() => {
                 const gate = document.getElementById('qrGateSelect').value;
@@ -3693,7 +3704,12 @@
                 } else {
                     // Manual confirmation needed for restricted access
                     const nextActionText = document.getElementById('nextActionText');
-                    nextActionText.textContent = 'Manual confirmation required - Select action below';
+                    if (vehicleInfo.accessStatus === 'No Access') {
+                        nextActionText.textContent = '⚠️ NO ACCESS - Manual supervisor override required';
+                        nextActionText.parentElement.className = 'alert alert-warning';
+                    } else {
+                        nextActionText.textContent = 'Manual confirmation required - Select action below';
+                    }
                     document.getElementById('transactionForm').classList.remove('d-none');
                 }
             }, 1000); // Small delay to show vehicle info
@@ -3785,11 +3801,28 @@
             
             if (vehicleInfo.accessStatus === 'Access' || nextAction === 'OUT') {
                 nextActionText.textContent = `Vehicle ready for ${nextAction}`;
+                nextActionText.parentElement.className = 'alert alert-info';
                 document.getElementById(`qrAction${nextAction}`).checked = true;
                 transactionForm.classList.remove('d-none');
+            } else if (vehicleInfo.accessStatus === 'Banned') {
+                nextActionText.textContent = '🚫 BANNED VEHICLE - Access strictly prohibited';
+                nextActionText.parentElement.className = 'alert alert-danger';
+                transactionForm.classList.add('d-none');
+            } else if (vehicleInfo.accessStatus === 'No Access') {
+                nextActionText.textContent = '⚠️ NO ACCESS - Supervisor override required';
+                nextActionText.parentElement.className = 'alert alert-warning';
+                // Show form but with warning
+                if (nextAction === 'IN') {
+                    transactionForm.classList.remove('d-none');
+                    document.getElementById(`qrAction${nextAction}`).checked = true;
+                } else {
+                    transactionForm.classList.remove('d-none');
+                    document.getElementById(`qrAction${nextAction}`).checked = true;
+                }
             } else {
                 nextActionText.textContent = 'Vehicle access denied - cannot enter';
                 nextActionText.parentElement.className = 'alert alert-danger';
+                transactionForm.classList.add('d-none');
             }
 
             // Show results briefly for feedback
@@ -3801,6 +3834,56 @@
             // Keep scanner active for continuous scanning
         }
 
+        function showAccessDeniedAlert(vehicleInfo, alertType, message) {
+            const status = document.getElementById('qrScannerStatus');
+            const noResult = document.getElementById('noScanResult');
+            const scanData = document.getElementById('scanResultData');
+            
+            // Update vehicle info display
+            document.getElementById('scannedPlate').textContent = vehicleInfo.plateNumber;
+            document.getElementById('scannedDriver').textContent = vehicleInfo.currentDriver || 'Not assigned';
+            
+            // Set access status badge with appropriate styling
+            const accessBadge = document.getElementById('scannedAccessStatus');
+            accessBadge.textContent = vehicleInfo.accessStatus;
+            accessBadge.className = vehicleInfo.accessStatus === 'Banned' ? 'ms-2 badge bg-danger text-white' : 'ms-2 badge bg-warning text-dark';
+            
+            // Set current status badge
+            const currentBadge = document.getElementById('scannedCurrentStatus');
+            currentBadge.textContent = vehicleInfo.currentStatus;
+            currentBadge.className = 'ms-2 badge ' + (vehicleInfo.currentStatus === 'IN' ? 'bg-primary' : 'bg-secondary');
+            
+            // Show critical alert message
+            const nextActionText = document.getElementById('nextActionText');
+            nextActionText.textContent = message;
+            nextActionText.parentElement.className = alertType === 'BANNED' ? 'alert alert-danger' : 'alert alert-warning';
+            
+            // Hide transaction form for banned vehicles
+            if (alertType === 'BANNED') {
+                document.getElementById('transactionForm').classList.add('d-none');
+            } else {
+                document.getElementById('transactionForm').classList.remove('d-none');
+            }
+            
+            // Show vehicle info
+            noResult.classList.add('d-none');
+            scanData.classList.remove('d-none');
+            
+            // Update status with alert
+            const alertIcon = alertType === 'BANNED' ? '🚫' : '⚠️';
+            status.textContent = `${alertIcon} ${alertType}: ${vehicleInfo.plateNumber}`;
+            status.style.background = alertType === 'BANNED' ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 193, 7, 0.9)';
+            
+            // Show toast notification for additional alert
+            showToast(`${alertIcon} ${alertType}: ${vehicleInfo.plateNumber} - ${message}`, alertType === 'BANNED' ? 'danger' : 'warning');
+            
+            // Auto-continue scanning after alert display (longer delay for restricted access)
+            setTimeout(() => {
+                resetForNextScan();
+                continuousScanning();
+            }, alertType === 'BANNED' ? 4000 : 3000); // Longer delay for banned vehicles
+        }
+        
         function showQRScanError(message) {
             const status = document.getElementById('qrScannerStatus');
             status.textContent = `❌ ${message}`;
@@ -3881,10 +3964,30 @@
             const action = document.querySelector('input[name="qrAction"]:checked')?.value;
             const driverId = document.getElementById('qrDriverId').value.trim();
             const remarks = document.getElementById('qrRemarks').value.trim();
+            const accessStatus = document.getElementById('scannedAccessStatus').textContent;
 
             if (!gate || !action) {
                 showToast('Please select gate and action', 'warning');
                 return;
+            }
+
+            // Special handling for restricted access vehicles
+            if (accessStatus === 'Banned') {
+                if (!confirm(`⚠️ CRITICAL WARNING ⚠️\n\nVehicle ${plateNumber} is BANNED!\n\nThis vehicle should NOT be allowed on premises under any circumstances.\n\nAre you absolutely certain you want to proceed with this transaction?\n\n(This action will be logged with your username for audit purposes)`)) {
+                    return;
+                }
+            } else if (accessStatus === 'No Access' && action === 'IN') {
+                if (!confirm(`⚠️ ACCESS WARNING ⚠️\n\nVehicle ${plateNumber} does not have access permission.\n\nProceeding will allow entry despite restrictions.\n\nDo you have supervisor authorization to override this restriction?\n\n(This override will be logged for security review)`)) {
+                    return;
+                }
+            }
+
+            // Build transaction data with enhanced remarks for restricted access
+            let enhancedRemarks = remarks || 'QR Scanner transaction';
+            if (accessStatus === 'Banned') {
+                enhancedRemarks = `🚨 BANNED VEHICLE OVERRIDE - ${enhancedRemarks}`;
+            } else if (accessStatus === 'No Access' && action === 'IN') {
+                enhancedRemarks = `⚠️ NO ACCESS OVERRIDE - ${enhancedRemarks}`;
             }
 
             const transactionData = {
@@ -3892,7 +3995,7 @@
                 action: action,
                 gate: gate,
                 driverId: driverId,
-                remarks: remarks || 'QR Scanner transaction',
+                remarks: enhancedRemarks,
                 loggedBy: currentUser.username
             };
 
@@ -3905,7 +4008,17 @@
             google.script.run
                 .withSuccessHandler(function(result) {
                     if (result.success) {
-                        showToast('Transaction logged successfully!', 'success');
+                        // Enhanced success message for restricted access
+                        let successMessage = 'Transaction logged successfully!';
+                        if (accessStatus === 'Banned') {
+                            successMessage = '🚨 BANNED VEHICLE transaction logged - Security audit trail created';
+                            showToast(successMessage, 'warning');
+                        } else if (accessStatus === 'No Access' && action === 'IN') {
+                            successMessage = '⚠️ NO ACCESS override logged - Supervisor review required';
+                            showToast(successMessage, 'warning');
+                        } else {
+                            showToast(successMessage, 'success');
+                        }
                         
                         // Close modal and refresh dashboard
                         bootstrap.Modal.getInstance(document.getElementById('qrScannerModal')).hide();
