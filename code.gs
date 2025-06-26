@@ -940,36 +940,64 @@ function getLogsMinimal() {
   return { rows: data.length, first: data[0] };
 }
 
-// Working transaction function based on minimal approach
-function getRecentTransactions(limit = 20) {
-  const ss = SpreadsheetApp.openById("16Ifxb9dCZGl-xYpxStwHufkmzj2TZ8oRIYC3yf1CSqs");
-  const sheet = ss.getSheetByName("InOutLogs");
-  const data = sheet.getDataRange().getValues();
+// Test function to verify basic return
+function testTransactionReturn() {
+  return "TRANSACTION_TEST_WORKS";
+}
+
+// Working transaction function - step by step build up
+function getRecentTransactions() {
+  // Step 1: Just return a basic object structure
+  const result = {};
+  result.logs = [];
+  result.totalCount = 0;
   
-  if (data.length <= 1) {
-    return { logs: [], totalCount: 0 };
-  }
-  
-  const logs = [];
-  const maxRows = Math.min(limit || 20, data.length - 1);
-  
-  for (let i = data.length - 1; i >= 1 && logs.length < maxRows; i--) {
-    const row = data[i];
-    if (row && row.length >= 4) {
-      logs.push({
-        timestamp: row[0],
-        plateNumber: row[1] || 'Unknown',
-        driverId: row[2] || 'Unknown', 
-        action: row[3] || 'Unknown',
-        gate: row[4] || 'Unknown',
-        remarks: row[5] || '',
-        username: row[6] || 'System',
-        accessStatus: row[7] || 'Unknown'
-      });
+  // Step 2: Try to access spreadsheet
+  try {
+    const ss = SpreadsheetApp.openById("16Ifxb9dCZGl-xYpxStwHufkmzj2TZ8oRIYC3yf1CSqs");
+    const sheet = ss.getSheetByName("InOutLogs");
+    
+    if (!sheet) {
+      // Return empty result if sheet doesn't exist
+      return result;
     }
+    
+    // Step 3: Get data
+    const data = sheet.getDataRange().getValues();
+    
+    if (data.length <= 1) {
+      // No data rows, just headers
+      return result;
+    }
+    
+    // Step 4: Add actual data
+    result.totalCount = data.length - 1;
+    
+    // Get last few rows (most recent first)
+    const startRow = Math.max(1, data.length - 20);
+    
+    for (let i = data.length - 1; i >= startRow; i--) {
+      const row = data[i];
+      if (row && row.length >= 5) {
+        result.logs.push({
+          timestamp: row[0] || new Date(),
+          plateNumber: row[1] || 'Unknown',
+          driverId: row[2] || 'Unknown',
+          action: row[3] || 'Unknown',
+          gate: row[4] || 'Unknown',
+          remarks: row[5] || '',
+          username: row[6] || 'System',
+          accessStatus: row[7] || 'Access'
+        });
+      }
+    }
+    
+    return result;
+    
+  } catch (e) {
+    // If any error, return the empty structure
+    return result;
   }
-  
-  return { logs: logs, totalCount: data.length - 1 };
 }
 
 // Export logs to PDF (admin only)
