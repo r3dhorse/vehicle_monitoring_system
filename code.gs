@@ -767,6 +767,70 @@ function exportLogsToPDF(userRole, dateFrom, dateTo) {
   }
 }
 
+/**
+ * Get vehicle information by plate number for QR scanner
+ * @param {string} plateNumber - Vehicle plate number to lookup
+ * @returns {Object} Vehicle information object
+ */
+function getVehicleByPlate(plateNumber) {
+  try {
+    console.log('Looking up vehicle by plate:', plateNumber);
+    
+    // Sanitize input
+    const cleanPlateNumber = sanitizeInput(plateNumber.trim().toUpperCase());
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    
+    if (!vehicleSheet) {
+      console.log('Vehicle sheet not found');
+      return { found: false, message: 'Vehicle database not available' };
+    }
+    
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    
+    // Search for vehicle (skip header row)
+    for (let i = 1; i < vehicleData.length; i++) {
+      const row = vehicleData[i];
+      const vehiclePlate = (row[0] || '').toString().trim().toUpperCase();
+      
+      if (vehiclePlate === cleanPlateNumber) {
+        // Vehicle found - return details
+        const vehicleInfo = {
+          found: true,
+          plateNumber: row[0] || '',
+          makeModel: row[1] || '',
+          color: row[2] || '',
+          department: row[3] || '',
+          year: row[4] || '',
+          type: row[5] || '',
+          currentStatus: row[6] || 'OUT', // Column G - Current IN/OUT status
+          currentDriver: row[7] || '',
+          assignedDrivers: row[8] || '',
+          accessStatus: row[9] || 'Access' // Column J - Access Status
+        };
+        
+        console.log('Vehicle found:', vehicleInfo);
+        return vehicleInfo;
+      }
+    }
+    
+    // Vehicle not found
+    console.log('Vehicle not found with plate:', cleanPlateNumber);
+    return { 
+      found: false, 
+      message: `Vehicle with plate number "${cleanPlateNumber}" not found in database` 
+    };
+    
+  } catch (error) {
+    console.error('Error in getVehicleByPlate:', error);
+    return { 
+      found: false, 
+      message: 'Error looking up vehicle: ' + error.toString() 
+    };
+  }
+}
+
 // Debug function to check spreadsheet status
 function debugSpreadsheetStatus() {
   try {

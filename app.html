@@ -17,6 +17,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" media="all">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" media="all">
     
+    <!-- QR Code Scanner Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    
     <style>
         /* CSS Reset and Performance Optimizations */
         * {
@@ -494,6 +497,86 @@
             }
         }
         
+        /* QR Scanner Styles */
+        .qr-scanner-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .qr-scanner-video {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            background: #000;
+        }
+        
+        .qr-scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .qr-scanner-guide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px solid #28a745;
+            border-radius: 12px;
+            background: rgba(40, 167, 69, 0.1);
+            pointer-events: none;
+        }
+        
+        .qr-scanner-guide::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border: 2px dashed #28a745;
+            border-radius: 12px;
+            animation: qr-pulse 2s infinite;
+        }
+        
+        @keyframes qr-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
+        .qr-scanner-status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        .qr-scanner-canvas {
+            display: none;
+        }
+        
+        .camera-access-error {
+            text-align: center;
+            padding: 40px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+        }
+        
         @media (max-width: 991px) {
             .transaction-logs-container {
                 height: 400px !important;
@@ -702,6 +785,9 @@
                     </button>
                     <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
                         <i class="bi bi-door-open me-1"></i>Manage Gates
+                    </button>
+                    <button class="btn btn-outline-success btn-sm me-3" id="qrScannerBtn" onclick="showQRScanner()">
+                        <i class="bi bi-qr-code me-1"></i>QR Scanner
                     </button>
                     <div class="dropdown me-3" id="userManagementDropdown" style="display: none;">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -1404,6 +1490,134 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="saveVehicle()">
                         <i class="bi bi-check-lg me-2"></i>Add Vehicle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div class="modal fade" id="qrScannerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-qr-code me-2"></i>QR Code Scanner
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopQRScanner()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Camera Scanner</h6>
+                            <div class="qr-scanner-container" id="qrScannerContainer">
+                                <video id="qrScannerVideo" class="qr-scanner-video" autoplay playsinline></video>
+                                <canvas id="qrScannerCanvas" class="qr-scanner-canvas"></canvas>
+                                <div class="qr-scanner-overlay">
+                                    <div class="qr-scanner-guide"></div>
+                                    <div class="qr-scanner-status" id="qrScannerStatus">
+                                        Position QR code within the frame
+                                    </div>
+                                </div>
+                                <div class="camera-access-error d-none" id="cameraError">
+                                    <i class="bi bi-camera-video-off fs-1 text-muted mb-3"></i>
+                                    <h6>Camera Access Required</h6>
+                                    <p class="text-muted">Please allow camera access to scan QR codes.<br>Refresh the page and try again.</p>
+                                    <button class="btn btn-primary btn-sm" onclick="initQRScanner()">
+                                        <i class="bi bi-camera me-1"></i>Request Camera Access
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Scan Result</h6>
+                            <div class="scan-result-container" id="scanResultContainer">
+                                <div class="text-center text-muted py-4" id="noScanResult">
+                                    <i class="bi bi-qr-code-scan fs-1 mb-3"></i>
+                                    <p>Scan a QR code to view vehicle details</p>
+                                </div>
+                                <div class="d-none" id="scanResultData">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                <i class="bi bi-truck me-2"></i>Vehicle Information
+                                            </h6>
+                                            <div class="mb-3">
+                                                <strong>Plate Number:</strong>
+                                                <span class="ms-2 badge bg-primary" id="scannedPlate">-</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Access Status:</strong>
+                                                <span class="ms-2 badge" id="scannedAccessStatus">-</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Current Status:</strong>
+                                                <span class="ms-2 badge" id="scannedCurrentStatus">-</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Driver:</strong>
+                                                <span class="ms-2" id="scannedDriver">-</span>
+                                            </div>
+                                            <div class="alert alert-info" id="nextActionInfo">
+                                                <i class="bi bi-info-circle me-2"></i>
+                                                <span id="nextActionText">Select a gate to log transaction</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Transaction Form -->
+                            <div class="d-none" id="transactionForm">
+                                <div class="card mt-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="bi bi-door-open me-2"></i>Log Transaction
+                                        </h6>
+                                        <form id="qrTransactionForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Gate</label>
+                                                <select class="form-select" id="qrGateSelect" required>
+                                                    <option value="">Select Gate</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Action</label>
+                                                <div class="btn-group w-100" role="group">
+                                                    <input type="radio" class="btn-check" name="qrAction" id="qrActionIN" value="IN">
+                                                    <label class="btn btn-outline-success" for="qrActionIN">
+                                                        <i class="bi bi-arrow-left me-1"></i>Vehicle IN
+                                                    </label>
+                                                    <input type="radio" class="btn-check" name="qrAction" id="qrActionOUT" value="OUT">
+                                                    <label class="btn btn-outline-danger" for="qrActionOUT">
+                                                        <i class="bi bi-arrow-right me-1"></i>Vehicle OUT
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Driver ID</label>
+                                                <input type="text" class="form-control" id="qrDriverId" placeholder="Driver ID">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Remarks (Optional)</label>
+                                                <input type="text" class="form-control" id="qrRemarks" placeholder="Additional notes">
+                                            </div>
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="bi bi-check-lg me-1"></i>Log Transaction
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="stopQRScanner()">
+                        <i class="bi bi-x-lg me-1"></i>Close
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="initQRScanner()" id="restartScannerBtn">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Restart Scanner
                     </button>
                 </div>
             </div>
@@ -3190,6 +3404,458 @@
                     showToast('Failed to save vehicle: ' + error, 'danger');
                 })
                 .saveVehicleRecord(vehicleData, currentUser.role, -1);
+        }
+
+        // QR Scanner Functions
+        let qrScannerStream = null;
+        let qrScannerAnimationFrame = null;
+        let qrScannerActive = false;
+
+        function showQRScanner() {
+            const modal = new bootstrap.Modal(document.getElementById('qrScannerModal'));
+            
+            // Reset modal state
+            resetQRScannerModal();
+            
+            modal.show();
+            
+            // Load gates and set default gate once when modal is shown
+            loadGatesForQRScanner();
+            
+            // Initialize scanner after modal is fully shown
+            document.getElementById('qrScannerModal').addEventListener('shown.bs.modal', function() {
+                initQRScanner();
+            }, { once: true });
+            
+            // Clean up when modal is hidden
+            document.getElementById('qrScannerModal').addEventListener('hidden.bs.modal', function() {
+                stopQRScanner();
+                resetQRScannerModal();
+            }, { once: true });
+        }
+
+        function resetQRScannerModal() {
+            // Reset UI elements
+            document.getElementById('noScanResult').classList.remove('d-none');
+            document.getElementById('scanResultData').classList.add('d-none');
+            document.getElementById('transactionForm').classList.add('d-none');
+            document.getElementById('cameraError').classList.add('d-none');
+            
+            // Reset form
+            document.getElementById('qrTransactionForm').reset();
+            
+            // Reset status
+            document.getElementById('qrScannerStatus').textContent = 'Position QR code within the frame';
+            document.getElementById('qrScannerStatus').style.background = 'rgba(0, 0, 0, 0.7)';
+            
+            // Reset alert style
+            const nextActionInfo = document.getElementById('nextActionInfo');
+            nextActionInfo.className = 'alert alert-info';
+        }
+
+        function loadGatesForQRScanner() {
+            google.script.run
+                .withSuccessHandler(function(gates) {
+                    const select = document.getElementById('qrGateSelect');
+                    select.innerHTML = '';
+                    
+                    if (gates && gates.length > 1) { // Skip header row
+                        for (let i = 1; i < gates.length; i++) {
+                            const gate = gates[i];
+                            if (gate[0]) { // Gate name exists
+                                const option = document.createElement('option');
+                                option.value = gate[0];
+                                option.textContent = `${gate[0]} - ${gate[1] || 'No description'}`;
+                                select.appendChild(option);
+                            }
+                        }
+                        
+                        // Auto-select first gate as default for continuous scanning
+                        if (select.options.length > 0) {
+                            select.selectedIndex = 0;
+                            const defaultGate = select.options[0].textContent;
+                            console.log('Default gate set:', defaultGate);
+                            
+                            // Show notification about the selected gate
+                            const status = document.getElementById('qrScannerStatus');
+                            status.textContent = `Ready to scan - Using ${defaultGate}`;
+                        }
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Error loading gates:', error);
+                    // Fallback to manual selection
+                    const select = document.getElementById('qrGateSelect');
+                    select.innerHTML = '<option value="">Select Gate</option>';
+                })
+                .getGateList();
+        }
+
+        async function initQRScanner() {
+            const video = document.getElementById('qrScannerVideo');
+            const canvas = document.getElementById('qrScannerCanvas');
+            const status = document.getElementById('qrScannerStatus');
+            const cameraError = document.getElementById('cameraError');
+            const scannerContainer = document.getElementById('qrScannerContainer');
+
+            try {
+                // Hide error and show scanner
+                cameraError.classList.add('d-none');
+                video.style.display = 'block';
+                
+                // Stop any existing stream
+                if (qrScannerStream) {
+                    stopQRScanner();
+                }
+
+                // Request camera access
+                qrScannerStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment', // Use back camera on mobile
+                        width: { ideal: 400 },
+                        height: { ideal: 400 }
+                    }
+                });
+
+                video.srcObject = qrScannerStream;
+                await video.play();
+
+                // Set canvas size to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                qrScannerActive = true;
+                status.textContent = 'Camera ready - Position QR code within frame';
+                
+                // Start scanning
+                scanQRCode();
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                video.style.display = 'none';
+                cameraError.classList.remove('d-none');
+                status.textContent = 'Camera access denied';
+            }
+        }
+
+        function scanQRCode() {
+            if (!qrScannerActive) return;
+
+            const video = document.getElementById('qrScannerVideo');
+            const canvas = document.getElementById('qrScannerCanvas');
+            const context = canvas.getContext('2d');
+            const status = document.getElementById('qrScannerStatus');
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    status.textContent = 'QR Code detected! Processing...';
+                    processQRCodeData(code.data);
+                    return; // Stop scanning once we find a code
+                } else {
+                    status.textContent = 'Scanning for QR code...';
+                }
+            }
+
+            qrScannerAnimationFrame = requestAnimationFrame(scanQRCode);
+        }
+
+        function processQRCodeData(qrData) {
+            console.log('QR Code scanned:', qrData);
+            
+            // Assume QR code contains the plate number
+            const plateNumber = qrData.trim().toUpperCase();
+            
+            // First, try to find vehicle in already loaded data for faster processing
+            const vehicleInfo = findVehicleInLoadedData(plateNumber);
+            
+            if (vehicleInfo) {
+                displayVehicleInfo(vehicleInfo);
+                // Auto-process transaction for continuous scanning
+                autoProcessTransaction(vehicleInfo);
+            } else {
+                // Fallback to server lookup if not found in loaded data
+                google.script.run
+                    .withSuccessHandler(function(serverVehicleInfo) {
+                        if (serverVehicleInfo.found) {
+                            displayVehicleInfo(serverVehicleInfo);
+                            autoProcessTransaction(serverVehicleInfo);
+                        } else {
+                            showQRScanError('Vehicle not found: ' + plateNumber);
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        showQRScanError('Error verifying vehicle: ' + error);
+                    })
+                    .getVehicleByPlate(plateNumber);
+            }
+        }
+
+        function findVehicleInLoadedData(plateNumber) {
+            // Search in the already loaded vehicle data for faster processing
+            if (!vehicleData || vehicleData.length <= 1) return null;
+            
+            for (let i = 1; i < vehicleData.length; i++) {
+                const vehicle = vehicleData[i];
+                if (vehicle && vehicle[0] && vehicle[0].trim().toUpperCase() === plateNumber) {
+                    // Return vehicle info in the same format as server response
+                    return {
+                        found: true,
+                        plateNumber: vehicle[0] || '',
+                        makeModel: vehicle[1] || '',
+                        color: vehicle[2] || '',
+                        department: vehicle[3] || '',
+                        year: vehicle[4] || '',
+                        type: vehicle[5] || '',
+                        currentStatus: vehicle[6] || 'OUT',
+                        currentDriver: vehicle[7] || '',
+                        assignedDrivers: vehicle[8] || '',
+                        accessStatus: vehicle[9] || 'Access'
+                    };
+                }
+            }
+            
+            return null;
+        }
+
+        function autoProcessTransaction(vehicleInfo) {
+            // Auto-process transaction for continuous scanning
+            setTimeout(() => {
+                const gate = document.getElementById('qrGateSelect').value;
+                const nextAction = vehicleInfo.currentStatus === 'IN' ? 'OUT' : 'IN';
+                
+                // Only auto-process if gate is selected and vehicle has access (or is going OUT)
+                if (gate && (vehicleInfo.accessStatus === 'Access' || nextAction === 'OUT')) {
+                    const transactionData = {
+                        plateNumber: vehicleInfo.plateNumber,
+                        action: nextAction,
+                        gate: gate,
+                        driverId: vehicleInfo.currentDriver || '',
+                        remarks: 'QR Scanner auto-transaction',
+                        loggedBy: currentUser.username
+                    };
+
+                    // Update status to show processing
+                    const status = document.getElementById('qrScannerStatus');
+                    status.textContent = `Processing ${nextAction} for ${vehicleInfo.plateNumber}...`;
+
+                    google.script.run
+                        .withSuccessHandler(function(result) {
+                            if (result.success) {
+                                status.textContent = `✓ ${vehicleInfo.plateNumber} ${nextAction} successful - Ready for next scan`;
+                                status.style.background = 'rgba(40, 167, 69, 0.8)'; // Green background
+                                
+                                // Update local vehicle data for immediate UI refresh
+                                updateLocalVehicleData(vehicleInfo.plateNumber, nextAction);
+                                
+                                // Refresh dashboard in background
+                                loadVehicles();
+                                loadTransactionLogs();
+                                
+                                // Reset for next scan after a short delay
+                                setTimeout(() => {
+                                    resetForNextScan();
+                                    // Restart scanner for continuous scanning
+                                    if (!qrScannerAnimationFrame) {
+                                        qrScannerAnimationFrame = requestAnimationFrame(scanQRCode);
+                                    }
+                                }, 2000);
+                            } else {
+                                showQRScanError('Transaction failed: ' + result.message);
+                            }
+                        })
+                        .withFailureHandler(function(error) {
+                            showQRScanError('Error logging transaction: ' + error);
+                        })
+                        .logVehicleAction(transactionData);
+                } else {
+                    // Manual confirmation needed for restricted access
+                    const nextActionText = document.getElementById('nextActionText');
+                    nextActionText.textContent = 'Manual confirmation required - Select action below';
+                    document.getElementById('transactionForm').classList.remove('d-none');
+                }
+            }, 1000); // Small delay to show vehicle info
+        }
+
+        function updateLocalVehicleData(plateNumber, newStatus) {
+            // Update the local vehicle data for immediate UI response
+            if (vehicleData && vehicleData.length > 1) {
+                for (let i = 1; i < vehicleData.length; i++) {
+                    if (vehicleData[i] && vehicleData[i][0] === plateNumber) {
+                        vehicleData[i][6] = newStatus; // Update status
+                        break;
+                    }
+                }
+                // Refresh the vehicle display
+                displayVehicles();
+                updateStatistics();
+            }
+        }
+
+        function resetForNextScan() {
+            // Reset UI for next scan while keeping gate selection
+            document.getElementById('noScanResult').classList.remove('d-none');
+            document.getElementById('scanResultData').classList.add('d-none');
+            document.getElementById('transactionForm').classList.add('d-none');
+            
+            // Reset status background but keep gate info
+            const status = document.getElementById('qrScannerStatus');
+            status.style.background = 'rgba(0, 0, 0, 0.7)';
+            
+            const gateSelect = document.getElementById('qrGateSelect');
+            const selectedGate = gateSelect.options[gateSelect.selectedIndex]?.textContent || 'Gate';
+            status.textContent = `Ready for next scan - Using ${selectedGate}`;
+        }
+
+        function displayVehicleInfo(vehicleInfo) {
+            const status = document.getElementById('qrScannerStatus');
+            const noResult = document.getElementById('noScanResult');
+            const scanData = document.getElementById('scanResultData');
+            const transactionForm = document.getElementById('transactionForm');
+
+            // Update UI elements
+            document.getElementById('scannedPlate').textContent = vehicleInfo.plateNumber;
+            document.getElementById('scannedDriver').textContent = vehicleInfo.currentDriver || 'Not assigned';
+            
+            // Set access status badge
+            const accessBadge = document.getElementById('scannedAccessStatus');
+            accessBadge.textContent = vehicleInfo.accessStatus;
+            accessBadge.className = 'ms-2 badge ' + 
+                (vehicleInfo.accessStatus === 'Access' ? 'bg-success' :
+                 vehicleInfo.accessStatus === 'No Access' ? 'bg-warning' : 'bg-danger');
+
+            // Set current status badge
+            const currentBadge = document.getElementById('scannedCurrentStatus');
+            currentBadge.textContent = vehicleInfo.currentStatus;
+            currentBadge.className = 'ms-2 badge ' + 
+                (vehicleInfo.currentStatus === 'IN' ? 'bg-primary' : 'bg-secondary');
+
+            // Determine next action and pre-select it
+            const nextAction = vehicleInfo.currentStatus === 'IN' ? 'OUT' : 'IN';
+            const nextActionText = document.getElementById('nextActionText');
+            
+            if (vehicleInfo.accessStatus === 'Access' || nextAction === 'OUT') {
+                nextActionText.textContent = `Vehicle ready for ${nextAction}`;
+                document.getElementById(`qrAction${nextAction}`).checked = true;
+                transactionForm.classList.remove('d-none');
+            } else {
+                nextActionText.textContent = 'Vehicle access denied - cannot enter';
+                nextActionText.parentElement.className = 'alert alert-danger';
+            }
+
+            // Show results
+            noResult.classList.add('d-none');
+            scanData.classList.remove('d-none');
+            
+            status.textContent = 'Vehicle verified! Processing...';
+            
+            // Don't stop scanner - let auto-processing handle the flow for continuous scanning
+        }
+
+        function showQRScanError(message) {
+            const status = document.getElementById('qrScannerStatus');
+            status.textContent = message;
+            status.style.background = 'rgba(220, 53, 69, 0.8)'; // Red background
+            
+            setTimeout(() => {
+                resetForNextScan();
+                
+                // Restart scanning for continuous operation
+                if (qrScannerActive) {
+                    qrScannerAnimationFrame = requestAnimationFrame(scanQRCode);
+                }
+            }, 2000); // Reduced delay for faster continuous scanning
+        }
+
+        function stopQRScanner() {
+            qrScannerActive = false;
+            
+            if (qrScannerAnimationFrame) {
+                cancelAnimationFrame(qrScannerAnimationFrame);
+                qrScannerAnimationFrame = null;
+            }
+
+            if (qrScannerStream) {
+                qrScannerStream.getTracks().forEach(track => track.stop());
+                qrScannerStream = null;
+            }
+
+            const video = document.getElementById('qrScannerVideo');
+            if (video) {
+                video.srcObject = null;
+            }
+        }
+
+        // Handle QR transaction form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrForm = document.getElementById('qrTransactionForm');
+            if (qrForm) {
+                qrForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    submitQRTransaction();
+                });
+            }
+        });
+
+        function submitQRTransaction() {
+            const form = document.getElementById('qrTransactionForm');
+            const plateNumber = document.getElementById('scannedPlate').textContent;
+            const gate = document.getElementById('qrGateSelect').value;
+            const action = document.querySelector('input[name="qrAction"]:checked')?.value;
+            const driverId = document.getElementById('qrDriverId').value.trim();
+            const remarks = document.getElementById('qrRemarks').value.trim();
+
+            if (!gate || !action) {
+                showToast('Please select gate and action', 'warning');
+                return;
+            }
+
+            const transactionData = {
+                plateNumber: plateNumber,
+                action: action,
+                gate: gate,
+                driverId: driverId,
+                remarks: remarks || 'QR Scanner transaction',
+                loggedBy: currentUser.username
+            };
+
+            // Disable form
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showToast('Transaction logged successfully!', 'success');
+                        
+                        // Close modal and refresh dashboard
+                        bootstrap.Modal.getInstance(document.getElementById('qrScannerModal')).hide();
+                        loadVehicles();
+                        loadTransactionLogs();
+                    } else {
+                        showToast('Transaction failed: ' + result.message, 'danger');
+                    }
+                    
+                    // Re-enable form
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Error logging transaction: ' + error, 'danger');
+                    
+                    // Re-enable form
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                })
+                .logVehicleAction(transactionData);
         }
         
         // Initialize on page load
