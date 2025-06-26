@@ -437,6 +437,69 @@
         }
         .status-in { background-color: #28a745; color: white; }
         .status-out { background-color: #dc3545; color: white; }
+        
+        /* Transaction Logs Table Styles */
+        .transaction-logs-container {
+            border-radius: 0 0 0.375rem 0.375rem;
+        }
+        .transaction-logs-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .transaction-logs-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .transaction-logs-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        .transaction-logs-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        #transactionLogsTable {
+            font-size: 0.8rem;
+        }
+        #transactionLogsTable thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+            padding: 8px 6px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #transactionLogsTable tbody tr {
+            transition: all 0.2s ease;
+        }
+        #transactionLogsTable tbody tr:hover {
+            background-color: #f1f3f5 !important;
+        }
+        #transactionLogsTable tbody td {
+            padding: 6px 6px;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f1f1;
+        }
+        .badge-sm {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+        }
+        
+        /* Responsive adjustments for transaction logs */
+        @media (max-width: 1199px) {
+            .col-lg-4 {
+                margin-bottom: 1rem;
+            }
+        }
+        
+        @media (max-width: 991px) {
+            .transaction-logs-container {
+                height: 400px !important;
+            }
+        }
+        
         .loading-spinner {
             position: fixed;
             top: 50%;
@@ -798,10 +861,10 @@
                 </div>
             </div>
 
-            <!-- Vehicle Cards -->
-            <div class="row vehicle-status-columns">
+            <!-- Vehicle Cards and Transaction Logs -->
+            <div class="row">
                 <!-- Vehicles IN Column -->
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="card h-100">
                         <div class="card-header bg-success text-white">
                             <h5 class="mb-0">
@@ -811,7 +874,7 @@
                             </h5>
                         </div>
                         <div class="card-body p-0">
-                            <div id="vehiclesInContainer" class="p-3">
+                            <div id="vehiclesInContainer" class="p-3" style="max-height: 600px; overflow-y: auto;">
                                 <div class="text-center py-4">
                                     <div class="spinner-border text-success" role="status">
                                         <span class="visually-hidden">Loading...</span>
@@ -824,7 +887,7 @@
                 </div>
 
                 <!-- Vehicles OUT Column -->
-                <div class="col-lg-6">
+                <div class="col-lg-4">
                     <div class="card h-100">
                         <div class="card-header bg-danger text-white">
                             <h5 class="mb-0">
@@ -834,13 +897,59 @@
                             </h5>
                         </div>
                         <div class="card-body p-0">
-                            <div id="vehiclesOutContainer" class="p-3">
+                            <div id="vehiclesOutContainer" class="p-3" style="max-height: 600px; overflow-y: auto;">
                                 <div class="text-center py-4">
                                     <div class="spinner-border text-danger" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                     <p class="mt-2 text-muted">Loading vehicles...</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Logs Column -->
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="bi bi-clock-history me-2"></i>
+                                Recent Transactions
+                                <span class="badge bg-light text-primary ms-2" id="transactionCount">50</span>
+                            </h6>
+                            <button class="btn btn-sm btn-light" onclick="refreshTransactionLogs()" title="Refresh logs">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="transaction-logs-container" style="height: 600px; overflow-y: auto;">
+                                <table class="table table-sm table-hover mb-0" id="transactionLogsTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 110px;">Date & Time</th>
+                                            <th style="width: 80px;">Plate</th>
+                                            <th style="width: 80px;">Driver</th>
+                                            <th style="width: 80px;">Gate</th>
+                                            <th style="width: 50px;" class="text-center">Action</th>
+                                            <th class="d-none d-xl-table-cell" style="width: 80px;">By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transactionLogsBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-3">
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2 text-muted mb-0 small">Loading logs...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="noTransactionsMessage" class="text-center py-3 d-none">
+                                <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mt-2 mb-0 small">No transactions found</p>
                             </div>
                         </div>
                     </div>
@@ -1412,6 +1521,7 @@
             
             loadVehicles();
             loadActiveGates();
+            loadTransactionLogs();
             
             // Setup scroll listeners for manual scroll-based loading as fallback
             setupScrollListeners();
@@ -3093,6 +3203,118 @@
                 showLoginPage();
             }
         });
+
+        // Transaction Logs Functions
+        function loadTransactionLogs() {
+            const logsBody = document.getElementById('transactionLogsBody');
+            logsBody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted mb-0">Loading transaction logs...</p>
+                    </td>
+                </tr>
+            `;
+
+            google.script.run
+                .withSuccessHandler(displayTransactionLogs)
+                .withFailureHandler(function(error) {
+                    console.error('Error loading transaction logs:', error);
+                    logsBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Failed to load transaction logs
+                            </td>
+                        </tr>
+                    `;
+                })
+                .getRecentTransactions(50);
+        }
+
+        function displayTransactionLogs(transactions) {
+            const logsBody = document.getElementById('transactionLogsBody');
+            const noTransactionsMessage = document.getElementById('noTransactionsMessage');
+            const transactionCount = document.getElementById('transactionCount');
+
+            if (!transactions || transactions.length === 0) {
+                logsBody.innerHTML = '';
+                logsBody.parentElement.style.display = 'none';
+                noTransactionsMessage.classList.remove('d-none');
+                transactionCount.textContent = '0';
+                return;
+            }
+
+            logsBody.parentElement.style.display = '';
+            noTransactionsMessage.classList.add('d-none');
+            transactionCount.textContent = transactions.length;
+
+            const rows = transactions.map(log => {
+                const actionBadge = log.action === 'IN' 
+                    ? '<span class="badge bg-success badge-sm">IN</span>' 
+                    : '<span class="badge bg-danger badge-sm">OUT</span>';
+                
+                // Format timestamp to show date and time like "June 26, 13:30"
+                let formattedDateTime = '-';
+                if (log.timestamp) {
+                    try {
+                        const date = new Date(log.timestamp);
+                        const options = { 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            hour12: false
+                        };
+                        formattedDateTime = date.toLocaleDateString('en-US', options).replace(',', ', ');
+                    } catch (e) {
+                        formattedDateTime = log.timestamp;
+                    }
+                }
+
+                return `
+                    <tr>
+                        <td class="small">${formattedDateTime}</td>
+                        <td class="small fw-bold">${log.plate || '-'}</td>
+                        <td class="small">${log.driver || '-'}</td>
+                        <td class="small">${log.gate || '-'}</td>
+                        <td class="text-center">${actionBadge}</td>
+                        <td class="d-none d-xl-table-cell small">${log.loggedBy || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            logsBody.innerHTML = rows;
+        }
+
+        function refreshTransactionLogs() {
+            const refreshBtn = event.target.closest('button');
+            const originalContent = refreshBtn.innerHTML;
+            
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Refreshing...';
+            
+            google.script.run
+                .withSuccessHandler(function(logs) {
+                    displayTransactionLogs(logs);
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = originalContent;
+                    
+                    // Show success feedback
+                    const badge = document.getElementById('transactionCount');
+                    badge.classList.add('bg-success');
+                    setTimeout(() => badge.classList.remove('bg-success'), 1000);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Error refreshing logs:', error);
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = originalContent;
+                    alert('Failed to refresh transaction logs');
+                })
+                .getRecentTransactions(50);
+        }
 
     </script>
 </body>

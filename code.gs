@@ -681,6 +681,54 @@ function getVehicleStatistics() {
   }
 }
 
+/**
+ * Get recent transactions from the LOG_SHEET
+ * @param {number} limit - Number of records to fetch (default 50)
+ * @returns {Array} Array of recent transaction objects
+ */
+function getRecentTransactions(limit = 50) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(LOG_SHEET);
+    
+    if (!sheet) {
+      console.log('Log sheet not found');
+      return [];
+    }
+    
+    const lastRow = sheet.getLastRow();
+    
+    if (lastRow < 2) {
+      return [];
+    }
+    
+    // Calculate the starting row (we want the most recent records)
+    const startRow = Math.max(2, lastRow - limit + 1);
+    const numRows = lastRow - startRow + 1;
+    
+    // Get the data
+    const range = sheet.getRange(startRow, 1, numRows, 8);
+    const values = range.getValues();
+    
+    // Convert to array of objects and reverse to get most recent first
+    const transactions = values.map((row, index) => ({
+      timestamp: row[0] ? Utilities.formatDate(row[0], Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss") : '',
+      plate: row[1] || '',
+      driver: row[2] || '',
+      action: row[3] || '',
+      gate: row[4] || '',
+      remarks: row[5] || '',
+      loggedBy: row[6] || '',
+      accessStatus: row[7] || 'Access' // Default to 'Access' if not specified
+    })).reverse();
+    
+    return transactions;
+  } catch (error) {
+    console.error('Error in getRecentTransactions:', error);
+    return [];
+  }
+}
+
 
 
 // Export logs to PDF (admin only)
@@ -749,6 +797,78 @@ function debugSpreadsheetStatus() {
   } catch (error) {
     console.error('Debug error:', error);
     return 'Debug failed: ' + error.message;
+  }
+}
+
+/**
+ * Clear all sample/mock data from the system (Admin only)
+ * Keeps the headers and essential system data
+ */
+function clearSampleData(userRole) {
+  if (!['super-admin', 'admin'].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access required.");
+  }
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    
+    // Clear vehicle sample data
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    if (vehicleSheet && vehicleSheet.getLastRow() > 1) {
+      const numRows = vehicleSheet.getLastRow() - 1;
+      vehicleSheet.deleteRows(2, numRows);
+      console.log('Cleared vehicle sample data');
+    }
+    
+    // Clear driver sample data
+    const driverSheet = ss.getSheetByName(DRIVER_SHEET);
+    if (driverSheet && driverSheet.getLastRow() > 1) {
+      const numRows = driverSheet.getLastRow() - 1;
+      driverSheet.deleteRows(2, numRows);
+      console.log('Cleared driver sample data');
+    }
+    
+    // Clear log data (all logs)
+    const logSheet = ss.getSheetByName(LOG_SHEET);
+    if (logSheet && logSheet.getLastRow() > 1) {
+      const numRows = logSheet.getLastRow() - 1;
+      logSheet.deleteRows(2, numRows);
+      console.log('Cleared all log data');
+    }
+    
+    // Keep default admin user but clear other sample users
+    const usersSheet = ss.getSheetByName(USERS_SHEET);
+    if (usersSheet && usersSheet.getLastRow() > 1) {
+      const userData = usersSheet.getDataRange().getValues();
+      const rowsToDelete = [];
+      
+      for (let i = userData.length - 1; i >= 1; i--) {
+        // Keep admin user, delete sample users
+        if (userData[i][0] !== 'admin' && (userData[i][0] === 'user1' || userData[i][0] === 'user2')) {
+          rowsToDelete.push(i + 1);
+        }
+      }
+      
+      // Delete rows from bottom to top to avoid index issues
+      rowsToDelete.forEach(row => {
+        usersSheet.deleteRow(row);
+      });
+      console.log('Cleared sample users');
+    }
+    
+    // Keep gates as they are usually configuration data
+    
+    // Clear cache
+    clearVehicleCache();
+    
+    return {
+      success: true,
+      message: 'Sample data cleared successfully. System is now ready for real data.'
+    };
+    
+  } catch (error) {
+    console.error('Error clearing sample data:', error);
+    throw new Error('Failed to clear sample data: ' + error.message);
   }
 }
 
@@ -1435,39 +1555,7 @@ function createSampleData() {
       }
     }
     
-    // Add sample log entries if needed
-    const logSheet = ss.getSheetByName(LOG_SHEET);
-    if (logSheet) {
-      let logData;
-      try {
-        logData = logSheet.getDataRange().getValues();
-      } catch (e) {
-        console.log('Error getting log data range');
-        logData = [];
-      }
-      
-      if (logData.length <= 1) {
-        console.log('Adding sample log entries...');
-        const now = new Date();
-        const sampleLogs = [
-          // Recent transactions for sample vehicles
-          [new Date(now.getTime() - 2 * 60 * 60 * 1000), 'ABC-123', 'DRV001', 'IN', 'Main Gate', 'Regular entry', 'admin', 'Access'],
-          [new Date(now.getTime() - 4 * 60 * 60 * 1000), 'ABC-123', 'DRV001', 'OUT', 'Main Gate', 'Lunch break', 'admin', 'Access'],
-          [new Date(now.getTime() - 1 * 60 * 60 * 1000), 'XYZ-456', 'DRV002', 'OUT', 'Back Gate', 'Delivery run', 'admin', 'Access'],
-          [new Date(now.getTime() - 3 * 60 * 60 * 1000), 'XYZ-456', 'DRV002', 'IN', 'Back Gate', 'Return from delivery', 'admin', 'Access'],
-          [new Date(now.getTime() - 30 * 60 * 1000), 'MNO-789', 'DRV003', 'IN', 'Service Gate', 'Service check', 'security', 'No Access'],
-          [new Date(now.getTime() - 90 * 60 * 1000), 'MNO-789', 'DRV003', 'OUT', 'Service Gate', 'Completed service', 'security', 'No Access'],
-          [new Date(now.getTime() - 45 * 60 * 1000), 'STU-345', 'DRV005', 'OUT', 'Main Gate', 'Executive meeting', 'admin', 'Access'],
-          [new Date(now.getTime() - 120 * 60 * 1000), 'STU-345', 'DRV005', 'IN', 'Main Gate', 'Morning arrival', 'admin', 'Access']
-        ];
-        
-        // Optimized: Use batch setValues instead of individual appendRow operations
-        const startRow = logSheet.getLastRow() + 1;
-        const range = logSheet.getRange(startRow, 1, sampleLogs.length, sampleLogs[0].length);
-        range.setValues(sampleLogs);
-        console.log('Sample log entries added successfully via batch operation');
-      }
-    }
+    // Skip adding sample log entries - let the system start with real data only
     
     console.log('Sample data creation completed successfully');
     return 'Sample data created successfully';
