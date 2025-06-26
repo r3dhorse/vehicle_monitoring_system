@@ -710,6 +710,67 @@
         .table-responsive::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        
+        /* Enhanced Action Buttons Styling */
+        .vehicle-row .btn-group:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        }
+        
+        .vehicle-row .btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+        
+        .vehicle-row .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .vehicle-row .btn-primary:hover {
+            background: linear-gradient(135deg, #0056b3 0%, #004085 100%) !important;
+        }
+        
+        .vehicle-row .btn-success:hover {
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%) !important;
+        }
+        
+        .vehicle-row .btn-danger:hover {
+            background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%) !important;
+        }
+        
+        .vehicle-row .btn[disabled] {
+            background: #6c757d !important;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+            cursor: not-allowed !important;
+            transform: none !important;
+        }
+        
+        /* Add subtle animation on row hover */
+        .vehicle-row:hover {
+            background-color: #f8f9fa !important;
+            transition: background-color 0.2s ease;
+        }
+        
+        /* Improve button responsiveness on mobile */
+        @media (max-width: 768px) {
+            .vehicle-row .btn-group {
+                box-shadow: none !important;
+            }
+            
+            .vehicle-row .btn {
+                font-size: 0.75rem !important;
+                padding: 4px 8px !important;
+            }
+            
+            .vehicle-row .btn:hover {
+                transform: none;
+            }
+            
+            .vehicle-row .btn:active {
+                transform: scale(0.95);
+                background-color: rgba(0,0,0,0.1);
+            }
+        }
     </style>
 </head>
 <body>
@@ -941,55 +1002,102 @@
                     <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()" title="Clear all filters">
                         <i class="bi bi-x-circle me-1"></i><span class="d-none d-lg-inline">Clear</span>
                     </button>
-                    <button class="btn btn-primary" onclick="loadVehicles()">
+                    <button class="btn btn-primary" onclick="refreshDashboard()">
                         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
                     </button>
                 </div>
             </div>
 
-            <!-- Vehicle Cards and Transaction Logs -->
-            <div class="row">
-                <!-- Vehicles IN Column -->
-                <div class="col-lg-4">
-                    <div class="card h-100">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">
-                                <i class="bi bi-arrow-down-circle me-2"></i>
-                                Vehicles IN
-                                <span class="badge bg-light text-success ms-2" id="vehiclesInBadge">0</span>
-                            </h5>
-                        </div>
-                        <div class="card-body p-0">
-                            <div id="vehiclesInContainer" class="p-3" style="max-height: 600px; overflow-y: auto;">
-                                <div class="text-center py-4">
-                                    <div class="spinner-border text-success" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <p class="mt-2 text-muted">Loading vehicles...</p>
-                                </div>
+            <!-- Pagination Controls -->
+            <div class="row mb-3" id="paginationRow" style="display: none;">
+                <div class="col-12">
+                    <nav aria-label="Vehicle list pagination">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="pagination-info">
+                                <small class="text-muted" id="paginationInfo">Showing 1-50 of 1500 vehicles</small>
+                            </div>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item" id="prevPageItem">
+                                    <button class="page-link" onclick="changePage('prev')" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </button>
+                                </li>
+                                <li class="page-item active" id="currentPageItem">
+                                    <span class="page-link" id="currentPageNumber">1</span>
+                                </li>
+                                <li class="page-item" id="nextPageItem">
+                                    <button class="page-link" onclick="changePage('next')" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="page-size-selector">
+                                <small class="text-muted me-2">Show:</small>
+                                <select class="form-select form-select-sm d-inline-block w-auto" id="pageSizeSelector" onchange="changePageSize()">
+                                    <option value="25">25</option>
+                                    <option value="50" selected>50</option>
+                                    <option value="100">100</option>
+                                    <option value="200">200</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
+                    </nav>
                 </div>
+            </div>
 
-                <!-- Vehicles OUT Column -->
-                <div class="col-lg-4">
+            <!-- Vehicle Table and Transaction Logs -->
+            <div class="row">
+                <!-- Vehicles Table -->
+                <div class="col-lg-8">
                     <div class="card h-100">
-                        <div class="card-header bg-danger text-white">
+                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
-                                <i class="bi bi-arrow-up-circle me-2"></i>
-                                Vehicles OUT
-                                <span class="badge bg-light text-danger ms-2" id="vehiclesOutBadge">0</span>
+                                <i class="bi bi-car-front me-2"></i>
+                                Vehicle List
+                                <span class="badge bg-light text-primary ms-2" id="totalVehiclesBadge">0</span>
                             </h5>
+                            <div class="d-flex gap-2">
+                                <span class="badge bg-success d-flex align-items-center">
+                                    <i class="bi bi-arrow-down-circle me-1"></i>
+                                    IN: <span id="vehiclesInBadge" class="ms-1">0</span>
+                                </span>
+                                <span class="badge bg-danger d-flex align-items-center">
+                                    <i class="bi bi-arrow-up-circle me-1"></i>
+                                    OUT: <span id="vehiclesOutBadge" class="ms-1">0</span>
+                                </span>
+                            </div>
                         </div>
                         <div class="card-body p-0">
-                            <div id="vehiclesOutContainer" class="p-3" style="max-height: 600px; overflow-y: auto;">
-                                <div class="text-center py-4">
-                                    <div class="spinner-border text-danger" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                    <p class="mt-2 text-muted">Loading vehicles...</p>
-                                </div>
+                            <div class="vehicle-logs-container" style="height: 600px; overflow-y: auto;">
+                                <table class="table table-sm table-hover mb-0" id="vehiclesTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 90px; font-size: 0.85rem;">Plate #</th>
+                                            <th style="width: 110px; font-size: 0.85rem;">Make/Model</th>
+                                            <th style="width: 80px; font-size: 0.85rem;" class="d-none d-md-table-cell">Department</th>
+                                            <th style="width: 80px; font-size: 0.85rem;" class="d-none d-lg-table-cell">Driver</th>
+                                            <th style="width: 60px; font-size: 0.85rem;" class="text-center">Status</th>
+                                            <th style="width: 70px; font-size: 0.85rem;" class="d-none d-xl-table-cell">Access</th>
+                                            <th style="width: 60px; font-size: 0.85rem;" class="text-center">Actions</th>
+                                            <th style="width: 75px; font-size: 0.85rem;" class="text-center">Transaction</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="vehiclesTableBody">
+                                        <tr>
+                                            <td colspan="8" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2 text-muted">Loading vehicles...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="noVehiclesMessage" class="text-center py-4 d-none">
+                                <i class="bi bi-car-front text-muted" style="font-size: 3rem;"></i>
+                                <p class="text-muted mt-2 mb-0">No vehicles found</p>
+                                <small class="text-muted">Try adjusting your search criteria</small>
                             </div>
                         </div>
                     </div>
@@ -998,11 +1106,11 @@
                 <!-- Transaction Logs Column -->
                 <div class="col-lg-4">
                     <div class="card h-100">
-                        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                             <h6 class="mb-0">
                                 <i class="bi bi-clock-history me-2"></i>
                                 Recent Transactions
-                                <span class="badge bg-light text-primary ms-2" id="transactionCount">50</span>
+                                <span class="badge bg-light text-secondary ms-2" id="transactionCount">50</span>
                             </h6>
                             <button class="btn btn-sm btn-light" onclick="refreshTransactionLogs()" title="Refresh logs">
                                 <i class="bi bi-arrow-clockwise"></i>
@@ -1013,18 +1121,16 @@
                                 <table class="table table-sm table-hover mb-0" id="transactionLogsTable">
                                     <thead class="table-light sticky-top">
                                         <tr>
-                                            <th style="width: 110px;">Date & Time</th>
-                                            <th style="width: 80px;">Plate</th>
-                                            <th style="width: 80px;">Driver</th>
-                                            <th style="width: 80px;">Gate</th>
-                                            <th style="width: 50px;" class="text-center">Action</th>
-                                            <th class="d-none d-xl-table-cell" style="width: 80px;">By</th>
+                                            <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Time</th>
+                                            <th style="width: 70px; font-size: 0.85rem; padding: 8px 8px;">Plate</th>
+                                            <th style="width: 60px; font-size: 0.85rem; padding: 8px 8px;">Gate</th>
+                                            <th style="width: 50px; font-size: 0.85rem; padding: 8px 8px;" class="text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="transactionLogsBody">
                                         <tr>
-                                            <td colspan="6" class="text-center py-3">
-                                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <td colspan="4" class="text-center py-3">
+                                                <div class="spinner-border spinner-border-sm text-secondary" role="status">
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
                                                 <p class="mt-2 text-muted mb-0 small">Loading logs...</p>
@@ -1637,13 +1743,8 @@
         let vehicleData = [];
         let allVehicles = [];
         
-        // Lazy loading configuration
-        const VEHICLES_PER_BATCH = window.innerWidth <= 768 ? 5 : 10; // Smaller batch for mobile
-        let vehiclesInIndex = 0;
-        let vehiclesOutIndex = 0;
-        let isLoadingMore = false;
-        let vehiclesInObserver = null;
-        let vehiclesOutObserver = null;
+        // Table optimization configuration
+        const DISPLAY_BATCH_SIZE = 100; // Load vehicles in batches for large datasets
         let filterTimeout = null;
 
         // Initialize the application
@@ -1739,9 +1840,8 @@
             loadVehicles();
             loadActiveGates();
             loadTransactionLogs();
+            loadDatabaseStatistics(); // Load database statistics separately
             
-            // Setup scroll listeners for manual scroll-based loading as fallback
-            setupScrollListeners();
             
             // Optimize for mobile
             optimizeForMobile();
@@ -1842,146 +1942,328 @@
             document.getElementById('password').value = '';
         }
 
-        function loadVehicles() {
-            showLoading(true);
-            const startTime = performance.now();
-            
-            // Load vehicles only - transactions removed for better performance
+        function loadDatabaseStatistics() {
+            // Load database statistics directly from the database
             google.script.run
-                .withSuccessHandler(function(vehicles) {
-                    const loadTime = performance.now() - startTime;
-                    console.log(`Vehicles loaded: ${vehicles.length} in ${loadTime.toFixed(2)}ms`);
-                    
-                    allVehicles = vehicles || [];
-                    vehicleData = allVehicles;
-                    
-                    // Display vehicles
-                    displayVehicles();
-                    updateStatistics();
-                    showLoading(false);
-                    
-                    // Enhanced performance monitoring with actionable insights
-                    if (loadTime > 3000) {
-                        console.warn('%c⚠️ Performance Alert', 'color: #ffc107; font-weight: bold;',
-                            `\n📈 Load Time: ${(loadTime / 1000).toFixed(2)}s (Target: <3s)`
-                            + `\n📊 Vehicle Count: ${vehicles.length} records loaded`
-                            + '\n🔧 Recommendations:'
-                            + '\n   • Enable server-side pagination for large datasets'
-                            + '\n   • Consider implementing virtual scrolling'
-                            + '\n   • Check network connection stability'
-                            + '\n   • Contact administrator if issue persists'
-                            + '\n💡 Current system uses lazy loading to improve user experience');
+                .withSuccessHandler(function(stats) {
+                    if (stats && !stats.error) {
+                        console.log('Database statistics loaded:', stats);
                         
-                        // Show user-friendly notification for very slow loads
-                        if (loadTime > 5000) {
-                            showToast('Large dataset detected. Consider refreshing if loading seems slow.', 'info');
-                        }
+                        // Update the main statistics cards with database data
+                        animateNumber('totalVehicles', stats.totalRegistered || 0);
+                        animateNumber('vehiclesIn', stats.totalIn || 0);
+                        animateNumber('vehiclesOut', stats.totalOut || 0);
+                        
+                        // Update access status counts from database data
+                        animateNumber('accessCount', stats.accessCount || 0);
+                        animateNumber('noAccessCount', stats.noAccessCount || 0);
+                        animateNumber('bannedCount', stats.bannedCount || 0);
+                        
+                        // Update percentages and progress bars
+                        updatePercentages(stats.totalRegistered || 0, stats.totalIn || 0, stats.totalOut || 0);
+                        
+                        // Update summary stats
+                        updateSummaryStats(stats.totalIn || 0);
+                        
+                        // Add pulse effect on update
+                        addPulseEffect();
+                        
+                        console.log(`%c✅ Database Statistics Loaded`, 'color: #28a745; font-weight: bold;', 
+                                   `Total: ${stats.totalRegistered}, IN: ${stats.totalIn}, OUT: ${stats.totalOut}, Access: ${stats.accessCount}, No Access: ${stats.noAccessCount}, Banned: ${stats.bannedCount}`);
                     } else {
-                        console.log(`%c✅ Performance Good`, 'color: #28a745; font-weight: bold;', `Load time: ${(loadTime / 1000).toFixed(2)}s`);
+                        console.error('Error loading database statistics:', stats.error);
+                        showToast('Failed to load database statistics', 'warning');
                     }
                 })
                 .withFailureHandler(function(error) {
-                    console.error('Error loading vehicles:', error);
-                    showToast('Failed to load vehicles: ' + error, 'danger');
-                    showLoading(false);
-                    
-                    // Show retry option for network errors
-                    if (error.toString().includes('NetworkError')) {
-                        setTimeout(() => {
-                            if (confirm('Network error detected. Would you like to retry?')) {
-                                loadVehicles();
-                            }
-                        }, 1000);
-                    }
+                    console.error('Error loading database statistics:', error);
+                    showToast('Failed to load database statistics: ' + error, 'danger');
                 })
-                .getVehicleList();
+                .getDatabaseStatistics();
+        }
+
+        function refreshDashboard() {
+            // Refresh all dashboard data
+            loadVehicles();
+            loadDatabaseStatistics(); 
+            loadTransactionLogs();
+            showToast('Dashboard refreshed', 'success');
+        }
+
+        function loadVehicles(searchCriteria = {}) {
+            showLoading(true);
+            const startTime = performance.now();
+            
+            // Default search criteria for initial load
+            const defaultCriteria = {
+                searchTerm: '',
+                statusFilter: '',
+                accessStatusFilter: '',
+                departmentFilter: '',
+                pageSize: 50,
+                pageOffset: 0,
+                ...searchCriteria
+            };
+            
+            console.log('Loading vehicles with criteria:', defaultCriteria);
+            
+            // Load vehicles and get total count for pagination
+            Promise.all([
+                new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getVehicleList(defaultCriteria);
+                }),
+                new Promise((resolve, reject) => {
+                    google.script.run
+                        .withSuccessHandler(resolve)
+                        .withFailureHandler(reject)
+                        .getVehicleCount(defaultCriteria);
+                })
+            ]).then(([vehicles, totalCount]) => {
+                const loadTime = performance.now() - startTime;
+                console.log(`Vehicles loaded: ${vehicles.length} in ${loadTime.toFixed(2)}ms`);
+                
+                allVehicles = vehicles || [];
+                vehicleData = allVehicles;
+                
+                // Display vehicles and update pagination
+                displayVehicles();
+                updateStatistics();
+                updatePaginationControls(vehicles.length - 1, totalCount); // Subtract header row
+                showLoading(false);
+                
+                // Enhanced performance monitoring with actionable insights
+                if (loadTime > 3000) {
+                    console.warn('%c⚠️ Performance Alert', 'color: #ffc107; font-weight: bold;',
+                        `\n📈 Load Time: ${(loadTime / 1000).toFixed(2)}s (Target: <3s)`
+                        + `\n📊 Vehicle Count: ${vehicles.length} records loaded`
+                        + '\n🔧 Recommendations:'
+                        + '\n   • Search terms help reduce dataset size'
+                        + '\n   • Use filters to narrow results'
+                        + '\n   • Check network connection stability'
+                        + '\n   • Contact administrator if issue persists'
+                        + '\n💡 Current system uses server-side search for better performance');
+                    
+                    // Show user-friendly notification for very slow loads
+                    if (loadTime > 5000) {
+                        showToast('Large dataset detected. Try using search filters for faster results.', 'info');
+                    }
+                } else {
+                    console.log(`%c✅ Performance Good`, 'color: #28a745; font-weight: bold;', `Load time: ${(loadTime / 1000).toFixed(2)}s`);
+                }
+            }).catch((error) => {
+                console.error('Error loading vehicles:', error);
+                showToast('Failed to load vehicles: ' + error, 'danger');
+                showLoading(false);
+                
+                // Show retry option for network errors
+                if (error.toString().includes('NetworkError')) {
+                    setTimeout(() => {
+                        if (confirm('Network error detected. Would you like to retry?')) {
+                            loadVehicles(searchCriteria);
+                        }
+                    }, 1000);
+                }
+            });
         }
 
         function displayVehicles() {
-            const vehiclesInContainer = document.getElementById('vehiclesInContainer');
-            const vehiclesOutContainer = document.getElementById('vehiclesOutContainer');
+            const vehiclesTableBody = document.getElementById('vehiclesTableBody');
+            const noVehiclesMessage = document.getElementById('noVehiclesMessage');
             
-            // Disconnect existing observers
-            if (vehiclesInObserver) vehiclesInObserver.disconnect();
-            if (vehiclesOutObserver) vehiclesOutObserver.disconnect();
-            
-            // Clear containers
-            vehiclesInContainer.innerHTML = '';
-            vehiclesOutContainer.innerHTML = '';
-            
-            // Reset indices
-            vehiclesInIndex = 0;
-            vehiclesOutIndex = 0;
-
-            if (vehicleData.length <= 1) {
-                vehiclesInContainer.innerHTML = `
-                    <div class="no-vehicles">
-                        <i class="bi bi-truck"></i>
-                        <p>No vehicles checked in</p>
-                    </div>
-                `;
-                vehiclesOutContainer.innerHTML = `
-                    <div class="no-vehicles">
-                        <i class="bi bi-truck"></i>
-                        <p>No vehicles checked out</p>
-                    </div>
-                `;
+            if (!vehiclesTableBody) {
+                console.error('Vehicles table body not found');
                 return;
             }
 
-            // Separate and store vehicles globally for lazy loading
-            window.vehiclesInArray = [];
-            window.vehiclesOutArray = [];
+            // Clear existing content
+            vehiclesTableBody.innerHTML = '';
+            
+            if (vehicleData.length <= 1) {
+                // Show no vehicles message
+                vehiclesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <i class="bi bi-car-front text-muted" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-2 mb-0">No vehicles found</p>
+                            <small class="text-muted">Try adjusting your search criteria</small>
+                        </td>
+                    </tr>
+                `;
+                
+                // Update badge counts
+                document.getElementById('vehiclesInBadge').textContent = '0';
+                document.getElementById('vehiclesOutBadge').textContent = '0';
+                document.getElementById('totalVehiclesBadge').textContent = '0';
+                return;
+            }
 
-            // Separate vehicles by status
+            // Count vehicles by status
+            let vehiclesInCount = 0;
+            let vehiclesOutCount = 0;
+            
+            // Build table rows
             for (let i = 1; i < vehicleData.length; i++) {
                 const vehicle = vehicleData[i];
-                if (!vehicle || vehicle.length < 7) continue;
+                if (!vehicle || vehicle.length < 10) continue;
 
                 const plateNumber = vehicle[0] || '';
                 const model = vehicle[1] || '';
+                const color = vehicle[2] || '';
+                const department = vehicle[3] || '';
+                const year = vehicle[4] || '';
+                const type = vehicle[5] || '';
                 const status = vehicle[6] || 'OUT';
-                const driver = vehicle[7] || 'Unassigned';
+                const currentDriver = vehicle[7] || 'Unassigned';
+                const assignedDrivers = vehicle[8] || '';
+                const accessStatus = vehicle[9] || 'Access';
 
-                const vehicleData_item = { plateNumber, model, status, driver, index: i };
-
+                // Count by status
                 if (status === 'IN') {
-                    window.vehiclesInArray.push(vehicleData_item);
+                    vehiclesInCount++;
                 } else {
-                    window.vehiclesOutArray.push(vehicleData_item);
+                    vehiclesOutCount++;
                 }
+
+                // Create table row
+                const row = createVehicleTableRow(
+                    plateNumber, model, color, department, year, type, 
+                    status, currentDriver, assignedDrivers, accessStatus, i
+                );
+                
+                vehiclesTableBody.appendChild(row);
             }
 
-            // Display vehicles with lazy loading
-            if (window.vehiclesInArray.length === 0) {
-                vehiclesInContainer.innerHTML = `
-                    <div class="no-vehicles">
-                        <i class="bi bi-truck"></i>
-                        <p>No vehicles checked in</p>
+            // Update badge counts
+            document.getElementById('vehiclesInBadge').textContent = vehiclesInCount;
+            document.getElementById('vehiclesOutBadge').textContent = vehiclesOutCount;
+            document.getElementById('totalVehiclesBadge').textContent = vehicleData.length - 1;
+            
+            // Optimize table performance for large datasets
+            optimizeTablePerformance();
+        }
+
+        function createVehicleTableRow(plateNumber, model, color, department, year, type, status, currentDriver, assignedDrivers, accessStatus, index) {
+            const row = document.createElement('tr');
+            row.className = `vehicle-row ${status === 'IN' ? 'table-success' : 'table-light'}`;
+            
+            // Determine access status styling
+            let accessTextClass = 'text-success';
+            if (accessStatus === 'No Access') accessTextClass = 'text-warning';
+            if (accessStatus === 'Banned') accessTextClass = 'text-danger';
+            
+            // Determine status text
+            const statusText = status === 'IN' 
+                ? '<small class="text-success">IN</small>'
+                : '<small class="text-danger">OUT</small>';
+            
+            // Create modern action buttons following UI/UX best practices
+            const detailsButton = `
+                <button class="btn btn-outline-primary btn-sm vehicle-action-btn" 
+                        onclick="showVehicleDetails(${index})" 
+                        title="View vehicle details and information"
+                        aria-label="View details for vehicle ${plateNumber}"
+                        data-bs-toggle="tooltip"
+                        style="
+                            padding: 8px 12px; 
+                            font-size: 0.9rem; 
+                            font-weight: 600;
+                            border-radius: 8px; 
+                            border: 2px solid #007bff;
+                            color: #007bff;
+                            background: white;
+                            transition: all 0.15s ease-in-out; 
+                            box-shadow: 0 1px 3px rgba(0, 123, 255, 0.1);
+                            min-height: 36px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            position: relative;
+                            overflow: hidden;
+                            width: 100%;
+                        "
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0, 123, 255, 0.25)'; this.style.background='#007bff'; this.style.color='white';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 123, 255, 0.1)'; this.style.background='white'; this.style.color='#007bff';"
+                        onfocus="this.style.boxShadow='0 0 0 3px rgba(0, 123, 255, 0.25)';"
+                        onblur="this.style.boxShadow='0 1px 3px rgba(0, 123, 255, 0.1)';">
+                    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+                    <span>Details</span>
+                </button>
+            `;
+
+            const transactionButton = `
+                <button class="btn ${status === 'IN' ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm vehicle-action-btn" 
+                        onclick="toggleVehicleStatus(${index})" 
+                        title="${status === 'IN' ? 'Check out this vehicle' : 'Check in this vehicle'}"
+                        aria-label="${status === 'IN' ? 'Check out' : 'Check in'} vehicle ${plateNumber}"
+                        data-bs-toggle="tooltip"
+                        ${accessStatus === 'Banned' ? 'disabled aria-disabled="true"' : ''}
+                        style="
+                            padding: 8px 12px; 
+                            font-size: 0.9rem; 
+                            font-weight: 600;
+                            border-radius: 8px; 
+                            border: 2px solid ${status === 'IN' ? '#dc3545' : '#28a745'};
+                            color: ${status === 'IN' ? '#dc3545' : '#28a745'};
+                            background: white;
+                            transition: all 0.15s ease-in-out; 
+                            box-shadow: 0 1px 3px ${status === 'IN' ? 'rgba(220, 53, 69, 0.1)' : 'rgba(40, 167, 69, 0.1)'};
+                            min-width: 64px; 
+                            min-height: 36px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            position: relative;
+                            overflow: hidden;
+                            width: 100%;
+                            ${accessStatus === 'Banned' ? 'opacity: 0.5; cursor: not-allowed; filter: grayscale(1);' : ''}
+                        "
+                        ${accessStatus !== 'Banned' ? `
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px ${status === 'IN' ? 'rgba(220, 53, 69, 0.25)' : 'rgba(40, 167, 69, 0.25)'}'; this.style.background='${status === 'IN' ? '#dc3545' : '#28a745'}'; this.style.color='white';"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px ${status === 'IN' ? 'rgba(220, 53, 69, 0.1)' : 'rgba(40, 167, 69, 0.1)'}'; this.style.background='white'; this.style.color='${status === 'IN' ? '#dc3545' : '#28a745'}';"
+                            onfocus="this.style.boxShadow='0 0 0 3px ${status === 'IN' ? 'rgba(220, 53, 69, 0.25)' : 'rgba(40, 167, 69, 0.25)'}';"
+                            onblur="this.style.boxShadow='0 1px 3px ${status === 'IN' ? 'rgba(220, 53, 69, 0.1)' : 'rgba(40, 167, 69, 0.1)'}';"
+                        ` : ''}>
+                    <i class="bi bi-${status === 'IN' ? 'box-arrow-right' : 'box-arrow-in-left'} me-1" aria-hidden="true"></i>
+                    <span class="action-text">${status === 'IN' ? 'OUT' : 'IN'}</span>
+                    <div class="loading-spinner d-none" style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 16px;
+                        height: 16px;
+                    ">
+                        <div class="spinner-border" style="width: 16px; height: 16px;" role="status">
+                            <span class="visually-hidden">Processing...</span>
+                        </div>
                     </div>
-                `;
-            } else {
-                vehiclesInContainer.innerHTML = '<div class="vehicle-list" id="vehiclesInList"></div>';
-                loadMoreVehicles('in');
-                setupIntersectionObserver('in');
-            }
-
-            if (window.vehiclesOutArray.length === 0) {
-                vehiclesOutContainer.innerHTML = `
-                    <div class="no-vehicles">
-                        <i class="bi bi-truck"></i>
-                        <p>No vehicles checked out</p>
-                    </div>
-                `;
-            } else {
-                vehiclesOutContainer.innerHTML = '<div class="vehicle-list" id="vehiclesOutList"></div>';
-                loadMoreVehicles('out');
-                setupIntersectionObserver('out');
-            }
-
-            // Update badge counts with total counts
-            document.getElementById('vehiclesInBadge').textContent = window.vehiclesInArray.length;
-            document.getElementById('vehiclesOutBadge').textContent = window.vehiclesOutArray.length;
+                </button>
+            `;
+            
+            row.innerHTML = `
+                <td style="padding: 8px 8px; font-size: 0.9rem;" class="fw-bold text-primary">${plateNumber}</td>
+                <td style="padding: 8px 8px; font-size: 0.85rem;">
+                    <div class="fw-semibold">${model}</div>
+                    <small class="text-muted">${year} ${color}</small>
+                </td>
+                <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-md-table-cell">
+                    <small>${department}</small>
+                </td>
+                <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-lg-table-cell">
+                    <small>${currentDriver}</small>
+                </td>
+                <td style="padding: 8px 8px; font-size: 0.85rem;" class="text-center">${statusText}</td>
+                <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-xl-table-cell">
+                    <small class="${accessTextClass}">${accessStatus}</small>
+                </td>
+                <td style="padding: 8px 8px;" class="text-center">${detailsButton}</td>
+                <td style="padding: 8px 8px;" class="text-center">${transactionButton}</td>
+            `;
+            
+            return row;
         }
 
         function createVehicleListItem(plateNumber, model, status, driver, index) {
@@ -2105,12 +2387,31 @@
         }
 
         function toggleVehicleStatus(index) {
+            // Add error handling for vehicle data
+            if (!vehicleData || vehicleData.length === 0) {
+                showToast('No vehicle data available', 'warning');
+                return;
+            }
+            
+            if (index < 0 || index >= vehicleData.length) {
+                showToast('Invalid vehicle index', 'danger');
+                return;
+            }
+            
+            const vehicle = vehicleData[index];
+            if (!vehicle) {
+                showToast('Vehicle data not found', 'danger');
+                console.error('Vehicle not found at index:', index, 'vehicleData length:', vehicleData.length);
+                return;
+            }
+            
+            console.log('Toggling status for vehicle:', vehicle[0], 'at index:', index);
+            
             // Validate gate selection first
             if (!validateGateSelection()) {
                 return;
             }
-
-            const vehicle = vehicleData[index];
+            
             const currentStatus = vehicle[6] || 'OUT';
             const newStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
             
@@ -2160,46 +2461,24 @@
         }
 
         function filterVehicles() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const searchTerm = document.getElementById('searchInput').value.trim();
             const filterStatus = document.getElementById('filterStatus').value;
 
             // Show filter feedback
             showFilterFeedback(searchTerm, filterStatus);
 
-            // Reset to all vehicles if no filters
-            if (!searchTerm && !filterStatus) {
-                vehicleData = allVehicles;
-                displayVehicles();
-                updateStatistics();
-                return;
-            }
+            // Build search criteria for server-side filtering
+            const searchCriteria = {
+                searchTerm: searchTerm,
+                statusFilter: filterStatus,
+                accessStatusFilter: '',
+                departmentFilter: '',
+                pageSize: 50,
+                pageOffset: 0
+            };
 
-            // Apply filters
-            vehicleData = allVehicles.filter((vehicle, index) => {
-                if (index === 0) return true; // Keep header
-
-                const plateNumber = (vehicle[0] || '').toLowerCase();
-                const model = (vehicle[1] || '').toLowerCase();
-                const driver = (vehicle[7] || '').toLowerCase();
-                const department = (vehicle[3] || '').toLowerCase();
-                const assignedDrivers = (vehicle[8] || '').toLowerCase();
-                const status = vehicle[6] || 'OUT';
-
-                const matchesSearch = !searchTerm || 
-                    plateNumber.includes(searchTerm) || 
-                    model.includes(searchTerm) ||
-                    driver.includes(searchTerm) ||
-                    department.includes(searchTerm) ||
-                    assignedDrivers.includes(searchTerm);
-
-                const matchesStatus = !filterStatus || status === filterStatus;
-
-                return matchesSearch && matchesStatus;
-            });
-
-            // Reset lazy loading and display filtered results
-            displayVehicles();
-            updateStatistics();
+            // Use server-side search for better performance with large datasets
+            loadVehicles(searchCriteria);
         }
 
         function clearFilters() {
@@ -2207,10 +2486,8 @@
             document.getElementById('searchInput').value = '';
             document.getElementById('filterStatus').value = '';
             
-            // Reset data and display
-            vehicleData = allVehicles;
-            displayVehicles();
-            updateStatistics();
+            // Reset to default search criteria (load all vehicles)
+            loadVehicles();
             
             // Show feedback
             showToast('Filters cleared - showing all vehicles', 'info');
@@ -2243,63 +2520,105 @@
             }
         }
 
-        function updateStatistics() {
-            if (!vehicleData || vehicleData.length <= 1) {
-                animateNumber('totalVehicles', 0);
-                animateNumber('vehiclesIn', 0);
-                animateNumber('vehiclesOut', 0);
-                animateNumber('accessCount', 0);
-                animateNumber('noAccessCount', 0);
-                animateNumber('bannedCount', 0);
-                updatePercentages(0, 0, 0);
-                updateSummaryStats(0);
-                return;
+        // Pagination functionality
+        let currentPage = 1;
+        let pageSize = 50;
+        let totalVehicles = 0;
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(totalVehicles / pageSize);
+            
+            if (direction === 'prev' && currentPage > 1) {
+                currentPage--;
+            } else if (direction === 'next' && currentPage < totalPages) {
+                currentPage++;
             }
+            
+            // Load vehicles for the new page
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            const filterStatus = document.getElementById('filterStatus').value;
+            
+            const searchCriteria = {
+                searchTerm: searchTerm,
+                statusFilter: filterStatus,
+                accessStatusFilter: '',
+                departmentFilter: '',
+                pageSize: pageSize,
+                pageOffset: (currentPage - 1) * pageSize
+            };
+            
+            loadVehicles(searchCriteria);
+        }
 
-            let total = vehicleData.length - 1;
-            let vehiclesIn = 0;
-            let vehiclesOut = 0;
-            let accessCount = 0;
-            let noAccessCount = 0;
-            let bannedCount = 0;
+        function changePageSize() {
+            const newPageSize = parseInt(document.getElementById('pageSizeSelector').value);
+            pageSize = newPageSize;
+            currentPage = 1; // Reset to first page when changing page size
+            
+            // Reload vehicles with new page size
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            const filterStatus = document.getElementById('filterStatus').value;
+            
+            const searchCriteria = {
+                searchTerm: searchTerm,
+                statusFilter: filterStatus,
+                accessStatusFilter: '',
+                departmentFilter: '',
+                pageSize: pageSize,
+                pageOffset: 0
+            };
+            
+            loadVehicles(searchCriteria);
+        }
 
-            for (let i = 1; i < vehicleData.length; i++) {
-                if (vehicleData[i]) {
-                    // Count by status
-                    if (vehicleData[i][6] === 'IN') {
-                        vehiclesIn++;
-                    } else {
-                        vehiclesOut++;
-                    }
-                    
-                    // Count by access status
-                    const accessStatus = vehicleData[i][9] || 'Access';
-                    if (accessStatus === 'Access') {
-                        accessCount++;
-                    } else if (accessStatus === 'No Access') {
-                        noAccessCount++;
-                    } else if (accessStatus === 'Banned') {
-                        bannedCount++;
-                    }
+        function updatePaginationControls(vehicleCount, totalCount) {
+            const paginationRow = document.getElementById('paginationRow');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const prevPageItem = document.getElementById('prevPageItem');
+            const nextPageItem = document.getElementById('nextPageItem');
+            const currentPageNumber = document.getElementById('currentPageNumber');
+            
+            totalVehicles = totalCount;
+            const totalPages = Math.ceil(totalCount / pageSize);
+            const startIndex = (currentPage - 1) * pageSize + 1;
+            const endIndex = Math.min(currentPage * pageSize, totalCount);
+            
+            // Show pagination controls if there are more vehicles than page size
+            if (totalCount > pageSize) {
+                paginationRow.style.display = 'block';
+                
+                // Update pagination info
+                paginationInfo.textContent = `Showing ${startIndex}-${endIndex} of ${totalCount} vehicles`;
+                
+                // Update current page number
+                currentPageNumber.textContent = currentPage;
+                
+                // Update previous button state
+                if (currentPage <= 1) {
+                    prevPageItem.classList.add('disabled');
+                } else {
+                    prevPageItem.classList.remove('disabled');
                 }
+                
+                // Update next button state
+                if (currentPage >= totalPages) {
+                    nextPageItem.classList.add('disabled');
+                } else {
+                    nextPageItem.classList.remove('disabled');
+                }
+            } else {
+                paginationRow.style.display = 'none';
             }
+        }
 
-            // Animate numbers
-            animateNumber('totalVehicles', total);
-            animateNumber('vehiclesIn', vehiclesIn);
-            animateNumber('vehiclesOut', vehiclesOut);
-            animateNumber('accessCount', accessCount);
-            animateNumber('noAccessCount', noAccessCount);
-            animateNumber('bannedCount', bannedCount);
-
-            // Update percentages and progress bars
-            updatePercentages(total, vehiclesIn, vehiclesOut);
+        function updateStatistics() {
+            // This function is now simplified - all statistics come from database via loadDatabaseStatistics()
+            // This function is kept for compatibility and any future enhancements that might need table-based calculations
             
-            // Update summary stats
-            updateSummaryStats(vehiclesIn);
+            console.log('updateStatistics called - all stats now loaded from database via loadDatabaseStatistics()');
             
-            // Add pulse effect on update
-            addPulseEffect();
+            // No longer needed since all statistics are fetched directly from database
+            // Access status counts, vehicle totals, IN/OUT counts all come from getDatabaseStatistics()
         }
 
         function animateNumber(elementId, targetNumber) {
@@ -2361,9 +2680,14 @@
             });
         }
 
-        function updateSummaryStats(vehiclesIn) {
-            // Update occupancy rate
-            const total = vehicleData ? vehicleData.length - 1 : 0;
+        function updateSummaryStats(vehiclesIn, totalRegistered = null) {
+            // Update occupancy rate using database statistics
+            // If totalRegistered is provided, use it; otherwise get it from the current display
+            let total = totalRegistered;
+            if (total === null) {
+                total = parseInt(document.getElementById('totalVehicles').textContent) || 0;
+            }
+            
             const occupancyRate = total > 0 ? Math.round((vehiclesIn / total) * 100) : 0;
             document.getElementById('occupancyRate').textContent = occupancyRate + '%';
             
@@ -2444,7 +2768,23 @@
 
 
         function showVehicleDetails(index) {
+            // Add error handling
+            if (!vehicleData || vehicleData.length === 0) {
+                showToast('No vehicle data available', 'warning');
+                return;
+            }
+            
+            if (index < 0 || index >= vehicleData.length) {
+                showToast('Invalid vehicle index', 'danger');
+                return;
+            }
+            
             const vehicle = vehicleData[index];
+            if (!vehicle) {
+                showToast('Vehicle data not found', 'danger');
+                return;
+            }
+            
             const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
             
             document.getElementById('detailsModalTitle').textContent = 'Vehicle Details - ' + vehicle[0];
@@ -3195,127 +3535,14 @@
 
 
 
-        function loadMoreVehicles(type) {
-            if (isLoadingMore) return;
-            isLoadingMore = true;
-
-            const listElement = type === 'in' ? 
-                document.getElementById('vehiclesInList') : 
-                document.getElementById('vehiclesOutList');
+        // Table optimization functions for large datasets
+        function optimizeTablePerformance() {
+            const table = document.getElementById('vehiclesTable');
+            if (!table) return;
             
-            const vehiclesArray = type === 'in' ? window.vehiclesInArray : window.vehiclesOutArray;
-            const currentIndex = type === 'in' ? vehiclesInIndex : vehiclesOutIndex;
-            
-            if (!listElement || !vehiclesArray || currentIndex >= vehiclesArray.length) {
-                isLoadingMore = false;
-                return;
-            }
-
-            // Remove any existing loading indicator
-            const existingLoader = listElement.querySelector('.lazy-loading-indicator');
-            if (existingLoader) existingLoader.remove();
-
-            // Load next batch
-            const endIndex = Math.min(currentIndex + VEHICLES_PER_BATCH, vehiclesArray.length);
-            const fragment = document.createDocumentFragment();
-            
-            for (let i = currentIndex; i < endIndex; i++) {
-                const vehicle = vehiclesArray[i];
-                const card = createVehicleListItem(
-                    vehicle.plateNumber, 
-                    vehicle.model, 
-                    vehicle.status, 
-                    vehicle.driver, 
-                    vehicle.index
-                );
-                fragment.appendChild(card);
-            }
-            
-            listElement.appendChild(fragment);
-            
-            // Update index
-            if (type === 'in') {
-                vehiclesInIndex = endIndex;
-            } else {
-                vehiclesOutIndex = endIndex;
-            }
-            
-            // Add loading indicator if more items remain
-            if (endIndex < vehiclesArray.length) {
-                const loadingIndicator = document.createElement('div');
-                loadingIndicator.className = 'lazy-loading-indicator text-center py-3';
-                loadingIndicator.innerHTML = `
-                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Loading more vehicles...</span>
-                    </div>
-                    <p class="text-muted small mt-2">Loading more vehicles...</p>
-                `;
-                listElement.appendChild(loadingIndicator);
-            }
-            
-            setTimeout(() => { isLoadingMore = false; }, 100);
-        }
-
-        function setupIntersectionObserver(type) {
-            const options = {
-                root: null,
-                rootMargin: '100px',
-                threshold: 0.1
-            };
-
-            const callback = (entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        loadMoreVehicles(type);
-                    }
-                });
-            };
-
-            const observer = new IntersectionObserver(callback, options);
-            const listElement = type === 'in' ? 
-                document.getElementById('vehiclesInList') : 
-                document.getElementById('vehiclesOutList');
-            
-            if (listElement) {
-                // Observe the list container for when it comes into view
-                const observerTarget = setInterval(() => {
-                    const loader = listElement.querySelector('.lazy-loading-indicator');
-                    if (loader) {
-                        observer.observe(loader);
-                        clearInterval(observerTarget);
-                    }
-                }, 100);
-                
-                // Store observer reference
-                if (type === 'in') {
-                    vehiclesInObserver = observer;
-                } else {
-                    vehiclesOutObserver = observer;
-                }
-            }
-        }
-
-        function setupScrollListeners() {
-            // Set up scroll event listeners for the vehicle list containers
-            const vehiclesInContainer = document.querySelector('#vehiclesInContainer');
-            const vehiclesOutContainer = document.querySelector('#vehiclesOutContainer');
-            
-            if (vehiclesInContainer) {
-                vehiclesInContainer.addEventListener('scroll', function() {
-                    const list = this.querySelector('.vehicle-list');
-                    if (list && this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
-                        loadMoreVehicles('in');
-                    }
-                }, { passive: true }); // Passive listener for better scroll performance
-            }
-            
-            if (vehiclesOutContainer) {
-                vehiclesOutContainer.addEventListener('scroll', function() {
-                    const list = this.querySelector('.vehicle-list');
-                    if (list && this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
-                        loadMoreVehicles('out');
-                    }
-                }, { passive: true }); // Passive listener for better scroll performance
+            // Add virtual scrolling optimization for very large datasets
+            if (vehicleData.length > DISPLAY_BATCH_SIZE) {
+                console.log(`Large dataset detected: ${vehicleData.length} vehicles. Consider implementing virtual scrolling.`);
             }
         }
         
@@ -4126,12 +4353,10 @@
 
                 return `
                     <tr>
-                        <td class="small">${formattedDateTime}</td>
-                        <td class="small fw-bold">${log.plate || '-'}</td>
-                        <td class="small">${log.driver || '-'}</td>
-                        <td class="small">${log.gate || '-'}</td>
-                        <td class="text-center">${actionBadge}</td>
-                        <td class="d-none d-xl-table-cell small">${log.loggedBy || '-'}</td>
+                        <td style="padding: 8px 8px; font-size: 0.85rem;">${formattedDateTime}</td>
+                        <td style="padding: 8px 8px; font-size: 0.85rem;" class="fw-bold">${log.plate || '-'}</td>
+                        <td style="padding: 8px 8px; font-size: 0.85rem;">${log.gate || '-'}</td>
+                        <td style="padding: 8px 8px;" class="text-center">${actionBadge}</td>
                     </tr>
                 `;
             }).join('');

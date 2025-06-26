@@ -197,21 +197,33 @@ function deleteVehicleRecord(vehicleIndex, userRole) {
   }
 }
 
-// Get all vehicle records with error handling
-function getVehicleList() {
+// Enhanced vehicle list with search-based loading for big data handling
+function getVehicleList(searchCriteria = {}) {
   const startTime = new Date();
   
   try {
-    console.log('Getting vehicle list...');
+    console.log('Getting vehicle list with search criteria:', searchCriteria);
     
-    // Check cache first for better performance
+    const {
+      searchTerm = '',
+      statusFilter = '',
+      accessStatusFilter = '',
+      departmentFilter = '',
+      pageSize = 50,
+      pageOffset = 0
+    } = searchCriteria;
+    
+    // Smart caching with search-aware keys
     const cache = CacheService.getScriptCache();
-    const cacheKey = 'vehicle_list_data';
-    const cachedData = cache.get(cacheKey);
+    const cacheKey = `vehicle_search_${JSON.stringify(searchCriteria)}`;
     
-    if (cachedData) {
-      console.log('Returning cached vehicle data');
-      return JSON.parse(cachedData);
+    // Check cache for search results
+    if (!searchTerm && !statusFilter && !accessStatusFilter && !departmentFilter) {
+      const cachedData = cache.get('vehicle_list_summary');
+      if (cachedData) {
+        console.log('Returning cached summary data');
+        return JSON.parse(cachedData);
+      }
     }
     
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -227,33 +239,187 @@ function getVehicleList() {
       }
     }
     
-    // Optimized data retrieval - use specific range instead of getDataRange()
+    // Optimized data retrieval for big datasets
     const lastRow = sheet.getLastRow();
-    if (lastRow < 1) {
-      console.log('No vehicle data found, creating sample data...');
-      createSampleData();
-      return getVehicleList(); // Recursive call after creating data
+    if (lastRow <= 1) {
+      return getHeaderWithSampleData();
     }
     
-    // Only read actual data range, not entire sheet
-    const lastCol = 10; // We have 10 columns for vehicle data
-    const data = sheet.getRange(1, 1, lastRow, lastCol).getValues();
+    // For large datasets, use chunked reading
+    let allData = [];
+    const chunkSize = 1000; // Read 1000 rows at a time
+    const header = sheet.getRange(1, 1, 1, 10).getValues()[0];
+    allData.push(header);
     
-    console.log(`Vehicle data retrieved in ${new Date() - startTime}ms:`, data.length, 'rows');
+    // If no search criteria, return paginated results
+    if (!searchTerm && !statusFilter && !accessStatusFilter && !departmentFilter) {
+      console.log('No search criteria - returning paginated results');
+      const startRow = Math.max(2, pageOffset + 2);
+      const endRow = Math.min(lastRow, startRow + pageSize - 1);
+      
+      if (startRow <= lastRow) {
+        const paginatedData = sheet.getRange(startRow, 1, endRow - startRow + 1, 10).getValues();
+        allData = allData.concat(paginatedData);
+      }
+      
+      console.log(`Paginated data: ${allData.length - 1} rows (${startRow}-${endRow})`);
+      return allData;
+    }
     
-    // Cache the result for 5 minutes to improve performance
-    cache.put(cacheKey, JSON.stringify(data), 300);
+    // Search-based filtering for efficient data loading
+    console.log('Performing search-based filtering...');
+    const searchTermLower = searchTerm.toLowerCase();
+    let matchingRows = [];
     
-    return data;
+    // Read and filter data in chunks to avoid memory issues
+    for (let chunkStart = 2; chunkStart <= lastRow; chunkStart += chunkSize) {
+      const chunkEnd = Math.min(chunkStart + chunkSize - 1, lastRow);
+      const chunkData = sheet.getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 10).getValues();
+      
+      // Filter chunk data based on search criteria
+      const filteredChunk = chunkData.filter(row => {
+        if (!row || row.length < 10) return false;
+        
+        // Search term matching (plate, model, driver, department)
+        if (searchTerm) {
+          const searchableText = [
+            row[0] || '', // Plate Number
+            row[1] || '', // Make/Model
+            row[3] || '', // Department
+            row[7] || '', // Current Driver
+            row[8] || ''  // Assigned Drivers
+          ].join(' ').toLowerCase();
+          
+          if (!searchableText.includes(searchTermLower)) {
+            return false;
+          }
+        }
+        
+        // Status filter (IN/OUT)
+        if (statusFilter && row[6] !== statusFilter) {
+          return false;
+        }
+        
+        // Access status filter
+        if (accessStatusFilter && row[9] !== accessStatusFilter) {
+          return false;
+        }
+        
+        // Department filter
+        if (departmentFilter && row[3] !== departmentFilter) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      matchingRows = matchingRows.concat(filteredChunk);
+      
+      // Early termination if we have enough results
+      if (matchingRows.length >= pageSize + pageOffset) {
+        break;
+      }
+    }
+    
+    // Apply pagination to filtered results
+    const paginatedResults = matchingRows.slice(pageOffset, pageOffset + pageSize);
+    allData = allData.concat(paginatedResults);
+    
+    const loadTime = new Date() - startTime;
+    console.log(`Search completed in ${loadTime}ms: ${matchingRows.length} matches, returning ${paginatedResults.length} results`);
+    
+    // Cache results for performance (smaller cache for search results)
+    if (matchingRows.length < 100) {
+      cache.put(cacheKey, JSON.stringify(allData), 180); // 3 minutes cache for search results
+    }
+    
+    // Performance optimization logging
+    if (loadTime > 3000) {
+      console.warn(`Performance warning: Search took ${loadTime}ms. Consider optimizing search criteria.`);
+    }
+    
+    return allData;
+    
   } catch (error) {
     console.error('Error getting vehicle list:', error);
-    // Return sample data structure to prevent frontend crashes
-    return [
-      ["Plate Number", "Make/Model", "Color", "Department/Company", "Year", "Type", "Status", "Current Driver", "Assigned Drivers", "Access Status"],
-      ["ABC-123", "Toyota Camry", "White", "IT Department", "2022", "Car", "OUT", "John Doe", "John Doe", "Access"],
-      ["XYZ-456", "Honda Civic", "Blue", "HR Department", "2021", "Car", "IN", "Jane Smith", "Jane Smith", "Access"]
-    ];
+    return getHeaderWithSampleData();
   }
+}
+
+// Helper function to return header with sample data
+function getHeaderWithSampleData() {
+  return [
+    ["Plate Number", "Make/Model", "Color", "Department/Company", "Year", "Type", "Status", "Current Driver", "Assigned Drivers", "Access Status"],
+    ["ABC-123", "Toyota Camry", "White", "IT Department", "2022", "Car", "OUT", "John Doe", "John Doe", "Access"],
+    ["XYZ-456", "Honda Civic", "Blue", "HR Department", "2021", "Car", "IN", "Jane Smith", "Jane Smith", "Access"]
+  ];
+}
+
+// Get vehicle count for pagination (optimized)
+function getVehicleCount(searchCriteria = {}) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(VEHICLE_SHEET);
+    
+    if (!sheet) return 0;
+    
+    const {
+      searchTerm = '',
+      statusFilter = '',
+      accessStatusFilter = '',
+      departmentFilter = ''
+    } = searchCriteria;
+    
+    // If no filters, return total count minus header
+    if (!searchTerm && !statusFilter && !accessStatusFilter && !departmentFilter) {
+      return Math.max(0, sheet.getLastRow() - 1);
+    }
+    
+    // For filtered searches, we need to count matches
+    // This is expensive for large datasets, so we cache it
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `vehicle_count_${JSON.stringify(searchCriteria)}`;
+    const cachedCount = cache.get(cacheKey);
+    
+    if (cachedCount) {
+      return parseInt(cachedCount);
+    }
+    
+    // Count matching rows (simplified version)
+    const data = sheet.getDataRange().getValues();
+    let count = 0;
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.length < 10) continue;
+      
+      // Apply same filtering logic as main function
+      if (searchTerm) {
+        const searchableText = [row[0], row[1], row[3], row[7], row[8]].join(' ').toLowerCase();
+        if (!searchableText.includes(searchTermLower)) continue;
+      }
+      
+      if (statusFilter && row[6] !== statusFilter) continue;
+      if (accessStatusFilter && row[9] !== accessStatusFilter) continue;
+      if (departmentFilter && row[3] !== departmentFilter) continue;
+      
+      count++;
+    }
+    
+    // Cache count for 5 minutes
+    cache.put(cacheKey, count.toString(), 300);
+    return count;
+    
+  } catch (error) {
+    console.error('Error getting vehicle count:', error);
+    return 0;
+  }
+}
+
+// Legacy function for backward compatibility
+function getVehicleListLegacy() {
+  return getVehicleList({});
 }
 
 
@@ -686,6 +852,196 @@ function getVehicleStatistics() {
   } catch (error) {
     console.error('Error getting statistics:', error);
     return { total: 0, in: 0, out: 0, byType: {}, byDriver: {} };
+  }
+}
+
+/**
+ * Get database statistics for dashboard
+ * Returns total registered vehicles, IN/OUT counts, and access status counts from VEHICLE_SHEET
+ * @returns {Object} Database statistics object
+ */
+function getDatabaseStatistics() {
+  try {
+    console.log('Getting comprehensive database statistics...');
+    
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (!sheet) {
+      console.log('Vehicle sheet not found');
+      return { 
+        totalRegistered: 0, 
+        totalIn: 0, 
+        totalOut: 0,
+        accessCount: 0,
+        noAccessCount: 0,
+        bannedCount: 0,
+        error: 'Vehicle sheet not found' 
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('Retrieved vehicle data:', data.length, 'rows');
+    
+    // Total registered vehicles (total rows minus 1 for header)
+    const totalRegistered = Math.max(0, data.length - 1);
+    
+    let totalIn = 0;
+    let totalOut = 0;
+    let accessCount = 0;
+    let noAccessCount = 0;
+    let bannedCount = 0;
+    
+    // Count both status and access status from database
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i] || data[i].length < 10) continue;
+      
+      // Count IN and OUT statuses from column G (index 6)
+      const status = (data[i][6] || 'OUT').toString().toUpperCase().trim();
+      if (status === 'IN') {
+        totalIn++;
+      } else if (status === 'OUT') {
+        totalOut++;
+      }
+      
+      // Count access statuses from column J (index 9)
+      const accessStatus = (data[i][9] || 'Access').toString().trim();
+      if (accessStatus === 'Access') {
+        accessCount++;
+      } else if (accessStatus === 'No Access') {
+        noAccessCount++;
+      } else if (accessStatus === 'Banned') {
+        bannedCount++;
+      }
+    }
+    
+    const result = {
+      totalRegistered,
+      totalIn,
+      totalOut,
+      accessCount,
+      noAccessCount,
+      bannedCount,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('Comprehensive database statistics:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error getting database statistics:', error);
+    return { 
+      totalRegistered: 0, 
+      totalIn: 0, 
+      totalOut: 0,
+      accessCount: 0,
+      noAccessCount: 0,
+      bannedCount: 0,
+      error: 'Failed to fetch database statistics: ' + error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+/**
+ * Get total registered vehicles count from VEHICLE_SHEET
+ * @returns {number} Total number of registered vehicles
+ */
+function getTotalRegisteredVehicles() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (!sheet) {
+      return 0;
+    }
+    
+    const lastRow = sheet.getLastRow();
+    return Math.max(0, lastRow - 1); // Subtract 1 for header row
+    
+  } catch (error) {
+    console.error('Error getting total registered vehicles:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get vehicle status counts (IN/OUT) from VEHICLE_SHEET
+ * @returns {Object} Object with totalIn and totalOut counts
+ */
+function getVehicleStatusCounts() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (!sheet) {
+      return { totalIn: 0, totalOut: 0 };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    let totalIn = 0;
+    let totalOut = 0;
+    
+    // Skip header row, start from row 2 (index 1)
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i] || data[i].length < 7) continue;
+      
+      const status = (data[i][6] || 'OUT').toString().toUpperCase().trim();
+      
+      if (status === 'IN') {
+        totalIn++;
+      } else if (status === 'OUT') {
+        totalOut++;
+      }
+    }
+    
+    return { totalIn, totalOut };
+    
+  } catch (error) {
+    console.error('Error getting vehicle status counts:', error);
+    return { totalIn: 0, totalOut: 0 };
+  }
+}
+
+/**
+ * Get vehicle access status counts from VEHICLE_SHEET
+ * Returns counts for Access, No Access, and Banned vehicles from column J (index 9)
+ * @returns {Object} Object with accessCount, noAccessCount, and bannedCount
+ */
+function getVehicleAccessStatusCounts() {
+  try {
+    console.log('Getting vehicle access status counts...');
+    
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (!sheet) {
+      console.log('Vehicle sheet not found');
+      return { accessCount: 0, noAccessCount: 0, bannedCount: 0 };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log('Retrieved vehicle data for access status:', data.length, 'rows');
+    
+    let accessCount = 0;
+    let noAccessCount = 0;
+    let bannedCount = 0;
+    
+    // Skip header row, start from row 2 (index 1)
+    // Access status is in column J (index 9)
+    for (let i = 1; i < data.length; i++) {
+      if (!data[i] || data[i].length < 10) continue;
+      
+      const accessStatus = (data[i][9] || 'Access').toString().trim();
+      
+      if (accessStatus === 'Access') {
+        accessCount++;
+      } else if (accessStatus === 'No Access') {
+        noAccessCount++;
+      } else if (accessStatus === 'Banned') {
+        bannedCount++;
+      }
+    }
+    
+    const result = { accessCount, noAccessCount, bannedCount };
+    console.log('Access status counts:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error getting vehicle access status counts:', error);
+    return { accessCount: 0, noAccessCount: 0, bannedCount: 0 };
   }
 }
 
