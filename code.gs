@@ -708,6 +708,10 @@ function getVehicleListLegacy() {
 // Log In or Out action with validation and status update
 function logVehicleAction(data) {
   try {
+    // Debug: Log the incoming data to see what's being passed
+    console.log("logVehicleAction called with data:", JSON.stringify(data));
+    console.log("data.plateNumber value:", data.plateNumber);
+    
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const logSheet = ss.getSheetByName(LOG_SHEET);
     const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
@@ -717,16 +721,52 @@ function logVehicleAction(data) {
       return logVehicleAction(data);
     }
 
-    // Get vehicle data and check access status
+    // Get vehicle data for validation and lookup
     const vehicleData = vehicleSheet.getDataRange().getValues();
     let vehicleRow = -1;
     let accessStatus = "Access"; // Default if not found
+    let actualPlateNumber = data.plateNumber;
+    let actualDriverId = data.driverId;
 
-    for (let i = 1; i < vehicleData.length; i++) {
-      if (vehicleData[i][1] === data.plateNumber) {
-        vehicleRow = i;
-        accessStatus = vehicleData[i][10] || "Access"; // Access Status column
-        break;
+    // Fix corrupted data: If plateNumber looks like a vehicle ID (numeric), find the actual plate number
+    if (/^\d+$/.test(data.plateNumber.toString())) {
+      console.log("Detected corrupted plateNumber (appears to be vehicle ID):", data.plateNumber);
+      
+      // Try to find vehicle by ID in column A (index 0)
+      for (let i = 1; i < vehicleData.length; i++) {
+        if (vehicleData[i][0] && vehicleData[i][0].toString() === data.plateNumber.toString()) {
+          vehicleRow = i;
+          actualPlateNumber = vehicleData[i][1]; // Get actual plate number from column B
+          accessStatus = vehicleData[i][10] || "Access"; // Access Status is in column K (index 10)
+          console.log("Found vehicle by ID. Actual plate number:", actualPlateNumber);
+          break;
+        }
+      }
+    } else {
+      // Normal flow: search by plate number
+      for (let i = 1; i < vehicleData.length; i++) {
+        const sheetPlateNumber = vehicleData[i][1]; // Plate Number is in column B (index 1)
+        if (sheetPlateNumber && sheetPlateNumber.toString().trim().toUpperCase() === data.plateNumber.toString().trim().toUpperCase()) {
+          vehicleRow = i;
+          accessStatus = vehicleData[i][10] || "Access"; // Access Status is in column K (index 10)
+          actualPlateNumber = vehicleData[i][1]; // Ensure we use the exact plate number from the sheet
+          break;
+        }
+      }
+    }
+
+    // Fix corrupted driverId: If driverId is an action (IN/OUT), try to get it from vehicle data or use username
+    if (actualDriverId === "IN" || actualDriverId === "OUT") {
+      console.log("Detected corrupted driverId (appears to be action):", actualDriverId);
+      
+      if (vehicleRow !== -1) {
+        // Get current driver from vehicle sheet
+        actualDriverId = vehicleData[vehicleRow][8] || data.username || "Unknown";
+        console.log("Using current driver from vehicle sheet:", actualDriverId);
+      } else {
+        // Fallback to username or Unknown
+        actualDriverId = data.username || "Unknown";
+        console.log("Using fallback driver ID:", actualDriverId);
       }
     }
 
@@ -739,17 +779,23 @@ function logVehicleAction(data) {
     const gateValidation = validateGateAccess(
       data.gate,
       data.action,
-      data.plateNumber
+      actualPlateNumber
     );
     if (!gateValidation.allowed) {
       throw new Error(`Gate access denied: ${gateValidation.reason}`);
     }
 
-    // Log the action with username instead of email
+    console.log("Final values for logging:", {
+      plateNumber: actualPlateNumber,
+      driverId: actualDriverId,
+      action: data.action
+    });
+
+    // Log the action without ID column to match current header structure
     logSheet.appendRow([
       new Date(),
-      data.plateNumber,
-      data.driverId,
+      actualPlateNumber, // Use corrected plate number
+      actualDriverId,    // Use corrected driver ID
       data.action,
       data.gate,
       data.remarks || "",
@@ -837,7 +883,7 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
       // Check if plate number already exists
       const data = sheet.getDataRange().getValues();
       for (let i = 1; i < data.length; i++) {
-        if (data[i][0] === updatedData[0]) {
+        if (data[i][1] === updatedData[1]) { // Compare plate numbers (column B, index 1)
           throw new Error("Vehicle with this plate number already exists");
         }
       }
@@ -868,7 +914,7 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
         // Check if plate number already exists (excluding current vehicle)
         const data = sheet.getDataRange().getValues();
         for (let i = 1; i < data.length; i++) {
-          if (i !== rowIndex && data[i][0] === updatedData[0]) {
+          if (i !== rowIndex && data[i][1] === updatedData[1]) { // Compare plate numbers (column B, index 1)
             throw new Error("Vehicle with this plate number already exists");
           }
         }
