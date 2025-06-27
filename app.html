@@ -694,20 +694,13 @@
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
         }
-        .role-badge.supervisor {
-            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-            color: #212529;
-        }
         .role-badge.security {
             background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             color: white;
         }
-        .role-badge.user {
-            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
-            color: white;
-        }
         .user-management-modal .modal-dialog {
-            max-width: 900px;
+            max-width: min(95vw, 900px);
+            margin: 1rem auto;
         }
         .user-card {
             border-left: 4px solid transparent;
@@ -715,9 +708,7 @@
         }
         .user-card.super-admin { border-left-color: #dc3545; }
         .user-card.admin { border-left-color: #28a745; }
-        .user-card.supervisor { border-left-color: #ffc107; }
         .user-card.security { border-left-color: #17a2b8; }
-        .user-card.user { border-left-color: #6c757d; }
         .user-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -899,12 +890,12 @@
                             <i class="bi bi-people me-1"></i>Users
                         </button>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="showUserManagement()">
+                            <li><button type="button" class="dropdown-item" onclick="showUserManagement()">
                                 <i class="bi bi-person-gear me-2"></i>Manage Users
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="showRoleSettings()">
+                            </button></li>
+                            <li><button type="button" class="dropdown-item" onclick="showRoleSettings()">
                                 <i class="bi bi-shield-check me-2"></i>Role Settings
-                            </a></li>
+                            </button></li>
                         </ul>
                     </div>
                    
@@ -1371,58 +1362,115 @@
     </div>
 
 
-    <!-- User Management Modal -->
-    <div class="modal fade user-management-modal" id="userManagementModal" tabindex="-1">
+    <!-- Enhanced User Management Modal -->
+    <div class="modal fade user-management-modal" id="userManagementModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">
-                        <i class="bi bi-people me-2"></i>User Management
-                    </h5>
+                <div class="modal-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h4 class="modal-title fw-bold">
+                        <i class="bi bi-people-fill me-3"></i>User Management Dashboard
+                    </h4>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Manage Users</h6>
-                        <button class="btn btn-primary btn-sm" onclick="showAddUserForm()">
-                            <i class="bi bi-plus-lg me-1"></i>Add User
-                        </button>
+                <div class="modal-body p-4">
+                    <!-- Header with Search and Add Button -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <h5 class="mb-0 text-primary fw-bold">
+                                <i class="bi bi-list-ul me-2"></i>
+                                User Directory
+                                <span class="badge bg-primary ms-2" id="totalUsersCount">0</span>
+                            </h5>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <div class="input-group" style="width: 300px;">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="bi bi-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0" id="userSearchInput" 
+                                       placeholder="Search users..." onkeyup="filterUsers()">
+                            </div>
+                            <button class="btn btn-primary px-4" onclick="showAddUserForm()">
+                                <i class="bi bi-plus-circle me-2"></i>Add User
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="loadUsers()" title="Refresh">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
                     </div>
                     
-                    <!-- Add/Edit Form -->
-                    <div id="userForm" class="mb-3" style="display: none;">
-                        <div class="card">
+                    <!-- Quick Add Form (Initially Hidden) -->
+                    <div id="userForm" class="mb-4" style="display: none;">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-header bg-light border-0">
+                                <h6 class="mb-0 text-primary fw-bold" id="userFormTitle">✨ Add New User</h6>
+                            </div>
                             <div class="card-body">
-                                <h6 id="userFormTitle">Add New User</h6>
                                 <form id="addEditUserForm">
                                     <input type="hidden" id="editUserIndex" value="-1">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="userUsername" class="form-label">Username *</label>
-                                                <input type="text" class="form-control" id="userUsername" required 
-                                                       placeholder="e.g., john_doe">
+                                    
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Username *</label>
+                                            <input type="text" class="form-control" id="userUsername" required 
+                                                   placeholder="john_doe">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Full Name *</label>
+                                            <input type="text" class="form-control" id="userFullName" required 
+                                                   placeholder="John Doe">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Email *</label>
+                                            <input type="email" class="form-control" id="userEmail" required 
+                                                   placeholder="john@company.com">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-semibold">Role *</label>
+                                            <select class="form-select" id="userRole" required>
+                                                <option value="security">Security</option>
+                                                <option value="admin">Admin</option>
+                                                <option value="super-admin">Super Admin</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">
+                                                Password *
+                                                <small class="text-muted" id="passwordRequiredLabel">(Min 6 chars)</small>
+                                                <small class="text-muted d-none" id="passwordOptionalLabel">(Leave blank to keep current)</small>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="password" class="form-control" id="userPassword" 
+                                                       placeholder="Enter password" minlength="6">
+                                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility()">
+                                                    <i class="bi bi-eye" id="passwordToggleIcon"></i>
+                                                </button>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="userRole" class="form-label">Role *</label>
-                                                <select class="form-select" id="userRole" required>
-                                                    <option value="user">User</option>
-                                                    <option value="security">Security</option>
-                                                    <option value="supervisor">Supervisor</option>
-                                                    <option value="admin">Admin</option>
-                                                    <option value="super-admin">Super Admin</option>
-                                                </select>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Confirm Password *</label>
+                                            <input type="password" class="form-control" id="userPasswordConfirm" 
+                                                   placeholder="Confirm password" minlength="6" oninput="validatePasswords()">
+                                            <div class="invalid-feedback" id="passwordMismatchError">
+                                                Passwords do not match
                                             </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-semibold">Status *</label>
+                                            <select class="form-select" id="userStatus" required>
+                                                <option value="active">✅ Active</option>
+                                                <option value="inactive">⏸️ Inactive</option>
+                                                <option value="suspended">🚫 Suspended</option>
+                                            </select>
                                         </div>
                                     </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-primary" onclick="saveUser()">
-                                            <i class="bi bi-check-lg me-1"></i>Save
+                                    
+                                    <div class="d-flex gap-2 mt-4">
+                                        <button type="button" class="btn btn-primary px-4" onclick="saveUser()">
+                                            <i class="bi bi-check-circle me-2"></i>Save User
                                         </button>
-                                        <button type="button" class="btn btn-secondary" onclick="cancelUserForm()">
-                                            Cancel
+                                        <button type="button" class="btn btn-outline-secondary px-4" onclick="cancelUserForm()">
+                                            <i class="bi bi-x-circle me-2"></i>Cancel
                                         </button>
                                     </div>
                                 </form>
@@ -1430,12 +1478,79 @@
                         </div>
                     </div>
                     
-                    <!-- User List -->
-                    <div id="userListContainer">
-                        <div class="text-center py-3">
-                            <div class="spinner-border" role="status"></div>
-                            <p class="mt-2 text-muted">Loading users...</p>
+                    <!-- Modern User Table -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                <table class="table table-hover mb-0" id="usersDataTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="px-4 py-3 border-0">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-person-circle me-2 text-primary"></i>
+                                                    <span class="fw-bold">User</span>
+                                                </div>
+                                            </th>
+                                            <th class="px-4 py-3 border-0">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-shield-check me-2 text-success"></i>
+                                                    <span class="fw-bold">Role</span>
+                                                </div>
+                                            </th>
+                                            <th class="px-4 py-3 border-0">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-envelope me-2 text-info"></i>
+                                                    <span class="fw-bold">Contact</span>
+                                                </div>
+                                            </th>
+                                            <th class="px-4 py-3 border-0">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-circle-fill me-2 text-warning"></i>
+                                                    <span class="fw-bold">Status</span>
+                                                </div>
+                                            </th>
+                                            <th class="px-4 py-3 border-0">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="bi bi-calendar3 me-2 text-secondary"></i>
+                                                    <span class="fw-bold">Created</span>
+                                                </div>
+                                            </th>
+                                            <th class="px-4 py-3 border-0 text-center">
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <i class="bi bi-gear me-2 text-dark"></i>
+                                                    <span class="fw-bold">Actions</span>
+                                                </div>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="userTableBody">
+                                        <!-- Dynamic content will be inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <!-- Loading/Empty State -->
+                    <div id="userListContainer" class="d-none">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Loading users...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- No Users State -->
+                    <div id="noUsersState" class="text-center py-5 d-none">
+                        <div class="mb-4">
+                            <i class="bi bi-people text-muted" style="font-size: 4rem;"></i>
+                        </div>
+                        <h5 class="text-muted">No Users Found</h5>
+                        <p class="text-muted mb-4">Get started by adding your first user to the system.</p>
+                        <button class="btn btn-primary" onclick="showAddUserForm()">
+                            <i class="bi bi-plus-circle me-2"></i>Add First User
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1462,26 +1577,17 @@
                                     <small>
                                         • Full system access<br>
                                         • Manage all users<br>
-                                        • System configuration<br>
-                                        • All vehicle operations
+                                        • All vehicle operations<br>
+                                        • System configuration
                                     </small>
                                 </div>
                                 <div class="permission-item">
                                     <div class="role-badge admin mb-2">Admin</div>
                                     <small>
                                         • Manage vehicles<br>
-                                        • Manage drivers<br>
-                                        • View all reports<br>
-                                        • Manage regular users
-                                    </small>
-                                </div>
-                                <div class="permission-item">
-                                    <div class="role-badge supervisor mb-2">Supervisor</div>
-                                    <small>
-                                        • View all vehicles<br>
-                                        • Generate reports<br>
-                                        • Check in/out vehicles<br>
-                                        • View activity logs
+                                        • Manage gates<br>
+                                        • Manage users (except Super Admin)<br>
+                                        • View all reports
                                     </small>
                                 </div>
                                 <div class="permission-item">
@@ -1490,16 +1596,8 @@
                                         • Check in/out vehicles<br>
                                         • View vehicle status<br>
                                         • Basic gate operations<br>
-                                        • View assigned areas
-                                    </small>
-                                </div>
-                                <div class="permission-item">
-                                    <div class="role-badge user mb-2">User</div>
-                                    <small>
-                                        • View own vehicles<br>
-                                        • Basic check in/out<br>
-                                        • View personal logs<br>
-                                        • Limited access
+                                        • View assigned areas<br>
+                                        • QR code scanning
                                     </small>
                                 </div>
                             </div>
@@ -1832,6 +1930,36 @@
         let vehicleData = [];
         let allVehicles = [];
         
+        // Session management functions
+        function saveSession() {
+            if (currentUser) {
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                console.log('Session saved for user:', currentUser.username);
+            }
+        }
+        
+        function clearSession() {
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('selectedGate');
+            sessionStorage.removeItem('todayActivity');
+            console.log('Session cleared');
+        }
+        
+        function restoreSession() {
+            try {
+                const storedUser = sessionStorage.getItem('currentUser');
+                if (storedUser) {
+                    currentUser = JSON.parse(storedUser);
+                    console.log('Session restored for user:', currentUser.username, 'with role:', currentUser.role);
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error restoring session:', error);
+                clearSession();
+            }
+            return false;
+        }
+        
         // Table optimization configuration
         const DISPLAY_BATCH_SIZE = 100; // Load vehicles in batches for large datasets
         let filterTimeout = null;
@@ -1852,39 +1980,17 @@
         });
         
         function checkExistingSession() {
-            // Check if user session exists in sessionStorage
-            const storedUser = sessionStorage.getItem('currentUser');
-            
-            if (storedUser) {
-                try {
-                    currentUser = JSON.parse(storedUser);
-                    console.log('Restored user session:', currentUser.username);
-                    showDashboard();
-                    return;
-                } catch (error) {
-                    console.error('Error parsing stored user session:', error);
-                    // Clear invalid session data
-                    sessionStorage.removeItem('currentUser');
-                }
-            }
-            
-            // No valid session found, show login page
-            showLoginPage();
-        }
-
-        function saveSession() {
-            // Save current user session to sessionStorage
-            if (currentUser) {
-                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+            // Try to restore session using the new function
+            if (restoreSession()) {
+                console.log('User session restored, showing dashboard');
+                showDashboard();
+            } else {
+                console.log('No valid session found, showing login page');
+                showLoginPage();
             }
         }
 
-        function clearSession() {
-            // Clear user session from storage
-            sessionStorage.removeItem('currentUser');
-            sessionStorage.removeItem('selectedGate');
-            sessionStorage.removeItem('todayActivity');
-        }
+        // Duplicate functions removed - using the ones defined earlier
 
         function preloadResources() {
             // Preload images and icons that will be used
@@ -1964,7 +2070,7 @@
             
             // Show/hide user management dropdown
             const userManagementDropdown = document.getElementById('userManagementDropdown');
-            if (hasPermission('manage_users')) {
+            if (hasPermission('manage_users') || hasPermission('manage_users_limited')) {
                 userManagementDropdown.style.display = 'block';
             } else {
                 userManagementDropdown.style.display = 'none';
@@ -1991,11 +2097,9 @@
         function hasPermission(permission) {
             const role = currentUser.role;
             const permissions = {
-                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config', 'scan_vehicles'],
-                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'manage_regular_users', 'scan_vehicles'],
-                'supervisor': ['view_all', 'vehicle_operations', 'manage_gates', 'generate_reports', 'scan_vehicles'],
-                'security': ['vehicle_operations', 'gate_operations', 'view_assigned', 'scan_vehicles'],
-                'user': ['view_own', 'basic_operations']
+                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config', 'scan_vehicles', 'full_system_access'],
+                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'scan_vehicles', 'manage_users_limited'],
+                'security': ['vehicle_operations', 'gate_operations', 'view_assigned', 'scan_vehicles']
             };
             
             return permissions[role]?.includes(permission) || false;
@@ -2024,7 +2128,9 @@
                             showDashboard();
                         }, 1000);
                     } else {
-                        showMessage('Invalid username or password', 'danger');
+                        // Show specific error message if provided (for account status issues)
+                        const errorMessage = result.message || 'Invalid username or password';
+                        showMessage(errorMessage, 'danger');
                         resetLoginForm();
                     }
                 })
@@ -2954,19 +3060,23 @@
                 </table>
             `;
             
-            // Add action buttons based on user role
+            // Add action buttons based on user permissions
             const footer = document.getElementById('detailsModalFooter');
-            if (currentUser.role === 'admin') {
+            if (hasPermission('manage_vehicles')) {
+                // Super Admin, Admin, Supervisor - full edit and delete capability
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
                         <i class="bi bi-pencil-square me-2"></i>Edit
                     </button>
+                    ${currentUser.role === 'super-admin' || currentUser.role === 'admin' ? `
                     <button type="button" class="btn btn-danger" onclick="deleteVehicle(${index})">
                         <i class="bi bi-trash me-2"></i>Delete
                     </button>
+                    ` : ''}
                 `;
-            } else if (currentUser.role === 'security') {
+            } else if (hasPermission('vehicle_operations')) {
+                // Security - limited edit capability
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
@@ -2974,6 +3084,7 @@
                     </button>
                 `;
             } else {
+                // User and other roles - view only
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 `;
@@ -3012,8 +3123,8 @@
         }
 
         function editVehicle(index) {
-            if (currentUser.role !== 'admin' && currentUser.role !== 'security') {
-                showToast('Only administrators and security personnel can edit vehicles', 'danger');
+            if (!hasPermission('manage_vehicles') && !hasPermission('vehicle_operations')) {
+                showToast('Access denied: Insufficient permissions to edit vehicles', 'danger');
                 return;
             }
             
@@ -3078,7 +3189,7 @@
                     modalTitle.textContent = 'Change Current Driver';
                 }
             } else {
-                // Reset all fields for admin users
+                // Reset all fields for admin, supervisor, and super-admin users
                 const allFields = [
                     'editPlateNumber', 'editModel', 'editColor', 'editDepartment', 
                     'editYear', 'editType', 'editStatus', 'editAssignedDrivers', 'editAccessStatus', 'editDriver'
@@ -3094,7 +3205,7 @@
                     }
                 });
                 
-                // Reset modal title for admin users
+                // Reset modal title for privileged users
                 const modalTitle = document.querySelector('#editVehicleModal .modal-title');
                 if (modalTitle) {
                     modalTitle.textContent = 'Edit Vehicle';
@@ -3148,7 +3259,7 @@
                 return; // Exit early for Security users
             }
             
-            // Handle Admin role - full edit capability
+            // Handle Admin, Supervisor, and Super-Admin roles - full edit capability
             const plateNumber = document.getElementById('editPlateNumber').value.trim();
             const model = document.getElementById('editModel').value.trim();
             
@@ -3274,8 +3385,13 @@
         let allUsers = [];
 
         function showUserManagement() {
-            if (!hasPermission('manage_users')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
+            // Debug logging
+            console.log('Current user:', currentUser);
+            console.log('Has manage_users permission:', hasPermission('manage_users'));
+            console.log('Has manage_users_limited permission:', hasPermission('manage_users_limited'));
+            
+            if (!hasPermission('manage_users') && !hasPermission('manage_users_limited')) {
+                showToast('Access denied: Insufficient permissions for user management', 'danger');
                 return;
             }
 
@@ -3286,22 +3402,141 @@
         }
 
         function loadUsers() {
+            console.log('Loading users...');
+            console.log('Current user object:', currentUser);
+            console.log('Current user role:', currentUser ? currentUser.role : 'undefined');
+            
+            // Check if user is logged in and has proper role
+            if (!currentUser || !currentUser.role) {
+                console.error('User not logged in or role missing');
+                showToast('❌ User session invalid. Please log in again.', 'danger');
+                return;
+            }
+            
+            if (currentUser.role !== 'super-admin' && currentUser.role !== 'admin') {
+                console.error('User does not have sufficient role:', currentUser.role);
+                showToast('❌ Access denied: Admin or Super Admin role required', 'danger');
+                return;
+            }
+            
+            // Show loading animation in the modern table
+            showUserLoadingState();
+            
             google.script.run
                 .withSuccessHandler(function(data) {
+                    console.log('✅ Users data received successfully:', data);
+                    console.log('Data length:', data ? data.length : 'null');
                     allUsers = data;
                     displayUsers();
+                    showToast('✅ Users loaded successfully', 'success');
                 })
                 .withFailureHandler(function(error) {
-                    showToast('Failed to load users: ' + error, 'danger');
+                    console.error('❌ Error loading users:', error);
+                    showToast('❌ Failed to load users: ' + error, 'danger');
+                    
+                    // Show detailed error state
+                    container.innerHTML = `
+                        <div class="text-center py-5 text-danger">
+                            <i class="bi bi-exclamation-triangle-fill fs-1 mb-3"></i>
+                            <div class="fw-bold mb-2">Failed to Load Users</div>
+                            <div class="text-muted mb-3">${error}</div>
+                            <div class="small text-info mb-3">
+                                Debug Info:<br>
+                                User: ${currentUser ? currentUser.username : 'undefined'}<br>
+                                Role: ${currentUser ? currentUser.role : 'undefined'}
+                            </div>
+                            <button class="btn btn-outline-primary" onclick="loadUsers()">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Retry
+                            </button>
+                        </div>
+                    `;
                 })
-                .getUserList();
+                .getUserList(currentUser.role);
+        }
+        
+        function showUserLoadingState() {
+            const tableBody = document.getElementById('userTableBody');
+            const usersTable = document.getElementById('usersDataTable');
+            const noUsersState = document.getElementById('noUsersState');
+            const userListContainer = document.getElementById('userListContainer');
+            const totalUsersCount = document.getElementById('totalUsersCount');
+            
+            // Hide other states
+            if (noUsersState) noUsersState.classList.add('d-none');
+            if (userListContainer) userListContainer.classList.add('d-none');
+            
+            // Show table and loading in tbody
+            if (usersTable) usersTable.style.display = 'table';
+            if (totalUsersCount) totalUsersCount.textContent = '...';
+            
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="d-flex flex-column align-items-center">
+                                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <h6 class="text-muted mb-2">Loading User Directory</h6>
+                                <p class="text-muted mb-1">Fetching user data from database...</p>
+                                <small class="text-info">Role: ${currentUser ? currentUser.role : 'undefined'}</small>
+                                <div class="mt-3">
+                                    <div class="progress" style="width: 200px; height: 4px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                             style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
         }
 
         function displayUsers() {
+            console.log('=== displayUsers called ===');
+            console.log('allUsers:', allUsers);
+            console.log('allUsers length:', allUsers ? allUsers.length : 'null');
+            
+            // Check if new UI elements exist, if not fall back to old UI
+            const modernTable = document.getElementById('usersDataTable');
+            const legacyContainer = document.getElementById('userListContainer');
+            
+            if (modernTable) {
+                console.log('Using modern table UI');
+                // Hide legacy container and show modern table
+                if (legacyContainer) {
+                    legacyContainer.classList.add('d-none');
+                }
+                modernTable.closest('.card').style.display = 'block';
+                displayUsersModern();
+            } else if (legacyContainer) {
+                console.log('Using legacy container UI');
+                // Show legacy container and hide modern table if it exists
+                legacyContainer.classList.remove('d-none');
+                if (modernTable) {
+                    modernTable.closest('.card').style.display = 'none';
+                }
+                displayUsersLegacy();
+            } else {
+                console.error('No UI container found for users');
+            }
+        }
+        
+        function displayUsersLegacy() {
             const container = document.getElementById('userListContainer');
             
-            if (allUsers.length <= 1) {
-                container.innerHTML = '<div class="text-center py-3 text-muted">No users found</div>';
+            if (!allUsers || allUsers.length < 2) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-people fs-1 mb-3"></i>
+                        <p class="mb-0">No users found</p>
+                        <small>Click "Add User" to create your first user</small>
+                        <div class="mt-3 text-info small">
+                            Debug: allUsers length = ${allUsers ? allUsers.length : 'null'}
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
@@ -3309,37 +3544,341 @@
             
             for (let i = 1; i < allUsers.length; i++) {
                 const user = allUsers[i];
-                const role = user[2] || 'user';
+                const username = user[1] || 'Unknown';
+                const role = user[3] || 'security';
+                const fullName = user[4] || 'No name provided';
+                const email = user[5] || 'No email provided';
+                const status = user[6] || 'active';
+                const createdDate = user[7] ? new Date(user[7]).toLocaleDateString() : 'Unknown';
+                
                 const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+                const isCurrentUser = username === currentUser.username;
+                const userCardClass = isCurrentUser ? 'border-primary bg-light' : '';
+                
+                // Get role-specific icon and colors
+                let roleIcon = 'bi-person';
+                let roleColor = 'text-secondary';
+                switch(role) {
+                    case 'super-admin': 
+                        roleIcon = 'bi-shield-fill-check'; 
+                        roleColor = 'text-danger';
+                        break;
+                    case 'admin': 
+                        roleIcon = 'bi-person-gear'; 
+                        roleColor = 'text-warning';
+                        break;
+                    case 'security': 
+                        roleIcon = 'bi-shield'; 
+                        roleColor = 'text-primary';
+                        break;
+                    default: 
+                        roleIcon = 'bi-person';
+                        roleColor = 'text-secondary';
+                }
+                
+                // Status badge styling
+                let statusBadge = '';
+                let statusIcon = '';
+                switch(status) {
+                    case 'active':
+                        statusBadge = 'badge bg-success';
+                        statusIcon = '✅';
+                        break;
+                    case 'inactive':
+                        statusBadge = 'badge bg-warning text-dark';
+                        statusIcon = '⏸️';
+                        break;
+                    case 'suspended':
+                        statusBadge = 'badge bg-danger';
+                        statusIcon = '🚫';
+                        break;
+                    default:
+                        statusBadge = 'badge bg-secondary';
+                        statusIcon = '❓';
+                }
                 
                 usersHtml += `
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <span class="fw-bold">${user[0]}</span>
-                            <span class="badge role-badge ${role} ms-2">${roleDisplay}</span>
-                        </div>
-                        <div class="btn-group">
-                            <button class="btn btn-sm btn-outline-primary" onclick="editUser(${i})" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${i})" title="Delete">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                    <div class="list-group-item ${userCardClass}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="${roleIcon} me-2 ${roleColor}"></i>
+                                    <span class="fw-bold fs-6">${username}</span>
+                                    ${isCurrentUser ? '<span class="badge bg-info ms-2">You</span>' : ''}
+                                    <span class="badge role-badge ${role} ms-2">${roleDisplay}</span>
+                                    <span class="${statusBadge} ms-2">${statusIcon} ${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="text-muted small">
+                                        <i class="bi bi-person-fill me-1"></i>
+                                        <strong>${fullName}</strong>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <i class="bi bi-envelope me-1"></i>
+                                        ${email}
+                                    </div>
+                                </div>
+                                <div class="text-muted small">
+                                    <i class="bi bi-calendar-plus me-1"></i>
+                                    <span>Created: ${createdDate}</span>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="editUser(${i})" 
+                                        title="Edit User Details"
+                                        ${isCurrentUser && currentUser.role !== 'super-admin' ? 'disabled' : ''}>
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" 
+                                        onclick="viewUserDetails(${i})" 
+                                        title="View User Details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteUser(${i})" 
+                                        title="Delete User"
+                                        ${isCurrentUser || (currentUser.role === 'admin' && role === 'super-admin') ? 'disabled' : ''}>
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             }
             
             usersHtml += '</div>';
-            container.innerHTML = usersHtml;
+            
+            // Add user count summary
+            const userCount = allUsers.length - 1;
+            const countSummary = `
+                <div class="mt-3 text-center">
+                    <div class="badge bg-primary fs-6 px-3 py-2">
+                        <i class="bi bi-people me-2"></i>
+                        Total Users: ${userCount}
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = usersHtml + countSummary;
+        }
+        
+        function displayUsersModern() {
+            const tableBody = document.getElementById('userTableBody');
+            const noUsersState = document.getElementById('noUsersState');
+            const usersTable = document.getElementById('usersDataTable');
+            const totalUsersCount = document.getElementById('totalUsersCount');
+            
+            if (!allUsers || allUsers.length < 2) {
+                usersTable.style.display = 'none';
+                noUsersState.classList.remove('d-none');
+                if (totalUsersCount) totalUsersCount.textContent = '0';
+                return;
+            }
+
+            usersTable.style.display = 'table';
+            noUsersState.classList.add('d-none');
+            
+            const userCount = allUsers.length - 1;
+            if (totalUsersCount) totalUsersCount.textContent = userCount;
+            
+            let tableRows = '';
+            
+            for (let i = 1; i < allUsers.length; i++) {
+                const user = allUsers[i];
+                const username = user[1] || 'Unknown';
+                const role = user[3] || 'security';
+                const fullName = user[4] || 'No name provided';
+                const email = user[5] || 'No email provided';
+                const status = user[6] || 'active';
+                const createdDate = user[7] ? new Date(user[7]).toLocaleDateString() : 'Unknown';
+                
+                const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+                const isCurrentUser = username === currentUser.username;
+                
+                // Get role-specific styling
+                let roleIcon = 'bi-person';
+                let roleColor = 'text-secondary';
+                switch(role) {
+                    case 'super-admin': 
+                        roleIcon = 'bi-shield-fill-check'; 
+                        roleColor = 'text-danger';
+                        break;
+                    case 'admin': 
+                        roleIcon = 'bi-person-gear'; 
+                        roleColor = 'text-warning';
+                        break;
+                    case 'security': 
+                        roleIcon = 'bi-shield'; 
+                        roleColor = 'text-primary';
+                        break;
+                    default: 
+                        roleIcon = 'bi-person';
+                        roleColor = 'text-secondary';
+                }
+                
+                // Status styling
+                let statusBadge = '';
+                let statusIcon = '';
+                switch(status) {
+                    case 'active':
+                        statusBadge = 'badge bg-success';
+                        statusIcon = '✅';
+                        break;
+                    case 'inactive':
+                        statusBadge = 'badge bg-warning text-dark';
+                        statusIcon = '⏸️';
+                        break;
+                    case 'suspended':
+                        statusBadge = 'badge bg-danger';
+                        statusIcon = '🚫';
+                        break;
+                    default:
+                        statusBadge = 'badge bg-secondary';
+                        statusIcon = '❓';
+                }
+                
+                const rowClass = isCurrentUser ? 'table-primary' : '';
+                
+                tableRows += `
+                    <tr class="${rowClass}" data-user-index="${i}">
+                        <td class="px-4 py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="${roleIcon} ${roleColor}"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">${username}</div>
+                                    <div class="text-muted small">${fullName}</div>
+                                    ${isCurrentUser ? '<span class="badge bg-info mt-1">Current User</span>' : ''}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="badge role-badge ${role} px-3 py-2">
+                                <i class="${roleIcon} me-1"></i>${roleDisplay}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="text-dark">${email}</div>
+                            <small class="text-muted">
+                                <i class="bi bi-envelope-fill me-1"></i>Contact
+                            </small>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="${statusBadge} px-3 py-2">
+                                ${statusIcon} ${status.charAt(0).toUpperCase() + status.slice(1)}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="text-dark">${createdDate}</div>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>Registration
+                            </small>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary" 
+                                        onclick="editUser(${i})" 
+                                        title="Edit User Details"
+                                        ${isCurrentUser && currentUser.role !== 'super-admin' ? 'disabled' : ''}>
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-info" 
+                                        onclick="viewUserDetails(${i})" 
+                                        title="View User Details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteUser(${i})" 
+                                        title="Delete User"
+                                        ${isCurrentUser || (currentUser.role === 'admin' && role === 'super-admin') ? 'disabled' : ''}>
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            tableBody.innerHTML = tableRows;
+        }
+
+        // Enhanced password toggle functionality
+        function togglePasswordVisibility() {
+            const passwordField = document.getElementById('userPassword');
+            const toggleButton = document.getElementById('togglePassword');
+            const toggleIcon = toggleButton.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleIcon.className = 'bi bi-eye-slash';
+                toggleButton.title = 'Hide password';
+            } else {
+                passwordField.type = 'password';
+                toggleIcon.className = 'bi bi-eye';
+                toggleButton.title = 'Show password';
+            }
+        }
+
+        // Enhanced password validation
+        function validatePasswords() {
+            const password = document.getElementById('userPassword').value;
+            const confirmPassword = document.getElementById('userPasswordConfirm').value;
+            const confirmField = document.getElementById('userPasswordConfirm');
+            const errorDiv = document.getElementById('passwordMismatchError');
+            
+            // Remove previous validation classes
+            confirmField.classList.remove('is-invalid', 'is-valid');
+            
+            if (password !== confirmPassword) {
+                confirmField.classList.add('is-invalid');
+                errorDiv.style.display = 'block';
+                return false;
+            } else if (password && confirmPassword) {
+                confirmField.classList.add('is-valid');
+                errorDiv.style.display = 'none';
+                return true;
+            }
+            
+            errorDiv.style.display = 'none';
+            return true;
         }
 
         function showAddUserForm() {
             document.getElementById('userForm').style.display = 'block';
             document.getElementById('userFormTitle').textContent = 'Add New User';
             document.getElementById('editUserIndex').value = '-1';
+            
+            // Reset form fields
             document.getElementById('userUsername').value = '';
-            document.getElementById('userRole').value = 'user';
+            document.getElementById('userFullName').value = '';
+            document.getElementById('userEmail').value = '';
+            document.getElementById('userRole').value = 'security';
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userPasswordConfirm').value = '';
+            document.getElementById('userStatus').value = 'active';
+            document.getElementById('userCreatedDate').value = '';
+            
+            // Show password required label and make password required
+            document.getElementById('passwordRequiredLabel').classList.remove('d-none');
+            document.getElementById('passwordOptionalLabel').classList.add('d-none');
+            document.getElementById('userPassword').required = true;
+            document.getElementById('userPasswordConfirm').required = true;
+            
+            // Clear validation classes
+            document.getElementById('userPasswordConfirm').classList.remove('is-invalid', 'is-valid');
+            
+            // Add password validation listeners
+            const passwordField = document.getElementById('userPassword');
+            const confirmField = document.getElementById('userPasswordConfirm');
+            
+            passwordField.addEventListener('input', validatePasswords);
+            confirmField.addEventListener('input', validatePasswords);
+            
             document.getElementById('userUsername').focus();
         }
 
@@ -3349,9 +3888,36 @@
             document.getElementById('userFormTitle').textContent = 'Edit User';
             document.getElementById('editUserIndex').value = index;
             
-            // Populate form
-            document.getElementById('userUsername').value = user[0] || '';
-            document.getElementById('userRole').value = user[2] || 'user';
+            // Populate form with all fields
+            document.getElementById('userUsername').value = user[1] || '';
+            document.getElementById('userRole').value = user[3] || 'security';
+            document.getElementById('userFullName').value = user[4] || '';
+            document.getElementById('userEmail').value = user[5] || '';
+            document.getElementById('userStatus').value = user[6] || 'active';
+            
+            // Format and display created date
+            const createdDate = user[7] ? new Date(user[7]).toLocaleDateString() : 'Not set';
+            document.getElementById('userCreatedDate').value = createdDate;
+            
+            // Clear password fields for editing
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userPasswordConfirm').value = '';
+            
+            // Show password optional label and make password not required for edits
+            document.getElementById('passwordRequiredLabel').classList.add('d-none');
+            document.getElementById('passwordOptionalLabel').classList.remove('d-none');
+            document.getElementById('userPassword').required = false;
+            document.getElementById('userPasswordConfirm').required = false;
+            
+            // Clear validation classes
+            document.getElementById('userPasswordConfirm').classList.remove('is-invalid', 'is-valid');
+            
+            // Add password validation listeners
+            const passwordField = document.getElementById('userPassword');
+            const confirmField = document.getElementById('userPasswordConfirm');
+            
+            passwordField.addEventListener('input', validatePasswords);
+            confirmField.addEventListener('input', validatePasswords);
             
             document.getElementById('userUsername').focus();
         }
@@ -3359,53 +3925,142 @@
         function cancelUserForm() {
             document.getElementById('userForm').style.display = 'none';
             document.getElementById('addEditUserForm').reset();
+            
+            // Clear validation classes and error displays
+            document.getElementById('userPasswordConfirm').classList.remove('is-invalid', 'is-valid');
+            document.getElementById('passwordMismatchError').style.display = 'none';
+            
+            // Reset password field type
+            const passwordField = document.getElementById('userPassword');
+            const toggleButton = document.getElementById('togglePassword');
+            const toggleIcon = toggleButton.querySelector('i');
+            
+            passwordField.type = 'password';
+            toggleIcon.className = 'bi bi-eye';
+            toggleButton.title = 'Show password';
         }
 
         function saveUser() {
             const index = parseInt(document.getElementById('editUserIndex').value);
             const username = document.getElementById('userUsername').value.trim();
+            const fullName = document.getElementById('userFullName').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
             const role = document.getElementById('userRole').value;
-
-            if (!username || !role) {
-                showToast('Username and role are required', 'danger');
+            const password = document.getElementById('userPassword').value;
+            const confirmPassword = document.getElementById('userPasswordConfirm').value;
+            const status = document.getElementById('userStatus').value;
+            
+            // Basic validation
+            if (!username || !role || !fullName || !email) {
+                showToast('Username, Full Name, Email, and Role are required', 'danger');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showToast('Please enter a valid email address', 'danger');
+                document.getElementById('userEmail').focus();
+                return;
+            }
+            
+            // Password validation for new users
+            const isNewUser = index === -1;
+            if (isNewUser && !password) {
+                showToast('Password is required for new users', 'danger');
+                document.getElementById('userPassword').focus();
+                return;
+            }
+            
+            // Password confirmation validation
+            if (password && !confirmPassword) {
+                showToast('Please confirm your password', 'danger');
+                document.getElementById('userPasswordConfirm').focus();
+                return;
+            }
+            
+            // Password match validation
+            if (password && password !== confirmPassword) {
+                showToast('Passwords do not match', 'danger');
+                document.getElementById('userPasswordConfirm').focus();
+                return;
+            }
+            
+            // Password length validation
+            if (password && password.length < 6) {
+                showToast('Password must be at least 6 characters long', 'danger');
+                document.getElementById('userPassword').focus();
                 return;
             }
 
             // Check if username already exists (excluding current user)
-            for (let i = 1; i < allUsers.length; i++) {
-                if (i !== index && allUsers[i][0] === username) {
+            if (allUsers) {
+                for (let i = 1; i < allUsers.length; i++) {
+                if (i !== index && allUsers[i][1] === username) {
                     showToast('Username already exists', 'danger');
+                    document.getElementById('userUsername').focus();
                     return;
+                }
                 }
             }
 
+            // Build user data object
             const userData = {
                 username: username,
-                role: role
+                fullName: fullName,
+                email: email,
+                role: role,
+                status: status
             };
+            
+            // Only include password if it's provided
+            if (password) {
+                userData.password = password;
+            }
+
+            // Show loading feedback
+            const saveButton = event.target;
+            const originalText = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
 
             google.script.run
                 .withSuccessHandler(function(result) {
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
+                    
                     if (result.success) {
                         loadUsers();
                         cancelUserForm();
-                        showToast(`User ${result.action} successfully!`, 'success');
+                        
+                        // Enhanced success message
+                        const action = isNewUser ? 'created' : 'updated';
+                        let message = `User ${username} ${action} successfully!`;
+                        if (password && !isNewUser) {
+                            message += ' Password has been updated.';
+                        }
+                        showToast(message, 'success');
+                    } else {
+                        showToast(result.message || 'Failed to save user', 'danger');
                     }
                 })
                 .withFailureHandler(function(error) {
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = originalText;
                     showToast('Failed to save user: ' + error, 'danger');
                 })
                 .saveUser(userData, currentUser.role, index);
         }
 
         function deleteUser(index) {
-            if (!hasPermission('manage_users')) {
+            if (!hasPermission('manage_users') && !hasPermission('manage_users_limited')) {
                 showToast('Access denied: Insufficient permissions', 'danger');
                 return;
             }
 
             const user = allUsers[index];
-            const username = user[0];
+            const username = user[1];
+            const role = user[3] || 'user';
 
             // Prevent deleting yourself
             if (username === currentUser.username) {
@@ -3413,18 +4068,42 @@
                 return;
             }
 
-            if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+            // Admin role restrictions - cannot delete super-admin users
+            if (hasPermission('manage_users_limited') && !hasPermission('manage_users')) {
+                if (role === 'super-admin') {
+                    showToast('Access denied: Admin users cannot delete Super Admin accounts', 'danger');
+                    return;
+                }
+            }
+
+            // Enhanced confirmation dialog with role information
+            const confirmMessage = `⚠️ DELETE USER CONFIRMATION ⚠️\n\nUsername: ${username}\nRole: ${role.charAt(0).toUpperCase() + role.slice(1)}\n\nThis action cannot be undone.\nAre you sure you want to permanently delete this user?`;
+            
+            if (!confirm(confirmMessage)) {
                 return;
             }
 
+            // Show loading feedback
+            const deleteButton = event.target.closest('button');
+            const originalContent = deleteButton.innerHTML;
+            deleteButton.disabled = true;
+            deleteButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+
             google.script.run
                 .withSuccessHandler(function(result) {
+                    deleteButton.disabled = false;
+                    deleteButton.innerHTML = originalContent;
+                    
                     if (result.success) {
                         loadUsers();
-                        showToast('User deleted successfully!', 'success');
+                        showToast(`User "${username}" deleted successfully!`, 'success');
+                    } else {
+                        showToast(result.message || 'Failed to delete user', 'danger');
                     }
                 })
                 .withFailureHandler(function(error) {
+                    deleteButton.disabled = false;
+                    deleteButton.innerHTML = originalContent;
                     showToast('Failed to delete user: ' + error, 'danger');
                 })
                 .deleteUser(index, currentUser.role);

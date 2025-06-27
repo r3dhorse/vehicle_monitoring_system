@@ -41,6 +41,149 @@ function sanitizeInput(input) {
     .replace(/[<>"'&]/g, "");
 }
 
+// Generate next sequential user ID
+function generateNextUserId() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    if (!sheet) {
+      return 1; // First user ID
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return 1; // First user ID if only header exists
+    }
+    
+    let maxId = 0;
+    for (let i = 1; i < data.length; i++) {
+      const id = parseInt(data[i][0]) || 0;
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+    
+    return maxId + 1;
+  } catch (error) {
+    console.error("Error generating user ID:", error);
+    return 1;
+  }
+}
+
+// Generate next sequential vehicle ID with 6-digit padding (000001, 000002, etc.)
+function generateNextVehicleId() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
+    if (!sheet) {
+      return "000001"; // First vehicle ID
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return "000001"; // First vehicle ID if only header exists
+    }
+    
+    let maxId = 0;
+    for (let i = 1; i < data.length; i++) {
+      // Extract numeric part from ID like "000123"
+      const id = parseInt(data[i][0]) || 0;
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+    
+    // Return next ID with 6-digit padding
+    const nextId = maxId + 1;
+    return nextId.toString().padStart(6, '0');
+  } catch (error) {
+    console.error("Error generating vehicle ID:", error);
+    return "000001";
+  }
+}
+
+// Generate next sequential driver ID
+function generateNextDriverId() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(DRIVER_SHEET);
+    if (!sheet) {
+      return 1; // First driver ID
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return 1; // First driver ID if only header exists
+    }
+    
+    let maxId = 0;
+    for (let i = 1; i < data.length; i++) {
+      const id = parseInt(data[i][0]) || 0;
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+    
+    return maxId + 1;
+  } catch (error) {
+    console.error("Error generating driver ID:", error);
+    return 1;
+  }
+}
+
+// Generate next sequential log ID
+function generateNextLogId() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOG_SHEET);
+    if (!sheet) {
+      return 1; // First log ID
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return 1; // First log ID if only header exists
+    }
+    
+    let maxId = 0;
+    for (let i = 1; i < data.length; i++) {
+      const id = parseInt(data[i][0]) || 0;
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+    
+    return maxId + 1;
+  } catch (error) {
+    console.error("Error generating log ID:", error);
+    return 1;
+  }
+}
+
+// Generate next sequential gate ID
+function generateNextGateId() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
+    if (!sheet) {
+      return 1; // First gate ID
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return 1; // First gate ID if only header exists
+    }
+    
+    let maxId = 0;
+    for (let i = 1; i < data.length; i++) {
+      const id = parseInt(data[i][0]) || 0;
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+    
+    return maxId + 1;
+  } catch (error) {
+    console.error("Error generating gate ID:", error);
+    return 1;
+  }
+}
+
 function validateRequired(value, fieldName) {
   if (!value || (typeof value === "string" && value.trim() === "")) {
     throw new VehicleMonitoringError(
@@ -104,6 +247,7 @@ function getVehicleListForManagement() {
     console.error("Error getting vehicle list for management:", error);
     return [
       [
+        "ID",
         "Plate Number",
         "Make/Model",
         "Color",
@@ -116,6 +260,7 @@ function getVehicleListForManagement() {
         "Access Status",
       ],
       [
+        "000001",
         "ABC-123",
         "Toyota Camry",
         "White",
@@ -149,27 +294,30 @@ function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
       vehicleData.plateNumber.trim().toUpperCase()
     );
 
-    // Check if plate number already exists (excluding current edit)
+    // Check if plate number already exists (excluding current edit) - plate number is now at index 1
     for (let i = 1; i < data.length; i++) {
-      if (i !== editIndex && data[i][0] === cleanPlateNumber) {
+      if (i !== editIndex && data[i][1] === cleanPlateNumber) {
         throw new Error("Vehicle with this plate number already exists");
       }
     }
 
-    const vehicleRow = [
-      cleanPlateNumber,
-      sanitizeInput(vehicleData.model || ""),
-      sanitizeInput(vehicleData.color || ""),
-      sanitizeInput(vehicleData.department || ""),
-      vehicleData.year || "",
-      vehicleData.type || "Car",
-      vehicleData.status || "OUT",
-      sanitizeInput(vehicleData.driver || ""),
-      sanitizeInput(vehicleData.assignedDrivers || ""),
-      vehicleData.accessStatus || "Access",
-    ];
-
+    let vehicleRow;
     if (editIndex > 0 && editIndex < data.length) {
+      // Update existing vehicle - keep existing ID
+      vehicleRow = [
+        data[editIndex][0], // Keep existing ID
+        cleanPlateNumber,
+        sanitizeInput(vehicleData.model || ""),
+        sanitizeInput(vehicleData.color || ""),
+        sanitizeInput(vehicleData.department || ""),
+        vehicleData.year || "",
+        vehicleData.type || "Car",
+        vehicleData.status || "OUT",
+        sanitizeInput(vehicleData.driver || ""),
+        sanitizeInput(vehicleData.assignedDrivers || ""),
+        vehicleData.accessStatus || "Access",
+      ];
+      
       // Update existing vehicle
       const range = sheet.getRange(editIndex + 1, 1, 1, vehicleRow.length);
       range.setValues([vehicleRow]);
@@ -181,15 +329,30 @@ function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
       clearVehicleCache(); // Clear cache after update
       return { success: true, action: "updated" };
     } else {
-      // Create new vehicle
+      // Create new vehicle with auto-generated ID
+      const vehicleId = generateNextVehicleId();
+      vehicleRow = [
+        vehicleId, // Auto-generated ID
+        cleanPlateNumber,
+        sanitizeInput(vehicleData.model || ""),
+        sanitizeInput(vehicleData.color || ""),
+        sanitizeInput(vehicleData.department || ""),
+        vehicleData.year || "",
+        vehicleData.type || "Car",
+        vehicleData.status || "OUT",
+        sanitizeInput(vehicleData.driver || ""),
+        sanitizeInput(vehicleData.assignedDrivers || ""),
+        vehicleData.accessStatus || "Access",
+      ];
+      
       sheet.appendRow(vehicleRow);
       logUserActivity(
         "system",
         "vehicle_created",
-        `Vehicle ${cleanPlateNumber} created`
+        `Vehicle ${cleanPlateNumber} created with ID ${vehicleId}`
       );
       clearVehicleCache(); // Clear cache after create
-      return { success: true, action: "created" };
+      return { success: true, action: "created", vehicleId: vehicleId };
     }
   } catch (error) {
     console.error("Error saving vehicle:", error);
@@ -212,7 +375,8 @@ function deleteVehicleRecord(vehicleIndex, userRole) {
       throw new Error("Invalid vehicle index");
     }
 
-    const plateNumber = data[vehicleIndex][0];
+    const vehicleId = data[vehicleIndex][0]; // ID is at index 0
+    const plateNumber = data[vehicleIndex][1]; // Plate number is now at index 1
 
     // Check if vehicle has recent activity
     const logSheet =
@@ -222,15 +386,15 @@ function deleteVehicleRecord(vehicleIndex, userRole) {
       const recentLogs = logData.slice(-50); // Check last 50 logs
 
       const vehicleInRecentUse = recentLogs.some(
-        (row) => row[1] === plateNumber
+        (row) => row[2] === plateNumber // Plate number is at index 2 in logs (after ID and timestamp)
       );
       if (vehicleInRecentUse) {
         // Don't delete, just set access to No Access
-        sheet.getRange(vehicleIndex + 1, 10).setValue("No Access");
+        sheet.getRange(vehicleIndex + 1, 11).setValue("No Access"); // Access status is now at column 11
         logUserActivity(
           "system",
           "vehicle_access_revoked",
-          `Vehicle ${plateNumber} access revoked (recent activity)`
+          `Vehicle ${plateNumber} (ID: ${vehicleId}) access revoked (recent activity)`
         );
         clearVehicleCache(); // Clear cache after access revoke
         return { success: true, action: "access_revoked" };
@@ -242,7 +406,7 @@ function deleteVehicleRecord(vehicleIndex, userRole) {
     logUserActivity(
       "system",
       "vehicle_deleted",
-      `Vehicle ${plateNumber} deleted`
+      `Vehicle ${plateNumber} (ID: ${vehicleId}) deleted`
     );
     clearVehicleCache(); // Clear cache after delete
     return { success: true, action: "deleted" };
@@ -308,8 +472,10 @@ function getVehicleList(searchCriteria = {}) {
     // For large datasets, use chunked reading
     let allData = [];
     const chunkSize = 1000; // Read 1000 rows at a time
-    const header = sheet.getRange(1, 1, 1, 10).getValues()[0];
-    allData.push(header);
+    const header = sheet.getRange(1, 1, 1, 11).getValues()[0];
+    // Remove ID column from header (index 0)
+    const headerWithoutId = header.slice(1);
+    allData.push(headerWithoutId);
 
     // If no search criteria, return paginated results
     if (
@@ -324,8 +490,9 @@ function getVehicleList(searchCriteria = {}) {
 
       if (startRow <= lastRow) {
         const paginatedData = sheet
-          .getRange(startRow, 1, endRow - startRow + 1, 10)
-          .getValues();
+          .getRange(startRow, 1, endRow - startRow + 1, 11)
+          .getValues()
+          .map(row => row.slice(1)); // Remove ID column (index 0)
         allData = allData.concat(paginatedData);
       }
 
@@ -344,21 +511,21 @@ function getVehicleList(searchCriteria = {}) {
     for (let chunkStart = 2; chunkStart <= lastRow; chunkStart += chunkSize) {
       const chunkEnd = Math.min(chunkStart + chunkSize - 1, lastRow);
       const chunkData = sheet
-        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 10)
+        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 11)
         .getValues();
 
-      // Filter chunk data based on search criteria
+      // Filter chunk data based on search criteria and remove ID column
       const filteredChunk = chunkData.filter((row) => {
-        if (!row || row.length < 10) return false;
+        if (!row || row.length < 11) return false;
 
         // Search term matching (plate, model, driver, department)
         if (searchTerm) {
           const searchableText = [
-            row[0] || "", // Plate Number
-            row[1] || "", // Make/Model
-            row[3] || "", // Department
-            row[7] || "", // Current Driver
-            row[8] || "", // Assigned Drivers
+            row[1] || "", // Plate Number
+            row[2] || "", // Make/Model
+            row[4] || "", // Department
+            row[8] || "", // Current Driver
+            row[9] || "", // Assigned Drivers
           ]
             .join(" ")
             .toLowerCase();
@@ -369,22 +536,22 @@ function getVehicleList(searchCriteria = {}) {
         }
 
         // Status filter (IN/OUT)
-        if (statusFilter && row[6] !== statusFilter) {
+        if (statusFilter && row[7] !== statusFilter) {
           return false;
         }
 
         // Access status filter
-        if (accessStatusFilter && row[9] !== accessStatusFilter) {
+        if (accessStatusFilter && row[10] !== accessStatusFilter) {
           return false;
         }
 
         // Department filter
-        if (departmentFilter && row[3] !== departmentFilter) {
+        if (departmentFilter && row[4] !== departmentFilter) {
           return false;
         }
 
         return true;
-      });
+      }).map(row => row.slice(1)); // Remove ID column (index 0)
 
       matchingRows = matchingRows.concat(filteredChunk);
 
@@ -509,19 +676,19 @@ function getVehicleCount(searchCriteria = {}) {
 
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
-      if (!row || row.length < 10) continue;
+      if (!row || row.length < 11) continue;
 
       // Apply same filtering logic as main function
       if (searchTerm) {
-        const searchableText = [row[0], row[1], row[3], row[7], row[8]]
+        const searchableText = [row[1], row[2], row[4], row[8], row[9]]
           .join(" ")
           .toLowerCase();
         if (!searchableText.includes(searchTermLower)) continue;
       }
 
-      if (statusFilter && row[6] !== statusFilter) continue;
-      if (accessStatusFilter && row[9] !== accessStatusFilter) continue;
-      if (departmentFilter && row[3] !== departmentFilter) continue;
+      if (statusFilter && row[7] !== statusFilter) continue;
+      if (accessStatusFilter && row[10] !== accessStatusFilter) continue;
+      if (departmentFilter && row[4] !== departmentFilter) continue;
 
       count++;
     }
@@ -558,9 +725,9 @@ function logVehicleAction(data) {
     let accessStatus = "Access"; // Default if not found
 
     for (let i = 1; i < vehicleData.length; i++) {
-      if (vehicleData[i][0] === data.plateNumber) {
+      if (vehicleData[i][1] === data.plateNumber) {
         vehicleRow = i;
-        accessStatus = vehicleData[i][9] || "Access"; // Access Status column
+        accessStatus = vehicleData[i][10] || "Access"; // Access Status column
         break;
       }
     }
@@ -594,7 +761,7 @@ function logVehicleAction(data) {
 
     // Update vehicle status
     if (vehicleRow !== -1) {
-      vehicleSheet.getRange(vehicleRow + 1, 7).setValue(data.action);
+      vehicleSheet.getRange(vehicleRow + 1, 8).setValue(data.action);
       clearVehicleCache(); // Clear cache after status update
     }
 
@@ -624,10 +791,22 @@ function loginUser(username, password) {
 
     for (let i = 1; i < data.length; i++) {
       // Simple comparison - in production, use proper password hashing
-      if (data[i][0] === username && data[i][1] === password) {
+      // Username is at index 1, password at index 2, role at index 3, status at index 6 (after ID field)
+      if (data[i][1] === username && data[i][2] === password) {
+        // Check user status (column G, index 6)
+        const userStatus = data[i][6] || "active";
+        if (userStatus !== "active") {
+          // Log failed login attempt due to inactive status
+          logUserActivity(username, "login", "failed - account " + userStatus);
+          return { 
+            success: false, 
+            message: `Your account is currently: ${userStatus}` 
+          };
+        }
+        
         // Log successful login
         logUserActivity(username, "login", "success");
-        return { success: true, role: data[i][2] || "user" };
+        return { success: true, role: data[i][3] || "security" };
       }
     }
 
@@ -744,9 +923,10 @@ function createInitialSheets() {
     if (!vehicleSheet) {
       vehicleSheet = ss.insertSheet(VEHICLE_SHEET);
       vehicleSheet
-        .getRange(1, 1, 1, 10)
+        .getRange(1, 1, 1, 11)
         .setValues([
           [
+            "ID",
             "Plate Number",
             "Make/Model",
             "Color",
@@ -759,14 +939,14 @@ function createInitialSheets() {
             "Access Status",
           ],
         ]);
-      vehicleSheet.getRange(1, 1, 1, 10).setFontWeight("bold");
+      vehicleSheet.getRange(1, 1, 1, 11).setFontWeight("bold");
 
       // Format the sheet
       vehicleSheet.setFrozenRows(1);
-      vehicleSheet.autoResizeColumns(1, 10);
+      vehicleSheet.autoResizeColumns(1, 11);
 
       // Add data validation for Access Status
-      const accessStatusRange = vehicleSheet.getRange(2, 10, 1000, 1);
+      const accessStatusRange = vehicleSheet.getRange(2, 11, 1000, 1);
       const accessRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(["Access", "No Access", "Banned"], true)
         .setAllowInvalid(false)
@@ -812,9 +992,10 @@ function createInitialSheets() {
     if (!driverSheet) {
       driverSheet = ss.insertSheet(DRIVER_SHEET);
       driverSheet
-        .getRange(1, 1, 1, 10)
+        .getRange(1, 1, 1, 11)
         .setValues([
           [
+            "ID",
             "Driver ID",
             "Name",
             "License Number",
@@ -827,12 +1008,12 @@ function createInitialSheets() {
             "Status",
           ],
         ]);
-      driverSheet.getRange(1, 1, 1, 10).setFontWeight("bold");
+      driverSheet.getRange(1, 1, 1, 11).setFontWeight("bold");
       driverSheet.setFrozenRows(1);
-      driverSheet.autoResizeColumns(1, 10);
+      driverSheet.autoResizeColumns(1, 11);
 
       // Add data validation for Driver Status
-      const driverStatusRange = driverSheet.getRange(2, 10, 1000, 1);
+      const driverStatusRange = driverSheet.getRange(2, 11, 1000, 1);
       const driverStatusRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(["Active", "Inactive", "Suspended"], true)
         .setAllowInvalid(false)
@@ -840,7 +1021,7 @@ function createInitialSheets() {
       driverStatusRange.setDataValidation(driverStatusRule);
 
       // Add data validation for License Type
-      const licenseTypeRange = driverSheet.getRange(2, 6, 1000, 1);
+      const licenseTypeRange = driverSheet.getRange(2, 7, 1000, 1);
       const licenseTypeRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(
           ["Regular", "Commercial", "Motorcycle", "Chauffeur"],
@@ -851,7 +1032,7 @@ function createInitialSheets() {
       licenseTypeRange.setDataValidation(licenseTypeRule);
 
       // Format license expiry column
-      const expiryRange = driverSheet.getRange(2, 8, 1000, 1);
+      const expiryRange = driverSheet.getRange(2, 9, 1000, 1);
       expiryRange.setNumberFormat("yyyy-mm-dd");
     }
 
@@ -860,9 +1041,10 @@ function createInitialSheets() {
     if (!logSheet) {
       logSheet = ss.insertSheet(LOG_SHEET);
       logSheet
-        .getRange(1, 1, 1, 8)
+        .getRange(1, 1, 1, 9)
         .setValues([
           [
+            "ID",
             "Timestamp",
             "Plate Number",
             "Driver ID",
@@ -873,12 +1055,12 @@ function createInitialSheets() {
             "Access Status at Time",
           ],
         ]);
-      logSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
+      logSheet.getRange(1, 1, 1, 9).setFontWeight("bold");
       logSheet.setFrozenRows(1);
-      logSheet.autoResizeColumns(1, 8);
+      logSheet.autoResizeColumns(1, 9);
 
       // Format timestamp column
-      const timestampRange = logSheet.getRange(2, 1, 1000, 1);
+      const timestampRange = logSheet.getRange(2, 2, 1000, 1);
       timestampRange.setNumberFormat("yyyy-mm-dd hh:mm:ss");
     }
 
@@ -887,9 +1069,10 @@ function createInitialSheets() {
     if (!usersSheet) {
       usersSheet = ss.insertSheet(USERS_SHEET);
       usersSheet
-        .getRange(1, 1, 1, 7)
+        .getRange(1, 1, 1, 8)
         .setValues([
           [
+            "ID",
             "Username",
             "Password",
             "Role",
@@ -899,23 +1082,23 @@ function createInitialSheets() {
             "Created Date",
           ],
         ]);
-      usersSheet.getRange(1, 1, 1, 7).setFontWeight("bold");
+      usersSheet.getRange(1, 1, 1, 8).setFontWeight("bold");
       usersSheet.setFrozenRows(1);
-      usersSheet.autoResizeColumns(1, 7);
+      usersSheet.autoResizeColumns(1, 8);
 
-      // Add data validation for Status
-      const statusRange = usersSheet.getRange(2, 6, 1000, 1);
+      // Add data validation for Status (column 7)
+      const statusRange = usersSheet.getRange(2, 7, 1000, 1);
       const statusRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(["active", "inactive", "suspended"], true)
         .setAllowInvalid(false)
         .build();
       statusRange.setDataValidation(statusRule);
 
-      // Add data validation for Role
-      const roleRange = usersSheet.getRange(2, 3, 1000, 1);
+      // Add data validation for Role (column 4)
+      const roleRange = usersSheet.getRange(2, 4, 1000, 1);
       const roleRule = SpreadsheetApp.newDataValidation()
         .requireValueInList(
-          ["super-admin", "admin", "supervisor", "security", "user"],
+          ["super-admin", "admin", "security"],
           true
         )
         .setAllowInvalid(false)
@@ -927,10 +1110,10 @@ function createInitialSheets() {
     let gatesSheet = ss.getSheetByName(GATES_SHEET);
     if (!gatesSheet) {
       gatesSheet = ss.insertSheet(GATES_SHEET);
-      gatesSheet.getRange(1, 1, 1, 1).setValues([["Gate Name"]]);
-      gatesSheet.getRange(1, 1, 1, 1).setFontWeight("bold");
+      gatesSheet.getRange(1, 1, 1, 2).setValues([["ID", "Gate Name"]]);
+      gatesSheet.getRange(1, 1, 1, 2).setFontWeight("bold");
       gatesSheet.setFrozenRows(1);
-      gatesSheet.autoResizeColumns(1, 1);
+      gatesSheet.autoResizeColumns(1, 2);
     }
 
     return true;
@@ -947,25 +1130,79 @@ function createDefaultAdmin() {
       SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
     const existingData = sheet.getDataRange().getValues();
 
-    // Check if admin already exists
+    // Check if admin already exists (check username at index 1)
     for (let i = 1; i < existingData.length; i++) {
-      if (existingData[i][0] === "admin") {
+      if (existingData[i][1] === "admin") {
         return;
       }
     }
 
-    // Add default admin with enhanced structure
+    // Add default admin with ID field
+    const userId = generateNextUserId();
     sheet.appendRow([
-      "admin",
-      "admin123",
-      "super-admin",
-      "System Administrator",
-      "admin@vehiclemonitoring.com",
-      "active",
-      new Date().toISOString(),
+      userId,                                    // ID
+      "admin",                                  // Username
+      "admin123",                               // Password
+      "super-admin",                            // Role
+      "System Administrator",                   // Full Name
+      "admin@vehiclemonitoring.com",            // Email
+      "active",                                 // Status
+      new Date().toISOString(),                 // Created Date
     ]);
   } catch (error) {
     console.error("Error creating default admin:", error);
+  }
+}
+
+// Reset admin user (for troubleshooting)
+function resetAdminUser() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    if (!sheet) {
+      createInitialSheets();
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // Find and update admin user (username is now at index 1)
+    let adminFound = false;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][1] === "admin") {
+        // Update the admin user row with ID field
+        sheet.getRange(i + 1, 1, 1, 8).setValues([[
+          data[i][0] || 1,                                // Keep existing ID or default to 1
+          "admin",                                        // Username
+          "admin123",                                     // Password
+          "super-admin",                                  // Role
+          "System Administrator",                         // Full Name
+          "admin@vehiclemonitoring.com",                  // Email
+          "active",                                       // Status
+          data[i][7] || new Date().toISOString()          // Keep existing created date or use current
+        ]]);
+        adminFound = true;
+        break;
+      }
+    }
+    
+    // If admin not found, create it with ID field
+    if (!adminFound) {
+      const userId = generateNextUserId();
+      sheet.appendRow([
+        userId,                                           // ID
+        "admin",                                        // Username
+        "admin123",                                     // Password
+        "super-admin",                                  // Role
+        "System Administrator",                         // Full Name
+        "admin@vehiclemonitoring.com",                  // Email
+        "active",                                       // Status
+        new Date().toISOString()                        // Created Date
+      ]);
+    }
+    
+    return { success: true, message: "Admin user reset successfully" };
+  } catch (error) {
+    console.error("Error resetting admin user:", error);
+    return { success: false, error: error.toString() };
   }
 }
 
@@ -1359,22 +1596,22 @@ function getVehicleByPlate(plateNumber) {
     // Search for vehicle (skip header row)
     for (let i = 1; i < vehicleData.length; i++) {
       const row = vehicleData[i];
-      const vehiclePlate = (row[0] || "").toString().trim().toUpperCase();
+      const vehiclePlate = (row[1] || "").toString().trim().toUpperCase();
 
       if (vehiclePlate === cleanPlateNumber) {
         // Vehicle found - return details
         const vehicleInfo = {
           found: true,
-          plateNumber: row[0] || "",
-          makeModel: row[1] || "",
-          color: row[2] || "",
-          department: row[3] || "",
-          year: row[4] || "",
-          type: row[5] || "",
-          currentStatus: row[6] || "OUT", // Column G - Current IN/OUT status
-          currentDriver: row[7] || "",
-          assignedDrivers: row[8] || "",
-          accessStatus: row[9] || "Access", // Column J - Access Status
+          plateNumber: row[1] || "",
+          makeModel: row[2] || "",
+          color: row[3] || "",
+          department: row[4] || "",
+          year: row[5] || "",
+          type: row[6] || "",
+          currentStatus: row[7] || "OUT", // Column H - Current IN/OUT status
+          currentDriver: row[8] || "",
+          assignedDrivers: row[9] || "",
+          accessStatus: row[10] || "Access", // Column K - Access Status
         };
 
         console.log("Vehicle found:", vehicleInfo);
@@ -1544,16 +1781,64 @@ function testSpreadsheetAccess() {
 
 // User Management Functions
 
-// Get all users (admin only)
+// Migrate users with old roles to valid roles
+function migrateUserRoles() {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    const validRoles = ["super-admin", "admin", "security"];
+    let migratedCount = 0;
+    
+    for (let i = 1; i < data.length; i++) {
+      const currentRole = data[i][3]; // Role is at index 3
+      
+      // If role is not in valid roles, migrate it
+      if (!validRoles.includes(currentRole)) {
+        let newRole = "security"; // Default migration to security
+        
+        // Smart migration based on old role
+        if (currentRole === "supervisor") {
+          newRole = "admin"; // Supervisors become admins
+        } else if (currentRole === "user") {
+          newRole = "security"; // Users become security
+        }
+        
+        // Update the role in the sheet
+        sheet.getRange(i + 1, 4).setValue(newRole);
+        migratedCount++;
+        
+        console.log(`Migrated user ${data[i][1]} from '${currentRole}' to '${newRole}'`);
+      }
+    }
+    
+    if (migratedCount > 0) {
+      console.log(`Successfully migrated ${migratedCount} users to valid roles`);
+    } else {
+      console.log("No users needed role migration");
+    }
+    
+    return { success: true, migratedCount: migratedCount };
+    
+  } catch (error) {
+    console.error("Error migrating user roles:", error);
+    throw error;
+  }
+}
+
+// Get all users (super-admin only)
 function getUserList(userRole) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access required.");
+  console.log("getUserList called with role:", userRole);
+  
+  if (userRole !== "super-admin" && userRole !== "admin") {
+    throw new Error("Unauthorized: Admin or Super admin access required.");
   }
 
   try {
     const sheet =
       SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    
     if (!sheet) {
+      console.log("Users sheet not found, creating sheets and default admin...");
       createInitialSheets();
       createDefaultAdmin();
       return getUserList(userRole);
@@ -1561,11 +1846,25 @@ function getUserList(userRole) {
 
     const data = sheet.getDataRange().getValues();
     console.log("User data retrieved successfully:", data.length, "rows");
+    
+    // Auto-migrate users with invalid roles
+    migrateUserRoles();
+    
+    // If only header row exists, create default admin
+    if (data.length <= 1) {
+      console.log("No users found, creating default admin...");
+      createDefaultAdmin();
+      // Re-fetch data after creating admin
+      const updatedData = sheet.getDataRange().getValues();
+      return updatedData;
+    }
+    
     return data;
   } catch (error) {
     console.error("Error getting user list:", error);
     return [
       [
+        "ID",
         "Username",
         "Password",
         "Role",
@@ -1578,119 +1877,190 @@ function getUserList(userRole) {
   }
 }
 
-// Save user (create or update)
-function saveUser(userData, userRole) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access required.");
+// Enhanced save user function (create or update)
+function saveUser(userData, userRole, editIndex = -1) {
+  console.log("saveUser called with:", { userData: userData.username, userRole, editIndex });
+  
+  if (userRole !== "super-admin" && userRole !== "admin") {
+    return { success: false, error: "Unauthorized: Admin or Super admin access required." };
   }
 
   try {
+    // Enhanced validation
     validateRequired(userData.username, "Username");
-    validateRequired(userData.password, "Password");
     validateRequired(userData.role, "Role");
     validateRequired(userData.fullName, "Full Name");
     validateRequired(userData.email, "Email");
+    
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userData.email)) {
+      throw new Error("Invalid email format");
+    }
+    
+    // Username validation (alphanumeric and underscore only)
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(userData.username)) {
+      throw new Error("Username can only contain letters, numbers, and underscores");
+    }
 
-    const sheet =
-      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
     const data = sheet.getDataRange().getValues();
 
     // Role validation based on current user's role
     const validRoles = {
-      "super-admin": ["super-admin", "admin", "supervisor", "security", "user"],
-      admin: ["supervisor", "security", "user"],
+      "super-admin": ["super-admin", "admin", "security"],
+      "admin": ["admin", "security"], // Admin can manage admin role (but not super-admin)
     };
 
     if (!validRoles[userRole].includes(userData.role)) {
       throw new Error(`You cannot assign the role: ${userData.role}`);
     }
 
-    let userExists = false;
-    let userRowIndex = -1;
+    let isEditing = false;
+    let targetRowIndex = -1;
 
-    // Check if user already exists
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === userData.username) {
-        userExists = true;
-        userRowIndex = i;
-        break;
+    // For editing mode, use the provided index
+    if (editIndex !== -1 && editIndex >= 1 && editIndex < data.length) {
+      isEditing = true;
+      targetRowIndex = editIndex;
+      console.log("Edit mode detected for user at index:", editIndex);
+      
+      // For edits, check if username conflicts with OTHER users (exclude current user) - username is at index 1
+      for (let i = 1; i < data.length; i++) {
+        if (i !== editIndex && data[i][1] === userData.username) {
+          throw new Error("Username already exists. Please choose a different username.");
+        }
       }
+    } else {
+      // For new users, check if username already exists - username is at index 1
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][1] === userData.username) {
+          throw new Error("Username already exists. Please choose a different username.");
+        }
+      }
+      console.log("New user mode - no conflicts found");
     }
 
-    const userRow = [
-      sanitizeInput(userData.username),
-      sanitizeInput(userData.password),
-      userData.role,
-      sanitizeInput(userData.fullName),
-      sanitizeInput(userData.email),
-      userData.status || "active",
-      userExists ? data[userRowIndex][6] : new Date().toISOString(),
-    ];
+    // Password validation
+    if (!isEditing && !userData.password) {
+      throw new Error("Password is required for new users");
+    }
+    
+    if (userData.password && userData.password.length < 6) {
+      throw new Error("Password must be at least 6 characters long");
+    }
 
-    if (userExists) {
+    // Prepare user data with ID field
+    const existingData = isEditing ? data[targetRowIndex] : [];
+    let userRow;
+    
+    if (isEditing) {
+      // Keep existing ID for updates
+      userRow = [
+        existingData[0],                                           // ID (keep existing)
+        sanitizeInput(userData.username),                          // Username
+        userData.password ? sanitizeInput(userData.password) : (existingData[2] || ""), // Keep existing password if not provided
+        userData.role,                                             // Role
+        sanitizeInput(userData.fullName),                          // Full Name
+        sanitizeInput(userData.email),                             // Email
+        userData.status || "active",                               // Status
+        existingData[7] || new Date().toISOString(),               // Keep original creation date for edits
+      ];
+    } else {
+      // Generate new ID for new users
+      const userId = generateNextUserId();
+      userRow = [
+        userId,                                                    // ID (auto-generated)
+        sanitizeInput(userData.username),                          // Username
+        sanitizeInput(userData.password),                          // Password
+        userData.role,                                             // Role
+        sanitizeInput(userData.fullName),                          // Full Name
+        sanitizeInput(userData.email),                             // Email
+        userData.status || "active",                               // Status
+        new Date().toISOString(),                                  // Created Date
+      ];
+    }
+
+    if (isEditing) {
       // Update existing user
-      const range = sheet.getRange(userRowIndex + 1, 1, 1, userRow.length);
+      const range = sheet.getRange(targetRowIndex + 1, 1, 1, userRow.length);
       range.setValues([userRow]);
       logUserActivity(userData.username, "user_updated", "success");
+      console.log("User updated successfully:", userData.username);
     } else {
       // Create new user
       sheet.appendRow(userRow);
       logUserActivity(userData.username, "user_created", "success");
+      console.log("User created successfully:", userData.username);
     }
 
-    return { success: true, action: userExists ? "updated" : "created" };
+    return { 
+      success: true, 
+      action: isEditing ? "updated" : "created",
+      message: `User ${isEditing ? 'updated' : 'created'} successfully`
+    };
   } catch (error) {
     console.error("Error saving user:", error);
-    throw error;
+    logUserActivity(userData.username || "unknown", "user_save_failed", "error", error.message);
+    return { success: false, error: error.message };
   }
 }
 
-// Delete user (admin only)
-function deleteUser(username, userRole) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access required.");
+// Enhanced delete user function (super-admin only)
+function deleteUser(userIndex, userRole) {
+  console.log("deleteUser called with index:", userIndex, "role:", userRole);
+  
+  if (userRole !== "super-admin") {
+    throw new Error("Unauthorized: Super admin access required.");
   }
 
   try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    const data = sheet.getDataRange().getValues();
+    
+    // Validate user index
+    if (userIndex < 1 || userIndex >= data.length) {
+      throw new Error("Invalid user index");
+    }
+    
+    const user = data[userIndex];
+    const username = user[1]; // Username is now at index 1 (after ID field)
+    
     validateRequired(username, "Username");
 
-    // Prevent deletion of admin user
-    if (username === "admin") {
-      throw new Error("Cannot delete the default admin user");
+    // Prevent deletion of default admin users
+    if (username === "admin" || username === "jun") {
+      throw new Error("Cannot delete system administrator accounts");
     }
 
-    const sheet =
-      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
-    const data = sheet.getDataRange().getValues();
-
-    let userRowIndex = -1;
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] === username) {
-        userRowIndex = i;
-        break;
-      }
-    }
-
-    if (userRowIndex === -1) {
-      throw new Error("User not found");
-    }
-
-    // Check role permissions for deletion
-    const targetUserRole = data[userRowIndex][2];
-    if (
-      userRole === "admin" &&
-      ["super-admin", "admin"].includes(targetUserRole)
-    ) {
-      throw new Error("You cannot delete users with admin privileges");
-    }
-
-    sheet.deleteRow(userRowIndex + 1);
+    // Delete the user row
+    sheet.deleteRow(userIndex + 1); // +1 because sheet rows are 1-indexed
+    
     logUserActivity(username, "user_deleted", "success");
-
-    return { success: true };
+    console.log("User deleted successfully:", username);
+    
+    return { success: true, message: "User deleted successfully" };
   } catch (error) {
     console.error("Error deleting user:", error);
-    throw error;
+    logUserActivity("unknown", "user_delete_failed", "error", error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// Enhanced user activity logging
+function logUserActivity(username, action, status, details = "") {
+  try {
+    // This could be expanded to log to a separate audit sheet
+    console.log(`User Activity - Username: ${username}, Action: ${action}, Status: ${status}, Details: ${details}`);
+    
+    // Optional: Create audit log in a separate sheet
+    // const auditSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("UserAuditLog");
+    // if (auditSheet) {
+    //   auditSheet.appendRow([new Date(), username, action, status, details]);
+    // }
+  } catch (error) {
+    console.warn("Could not log user activity:", error);
   }
 }
 
@@ -1723,8 +2093,8 @@ function getGateList() {
 
 // Save gate (simple - just name)
 function saveGate(gateName, userRole, editIndex = -1) {
-  if (!["super-admin", "admin", "supervisor"].includes(userRole)) {
-    throw new Error("Unauthorized: Supervisor access or higher required.");
+  if (!["super-admin", "admin"].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access or higher required.");
   }
 
   try {
@@ -1762,8 +2132,8 @@ function saveGate(gateName, userRole, editIndex = -1) {
 
 // Delete gate (simple)
 function deleteGate(gateIndex, userRole) {
-  if (!["super-admin", "admin", "supervisor"].includes(userRole)) {
-    throw new Error("Unauthorized: Supervisor access or higher required.");
+  if (!["super-admin", "admin"].includes(userRole)) {
+    throw new Error("Unauthorized: Admin access or higher required.");
   }
 
   try {
@@ -1780,6 +2150,169 @@ function deleteGate(gateIndex, userRole) {
   } catch (error) {
     console.error("Error deleting gate:", error);
     throw error;
+  }
+}
+
+// Diagnostic function to check user data
+function checkUserData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(USERS_SHEET);
+    
+    if (!sheet) {
+      return {
+        error: "Users sheet not found",
+        action: "Creating sheets and default admin..."
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const users = [];
+    
+    for (let i = 0; i < data.length; i++) {
+      users.push({
+        row: i + 1,
+        username: data[i][0] || "empty",
+        role: data[i][2] || "empty",
+        status: data[i][5] || "empty"
+      });
+    }
+    
+    return {
+      totalRows: data.length,
+      users: users,
+      hasAdmin: users.some(u => u.username === "admin" && u.role === "super-admin")
+    };
+  } catch (error) {
+    return {
+      error: error.toString()
+    };
+  }
+}
+
+// Force refresh users and ensure default admin exists
+function forceRefreshUsers() {
+  try {
+    console.log("Force refreshing users...");
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(USERS_SHEET);
+    
+    if (!sheet) {
+      console.log("Users sheet not found, creating...");
+      createInitialSheets();
+      sheet = ss.getSheetByName(USERS_SHEET);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log("Current user data rows:", data.length);
+    
+    // Check if we have header row
+    if (data.length === 0) {
+      console.log("No data at all, adding header...");
+      sheet.getRange(1, 1, 1, 7).setValues([[
+        "Username",
+        "Password", 
+        "Role",
+        "Full Name",
+        "Email",
+        "Status",
+        "Created Date"
+      ]]);
+    }
+    
+    // Ensure default admin exists
+    let adminFound = false;
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === "admin") {
+        adminFound = true;
+        console.log("Admin found at row:", i + 1);
+        break;
+      }
+    }
+    
+    if (!adminFound) {
+      console.log("Admin not found, creating default admin...");
+      createDefaultAdmin();
+    }
+    
+    // Return the current data
+    const finalData = sheet.getDataRange().getValues();
+    console.log("Final user data rows:", finalData.length);
+    
+    return {
+      success: true,
+      message: `Users refreshed. Total rows: ${finalData.length}`,
+      data: finalData
+    };
+  } catch (error) {
+    console.error("Error in forceRefreshUsers:", error);
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+// Normalize and clean up user data
+function normalizeUserData() {
+  try {
+    console.log("Normalizing user data...");
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(USERS_SHEET);
+    
+    if (!sheet) {
+      return { error: "Users sheet not found" };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const normalizedData = [];
+    const issues = [];
+    
+    // Keep header
+    normalizedData.push(data[0]);
+    
+    // Process each user row
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue; // Skip empty rows
+      
+      // Normalize each field
+      const normalizedRow = [
+        row[0] || "",                                    // Username
+        row[1] || "",                                    // Password
+        row[2] || "security",                           // Role (default to security)
+        row[3] || row[0],                               // Full Name (default to username)
+        row[4] || `${row[0]}@vehiclemonitoring.com`,   // Email (generate if missing)
+        row[5] || "active",                             // Status (default to active)
+        row[6] || new Date().toISOString()             // Created Date
+      ];
+      
+      // Check for issues
+      if (!row[3]) issues.push(`Row ${i+1}: Missing Full Name for user ${row[0]}`);
+      if (!row[4]) issues.push(`Row ${i+1}: Missing Email for user ${row[0]}`);
+      
+      normalizedData.push(normalizedRow);
+    }
+    
+    // Update the sheet with normalized data
+    if (normalizedData.length > 1) {
+      sheet.clear();
+      sheet.getRange(1, 1, normalizedData.length, normalizedData[0].length).setValues(normalizedData);
+    }
+    
+    return {
+      success: true,
+      rowsProcessed: normalizedData.length - 1,
+      issues: issues,
+      message: `Normalized ${normalizedData.length - 1} users`
+    };
+    
+  } catch (error) {
+    console.error("Error normalizing user data:", error);
+    return {
+      success: false,
+      error: error.toString()
+    };
   }
 }
 
@@ -2133,6 +2666,7 @@ function createSampleData() {
       console.log("Adding sample vehicles...");
       const sampleVehicles = [
         [
+          "000001",
           "ABC-123",
           "Toyota Camry",
           "White",
@@ -2145,6 +2679,7 @@ function createSampleData() {
           "Access",
         ],
         [
+          "000002",
           "XYZ-456",
           "Honda Civic",
           "Blue",
@@ -2157,6 +2692,7 @@ function createSampleData() {
           "Access",
         ],
         [
+          "000003",
           "MNO-789",
           "Ford F-150",
           "Red",
@@ -2169,6 +2705,7 @@ function createSampleData() {
           "No Access",
         ],
         [
+          "000004",
           "PQR-012",
           "Chevrolet Express",
           "Silver",
@@ -2181,6 +2718,7 @@ function createSampleData() {
           "Banned",
         ],
         [
+          "000005",
           "STU-345",
           "Tesla Model 3",
           "Black",
@@ -2226,6 +2764,7 @@ function createSampleData() {
       console.log("Adding sample drivers...");
       const sampleDrivers = [
         [
+          "000001",
           "DRV001",
           "John Doe",
           "LIC001",
@@ -2238,6 +2777,7 @@ function createSampleData() {
           "Active",
         ],
         [
+          "000002",
           "DRV002",
           "Jane Smith",
           "LIC002",
@@ -2250,6 +2790,7 @@ function createSampleData() {
           "Active",
         ],
         [
+          "000003",
           "DRV003",
           "Bob Johnson",
           "LIC003",
@@ -2262,6 +2803,7 @@ function createSampleData() {
           "Active",
         ],
         [
+          "000004",
           "DRV004",
           "Alice Brown",
           "LIC004",
@@ -2274,6 +2816,7 @@ function createSampleData() {
           "Inactive",
         ],
         [
+          "000005",
           "DRV005",
           "Charlie Davis",
           "LIC005",
@@ -2313,8 +2856,8 @@ function createSampleData() {
       if (userData.length <= 2) {
         console.log("Adding sample users...");
         const sampleUsers = [
-          ["user1", "user123", "user", "user1@example.com", new Date()],
-          ["user2", "user456", "user", "user2@example.com", new Date()],
+          ["security1", "security123", "security", "security1@example.com", new Date()],
+          ["admin1", "admin123", "admin", "admin1@example.com", new Date()],
         ];
 
         // Optimized: Use batch setValues instead of individual appendRow operations
