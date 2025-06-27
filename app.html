@@ -1613,6 +1613,20 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopQRScanner()"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Gates Dropdown at the top -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0"><i class="bi bi-door-open me-1"></i>Select Gate:</label>
+                                <select class="form-select" id="qrGateSelect" style="flex: 1;">
+                                    <option value="">Loading gates...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadGatesForQRScanner()" title="Refresh gates">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-md-6">
                             <h6 class="mb-3">Camera Scanner</h6>
@@ -1682,12 +1696,6 @@
                                         </h6>
                                         <form id="qrTransactionForm">
                                             <div class="mb-3">
-                                                <label class="form-label">Gate</label>
-                                                <select class="form-select" id="qrGateSelect" required>
-                                                    <option value="">Select Gate</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
                                                 <label class="form-label">Action</label>
                                                 <div class="btn-group w-100" role="group">
                                                     <input type="radio" class="btn-check" name="qrAction" id="qrActionIN" value="IN">
@@ -1719,14 +1727,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-warning" onclick="pauseResumeScanner()" id="pauseResumeBtn">
-                        <i class="bi bi-pause-fill me-1"></i>Pause
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="stopQRScanner()">
-                        <i class="bi bi-x-lg me-1"></i>Close
-                    </button>
                     <button type="button" class="btn btn-success" onclick="initQRScanner()" id="restartScannerBtn">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Restart Scanner
+                       Next Vehicle <i class="bi-car-front-fill"></i> 
                     </button>
                 </div>
             </div>
@@ -4123,29 +4125,7 @@
             }, 1500); // Faster error recovery
         }
 
-        function pauseResumeScanner() {
-            const pauseBtn = document.getElementById('pauseResumeBtn');
-            const status = document.getElementById('qrScannerStatus');
-            
-            if (qrScannerActive) {
-                // Pause scanner
-                qrScannerActive = false;
-                if (qrScannerAnimationFrame) {
-                    cancelAnimationFrame(qrScannerAnimationFrame);
-                    qrScannerAnimationFrame = null;
-                }
-                
-                pauseBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Resume';
-                pauseBtn.className = 'btn btn-success';
-                status.textContent = `⏸️ Scanner paused (${qrScanCount} scans completed)`;
-                status.style.background = 'rgba(255, 193, 7, 0.8)'; // Yellow background
-            } else {
-                // Resume scanner
-                pauseBtn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Pause';
-                pauseBtn.className = 'btn btn-warning';
-                continuousScanning();
-            }
-        }
+        // pauseResumeScanner function removed - pause button no longer exists in UI
 
         function stopQRScanner() {
             qrScannerActive = false;
