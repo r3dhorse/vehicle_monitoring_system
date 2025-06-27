@@ -2622,7 +2622,7 @@
                 return;
             }
             
-            const currentStatus = vehicle[6] || 'OUT';
+            const currentStatus = vehicle[7] || 'OUT'; // Status is at index 7
             const newStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
             
             // Get the selected gate using our helper function
@@ -2630,8 +2630,8 @@
             const gate = selectedGate.id;
 
             const logData = {
-                plateNumber: vehicle[0],
-                driverId: vehicle[7] || 'Unknown',
+                plateNumber: vehicle[1], // Plate number is at index 1, not 0 (which is ID)
+                driverId: vehicle[8] || 'Unknown', // Current driver is at index 8
                 action: newStatus,
                 gate: gate,
                 remarks: '',
@@ -3037,9 +3037,9 @@
             
             const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
             
-            document.getElementById('detailsModalTitle').textContent = 'Vehicle Details - ' + vehicle[0];
+            document.getElementById('detailsModalTitle').textContent = 'Vehicle Details - ' + vehicle[1]; // Show plate number, not ID
             
-            const accessStatus = vehicle[9] || 'Access';
+            const accessStatus = vehicle[10] || 'Access'; // Access status is at index 10
             const accessClass = accessStatus === 'Access' ? 'bg-success' : 
                                accessStatus === 'No Access' ? 'bg-warning' : 'bg-danger';
             const accessTextClass = accessStatus === 'No Access' ? 'text-dark' : 'text-white';
@@ -3047,18 +3047,21 @@
             document.getElementById('detailsModalBody').innerHTML = `
                 <div class="row">
                     <div class="col-12 mb-3">
-                        <div class="plate-number text-center fs-4">${vehicle[0]}</div>
+                        <div class="text-center">
+                            <small class="text-muted">Vehicle ID: ${vehicle[0]}</small>
+                        </div>
+                        <div class="plate-number text-center fs-4">${vehicle[1]}</div>
                     </div>
                 </div>
                 <table class="table table-striped">
-                    <tr><th width="40%">Make/Model</th><td>${vehicle[1] || ''}</td></tr>
-                    <tr><th>Color</th><td>${vehicle[2] || ''}</td></tr>
-                    <tr><th>Department</th><td>${vehicle[3] || ''}</td></tr>
-                    <tr><th>Year</th><td>${vehicle[4] || ''}</td></tr>
-                    <tr><th>Type</th><td>${vehicle[5] || ''}</td></tr>
-                    <tr><th>Status</th><td><span class="badge ${vehicle[6] === 'IN' ? 'status-in' : 'status-out'}">${vehicle[6] || 'OUT'}</span></td></tr>
-                    <tr><th>Current Driver</th><td>${vehicle[7] || 'Unassigned'}</td></tr>
-                    <tr><th>Assigned Drivers</th><td>${vehicle[8] || 'None'}</td></tr>
+                    <tr><th width="40%">Make/Model</th><td>${vehicle[2] || ''}</td></tr>
+                    <tr><th>Color</th><td>${vehicle[3] || ''}</td></tr>
+                    <tr><th>Department</th><td>${vehicle[4] || ''}</td></tr>
+                    <tr><th>Year</th><td>${vehicle[5] || ''}</td></tr>
+                    <tr><th>Type</th><td>${vehicle[6] || ''}</td></tr>
+                    <tr><th>Status</th><td><span class="badge ${vehicle[7] === 'IN' ? 'status-in' : 'status-out'}">${vehicle[7] || 'OUT'}</span></td></tr>
+                    <tr><th>Current Driver</th><td>${vehicle[8] || 'Unassigned'}</td></tr>
+                    <tr><th>Assigned Drivers</th><td>${vehicle[9] || 'None'}</td></tr>
                     <tr><th>Access Status</th><td><span class="badge ${accessClass} ${accessTextClass}">${accessStatus}</span></td></tr>
                 </table>
             `;
@@ -3136,21 +3139,21 @@
             // Hide details modal and show edit modal
             bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
             
-            // Populate edit form
+            // Populate edit form with correct indices
             document.getElementById('editVehicleIndex').value = index;
-            document.getElementById('editPlateNumber').value = vehicle[0] || '';
-            document.getElementById('editModel').value = vehicle[1] || '';
-            document.getElementById('editColor').value = vehicle[2] || '';
-            document.getElementById('editDepartment').value = vehicle[3] || '';
-            document.getElementById('editYear').value = vehicle[4] || '';
-            document.getElementById('editType').value = vehicle[5] || 'Car';
-            document.getElementById('editStatus').value = vehicle[6] || 'OUT';
-            document.getElementById('editAssignedDrivers').value = vehicle[8] || '';
-            document.getElementById('editAccessStatus').value = vehicle[9] || 'Access';
+            document.getElementById('editPlateNumber').value = vehicle[1] || ''; // Plate number is at index 1
+            document.getElementById('editModel').value = vehicle[2] || '';      // Make/Model is at index 2
+            document.getElementById('editColor').value = vehicle[3] || '';      // Color is at index 3
+            document.getElementById('editDepartment').value = vehicle[4] || ''; // Department is at index 4
+            document.getElementById('editYear').value = vehicle[5] || '';       // Year is at index 5
+            document.getElementById('editType').value = vehicle[6] || 'Car';    // Type is at index 6
+            document.getElementById('editStatus').value = vehicle[7] || 'OUT';  // Status is at index 7
+            document.getElementById('editAssignedDrivers').value = vehicle[9] || ''; // Assigned drivers is at index 9
+            document.getElementById('editAccessStatus').value = vehicle[10] || 'Access'; // Access status is at index 10
             
             // Populate current driver dropdown from assigned drivers
             updateCurrentDriverDropdown();
-            document.getElementById('editDriver').value = vehicle[7] || '';
+            document.getElementById('editDriver').value = vehicle[8] || '';     // Current driver is at index 8
             
             // Add event listener to assigned drivers field to update current driver options
             const assignedDriversField = document.getElementById('editAssignedDrivers');
@@ -3291,7 +3294,8 @@
             }
             
             // Check if plate number already exists (excluding current vehicle)
-            const originalPlate = currentVehicle[0]; // Get original plate number
+            const originalPlate = currentVehicle[1]; // Get original plate number from index 1
+            const vehicleId = currentVehicle[0]; // Get vehicle ID from index 0
             
             // Only check for duplicates if the plate number has changed
             if (plateNumber !== originalPlate) {
@@ -3304,16 +3308,17 @@
             }
             
             const updatedVehicleData = [
-                plateNumber,
-                model,
-                document.getElementById('editColor').value || '',
-                document.getElementById('editDepartment').value || '',
-                document.getElementById('editYear').value || '',
-                document.getElementById('editType').value || 'Car',
-                document.getElementById('editStatus').value || 'OUT',
-                document.getElementById('editDriver').value || '',
-                document.getElementById('editAssignedDrivers').value || '',
-                document.getElementById('editAccessStatus').value || 'Access'
+                vehicleId,           // Keep original ID at index 0
+                plateNumber,         // Plate number at index 1
+                model,               // Make/Model at index 2
+                document.getElementById('editColor').value || '',      // Color at index 3
+                document.getElementById('editDepartment').value || '', // Department at index 4
+                document.getElementById('editYear').value || '',       // Year at index 5
+                document.getElementById('editType').value || 'Car',    // Type at index 6
+                document.getElementById('editStatus').value || 'OUT',  // Status at index 7
+                document.getElementById('editDriver').value || '',     // Current Driver at index 8
+                document.getElementById('editAssignedDrivers').value || '', // Assigned Drivers at index 9
+                document.getElementById('editAccessStatus').value || 'Access' // Access Status at index 10
             ];
             
             showVehicleModalLoading(true, 'edit');
