@@ -803,10 +803,24 @@ function logVehicleAction(data) {
       accessStatus,
     ]);
 
-    // Update vehicle status
+    // Update vehicle status in column H (index 7, which is column 8 in spreadsheet)
     if (vehicleRow !== -1) {
+      // Column H is at index 7 (0-based), but getRange uses 1-based indexing, so column H = 8
+      console.log(`Updating vehicle status: row ${vehicleRow + 1}, column 8 (Status) to ${data.action}`);
       vehicleSheet.getRange(vehicleRow + 1, 8).setValue(data.action);
+      
+      // Also update the current driver in column I (index 8, column 9 in spreadsheet)
+      if (actualDriverId && actualDriverId !== "Unknown") {
+        console.log(`Updating current driver: row ${vehicleRow + 1}, column 9 (Current Driver) to ${actualDriverId}`);
+        vehicleSheet.getRange(vehicleRow + 1, 9).setValue(actualDriverId);
+      }
+      
+      // Force immediate update to spreadsheet
+      SpreadsheetApp.flush();
+      
       clearVehicleCache(); // Clear cache after status update
+    } else {
+      console.log("Warning: Vehicle not found in sheet, status not updated");
     }
 
     return { success: true, accessStatus: accessStatus };
