@@ -1222,7 +1222,7 @@
     </div>
 
     <!-- Edit Vehicle Modal -->
-    <div class="modal fade" id="editVehicleModal" tabindex="-1">
+    <div class="modal fade" id="editVehicleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-warning text-dark">
@@ -1232,6 +1232,15 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Loading Overlay -->
+                    <div id="editVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 1050;">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-2 text-muted">Saving changes...</div>
+                        </div>
+                    </div>
                     <form id="editVehicleForm">
                         <input type="hidden" id="editVehicleIndex">
                         <div class="row">
@@ -1528,7 +1537,7 @@
     </div>
 
     <!-- Vehicle Management Modal -->
-    <div class="modal fade" id="vehicleManagementModal" tabindex="-1">
+    <div class="modal fade" id="vehicleManagementModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
@@ -1538,6 +1547,15 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Loading Overlay -->
+                    <div id="addVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 1050;">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-2 text-muted">Adding vehicle...</div>
+                        </div>
+                    </div>
                     <h6 class="mb-3">Add New Vehicle</h6>
                     
                     <!-- Add Vehicle Form -->
@@ -2761,6 +2779,58 @@
             }
         }
 
+        function showVehicleModalLoading(show, modalType) {
+            const loadingOverlayId = modalType === 'add' ? 'addVehicleLoading' : 'editVehicleLoading';
+            const modalId = modalType === 'add' ? 'vehicleManagementModal' : 'editVehicleModal';
+            
+            const loadingOverlay = document.getElementById(loadingOverlayId);
+            const modal = document.getElementById(modalId);
+            
+            if (show) {
+                // Show loading overlay
+                loadingOverlay.classList.remove('d-none');
+                loadingOverlay.classList.add('d-flex');
+                
+                // Disable all buttons and form elements in the modal EXCEPT Cancel and X buttons
+                const buttons = modal.querySelectorAll('button:not([data-bs-dismiss="modal"])');
+                const inputs = modal.querySelectorAll('input, select, textarea');
+                
+                buttons.forEach(btn => {
+                    if (!btn.hasAttribute('data-bs-dismiss')) {
+                        btn.setAttribute('data-original-disabled', btn.disabled);
+                        btn.disabled = true;
+                    }
+                });
+                
+                inputs.forEach(input => {
+                    input.setAttribute('data-original-disabled', input.disabled);
+                    input.disabled = true;
+                });
+            } else {
+                // Hide loading overlay
+                loadingOverlay.classList.add('d-none');
+                loadingOverlay.classList.remove('d-flex');
+                
+                // Re-enable all buttons and form elements
+                const buttons = modal.querySelectorAll('button:not([data-bs-dismiss="modal"])');
+                const inputs = modal.querySelectorAll('input, select, textarea');
+                
+                buttons.forEach(btn => {
+                    if (!btn.hasAttribute('data-bs-dismiss')) {
+                        const wasOriginallyDisabled = btn.getAttribute('data-original-disabled') === 'true';
+                        btn.disabled = wasOriginallyDisabled;
+                        btn.removeAttribute('data-original-disabled');
+                    }
+                });
+                
+                inputs.forEach(input => {
+                    const wasOriginallyDisabled = input.getAttribute('data-original-disabled') === 'true';
+                    input.disabled = wasOriginallyDisabled;
+                    input.removeAttribute('data-original-disabled');
+                });
+            }
+        }
+
         function showMessage(message, type) {
             const loginMsg = document.getElementById('loginMsg');
             const icons = {
@@ -3007,16 +3077,19 @@
                 const newDriverValue = document.getElementById('editDriver').value || '';
                 
                 // Create updated vehicle data with only driver field changed
-                const currentVehicle = allVehicles[index];
+                const currentVehicle = vehicleData[index]; // Use vehicleData instead of allVehicles
                 const updatedVehicleData = [...currentVehicle]; // Copy existing data
                 updatedVehicleData[7] = newDriverValue; // Update only current driver field
                 
-                showLoading(true);
+                showVehicleModalLoading(true, 'edit');
                 google.script.run
                     .withSuccessHandler(function(success) {
                         if (success) {
                             // Update local data
-                            allVehicles[index] = updatedVehicleData;
+                            vehicleData[index] = updatedVehicleData;
+                            
+                            // Reload vehicles to ensure consistency
+                            loadVehicles();
                             
                             // Update UI
                             displayVehicles();
@@ -3027,11 +3100,11 @@
                         } else {
                             showToast('Failed to update driver', 'danger');
                         }
-                        showLoading(false);
+                        showVehicleModalLoading(false, 'edit');
                     })
                     .withFailureHandler(function(error) {
                         showToast('Error updating driver: ' + error, 'danger');
-                        showLoading(false);
+                        showVehicleModalLoading(false, 'edit');
                     })
                     .updateVehicleRecord(index, updatedVehicleData, currentUser.role);
                 
@@ -3047,11 +3120,35 @@
                 return;
             }
             
+            // Define currentVehicle for admin role
+            const currentVehicle = vehicleData[index];
+            
+            // Find the actual index in allVehicles for backend
+            let actualIndex = -1;
+            if (allVehicles && allVehicles.length > 1) {
+                for (let i = 1; i < allVehicles.length; i++) {
+                    if (allVehicles[i][0] === currentVehicle[0]) {
+                        actualIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            // If not found in allVehicles, use index as fallback
+            if (actualIndex === -1) {
+                actualIndex = index;
+            }
+            
             // Check if plate number already exists (excluding current vehicle)
-            for (let i = 1; i < allVehicles.length; i++) {
-                if (i !== index && allVehicles[i][0] === plateNumber) {
-                    showToast('Another vehicle with this plate number already exists', 'danger');
-                    return;
+            const originalPlate = currentVehicle[0]; // Get original plate number
+            
+            // Only check for duplicates if the plate number has changed
+            if (plateNumber !== originalPlate) {
+                for (let i = 1; i < vehicleData.length; i++) {
+                    if (vehicleData[i][0] === plateNumber) {
+                        showToast('Another vehicle with this plate number already exists', 'danger');
+                        return;
+                    }
                 }
             }
             
@@ -3068,13 +3165,15 @@
                 document.getElementById('editAccessStatus').value || 'Access'
             ];
             
-            showLoading(true);
+            showVehicleModalLoading(true, 'edit');
             google.script.run
                 .withSuccessHandler(function(success) {
                     if (success) {
                         // Update local data
-                        allVehicles[index] = updatedVehicleData;
-                        vehicleData = allVehicles;
+                        vehicleData[index] = updatedVehicleData;
+                        
+                        // Reload vehicles to ensure consistency
+                        loadVehicles();
                         
                         // Update display
                         displayVehicles();
@@ -3085,13 +3184,13 @@
                         
                         showToast('Vehicle updated successfully!', 'success');
                     }
-                    showLoading(false);
+                    showVehicleModalLoading(false, 'edit');
                 })
                 .withFailureHandler(function(error) {
                     showToast('Failed to update vehicle: ' + error, 'danger');
-                    showLoading(false);
+                    showVehicleModalLoading(false, 'edit');
                 })
-                .updateVehicleRecord(index, updatedVehicleData, currentUser.role);
+                .updateVehicleRecord(actualIndex, updatedVehicleData, currentUser.role);
         }
 
         function deleteVehicle(index) {
@@ -3655,6 +3754,9 @@
                 accessStatus: document.getElementById('vehicleAccessStatus').value
             };
 
+            // Show loading state
+            showVehicleModalLoading(true, 'add');
+
             google.script.run
                 .withSuccessHandler(function(result) {
                     if (result.success) {
@@ -3663,9 +3765,11 @@
                         bootstrap.Modal.getInstance(document.getElementById('vehicleManagementModal')).hide();
                         showToast('Vehicle added successfully!', 'success');
                     }
+                    showVehicleModalLoading(false, 'add');
                 })
                 .withFailureHandler(function(error) {
                     showToast('Failed to save vehicle: ' + error, 'danger');
+                    showVehicleModalLoading(false, 'add');
                 })
                 .saveVehicleRecord(vehicleData, currentUser.role, -1);
         }
