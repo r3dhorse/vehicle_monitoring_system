@@ -473,9 +473,8 @@ function getVehicleList(searchCriteria = {}) {
     let allData = [];
     const chunkSize = 1000; // Read 1000 rows at a time
     const header = sheet.getRange(1, 1, 1, 11).getValues()[0];
-    // Remove ID column from header (index 0)
-    const headerWithoutId = header.slice(1);
-    allData.push(headerWithoutId);
+    // Keep all columns including ID
+    allData.push(header);
 
     // If no search criteria, return paginated results
     if (
@@ -491,8 +490,7 @@ function getVehicleList(searchCriteria = {}) {
       if (startRow <= lastRow) {
         const paginatedData = sheet
           .getRange(startRow, 1, endRow - startRow + 1, 11)
-          .getValues()
-          .map(row => row.slice(1)); // Remove ID column (index 0)
+          .getValues(); // Keep all columns including ID
         allData = allData.concat(paginatedData);
       }
 
@@ -551,7 +549,7 @@ function getVehicleList(searchCriteria = {}) {
         }
 
         return true;
-      }).map(row => row.slice(1)); // Remove ID column (index 0)
+      }); // Keep all columns including ID
 
       matchingRows = matchingRows.concat(filteredChunk);
 
@@ -1254,12 +1252,12 @@ function getVehicleStatistics() {
     };
 
     for (let i = 1; i < data.length; i++) {
-      if (!data[i] || data[i].length < 10) continue;
+      if (!data[i] || data[i].length < 11) continue;
 
       stats.total++;
-      const status = data[i][6] || "OUT"; // Status is at index 6
-      const type = data[i][5] || "Unknown"; // Type is at index 5
-      const driver = data[i][7] || "Unassigned"; // Current driver is at index 7
+      const status = data[i][7] || "OUT"; // Status is at index 7
+      const type = data[i][6] || "Unknown"; // Type is at index 6
+      const driver = data[i][8] || "Unassigned"; // Current driver is at index 8
 
       if (status === "IN") {
         stats.in++;
@@ -1316,10 +1314,10 @@ function getDatabaseStatistics() {
 
     // Count both status and access status from database
     for (let i = 1; i < data.length; i++) {
-      if (!data[i] || data[i].length < 10) continue;
+      if (!data[i] || data[i].length < 11) continue;
 
-      // Count IN and OUT statuses from column G (index 6)
-      const status = (data[i][6] || "OUT").toString().toUpperCase().trim();
+      // Count IN and OUT statuses from column H (index 7)
+      const status = (data[i][7] || "OUT").toString().toUpperCase().trim();
       if (status === "IN") {
         totalIn++;
       } else if (status === "OUT") {
@@ -1402,9 +1400,9 @@ function getVehicleStatusCounts() {
 
     // Skip header row, start from row 2 (index 1)
     for (let i = 1; i < data.length; i++) {
-      if (!data[i] || data[i].length < 7) continue;
+      if (!data[i] || data[i].length < 8) continue;
 
-      const status = (data[i][6] || "OUT").toString().toUpperCase().trim();
+      const status = (data[i][7] || "OUT").toString().toUpperCase().trim();
 
       if (status === "IN") {
         totalIn++;
@@ -1450,7 +1448,7 @@ function getVehicleAccessStatusCounts() {
     // Skip header row, start from row 2 (index 1)
     // Access status is in column J (index 9)
     for (let i = 1; i < data.length; i++) {
-      if (!data[i] || data[i].length < 10) continue;
+      if (!data[i] || data[i].length < 11) continue;
 
       const accessStatus = (data[i][9] || "Access").toString().trim();
 

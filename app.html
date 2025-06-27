@@ -1125,6 +1125,7 @@
                                 <table class="table table-sm table-hover mb-0" id="vehiclesTable">
                                     <thead class="table-light sticky-top">
                                         <tr>
+                                            <th style="width: 60px; font-size: 0.85rem;">ID</th>
                                             <th style="width: 90px; font-size: 0.85rem;">Plate #</th>
                                             <th style="width: 110px; font-size: 0.85rem;">Make/Model</th>
                                             <th style="width: 80px; font-size: 0.85rem;" class="d-none d-md-table-cell">Department</th>
@@ -1137,7 +1138,7 @@
                                     </thead>
                                     <tbody id="vehiclesTableBody">
                                         <tr>
-                                            <td colspan="8" class="text-center py-4">
+                                            <td colspan="9" class="text-center py-4">
                                                 <div class="spinner-border text-primary" role="status">
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
@@ -2292,7 +2293,7 @@
                 // Show no vehicles message
                 vehiclesTableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="text-center py-4">
+                        <td colspan="9" class="text-center py-4">
                             <i class="bi bi-car-front text-muted" style="font-size: 3rem;"></i>
                             <p class="text-muted mt-2 mb-0">No vehicles found</p>
                             <small class="text-muted">Try adjusting your search criteria</small>
@@ -2314,18 +2315,19 @@
             // Build table rows
             for (let i = 1; i < vehicleData.length; i++) {
                 const vehicle = vehicleData[i];
-                if (!vehicle || vehicle.length < 10) continue;
+                if (!vehicle || vehicle.length < 11) continue;
 
-                const plateNumber = vehicle[0] || '';
-                const model = vehicle[1] || '';
-                const color = vehicle[2] || '';
-                const department = vehicle[3] || '';
-                const year = vehicle[4] || '';
-                const type = vehicle[5] || '';
-                const status = vehicle[6] || 'OUT';
-                const currentDriver = vehicle[7] || 'Unassigned';
-                const assignedDrivers = vehicle[8] || '';
-                const accessStatus = vehicle[9] || 'Access';
+                const vehicleId = vehicle[0] || '';
+                const plateNumber = vehicle[1] || '';
+                const model = vehicle[2] || '';
+                const color = vehicle[3] || '';
+                const department = vehicle[4] || '';
+                const year = vehicle[5] || '';
+                const type = vehicle[6] || '';
+                const status = vehicle[7] || 'OUT';
+                const currentDriver = vehicle[8] || 'Unassigned';
+                const assignedDrivers = vehicle[9] || '';
+                const accessStatus = vehicle[10] || 'Access';
 
                 // Count by status
                 if (status === 'IN') {
@@ -2336,7 +2338,7 @@
 
                 // Create table row
                 const row = createVehicleTableRow(
-                    plateNumber, model, color, department, year, type, 
+                    vehicleId, plateNumber, model, color, department, year, type, 
                     status, currentDriver, assignedDrivers, accessStatus, i
                 );
                 
@@ -2352,7 +2354,7 @@
             optimizeTablePerformance();
         }
 
-        function createVehicleTableRow(plateNumber, model, color, department, year, type, status, currentDriver, assignedDrivers, accessStatus, index) {
+        function createVehicleTableRow(vehicleId, plateNumber, model, color, department, year, type, status, currentDriver, assignedDrivers, accessStatus, index) {
             const row = document.createElement('tr');
             row.className = `vehicle-row ${status === 'IN' ? 'table-success' : 'table-light'}`;
             
@@ -2451,6 +2453,7 @@
             `;
             
             row.innerHTML = `
+                <td style="padding: 8px 8px; font-size: 0.8rem;" class="text-muted">${vehicleId}</td>
                 <td style="padding: 8px 8px; font-size: 0.9rem;" class="fw-bold text-primary">${plateNumber}</td>
                 <td style="padding: 8px 8px; font-size: 0.85rem;">
                     <div class="fw-semibold">${model}</div>
@@ -2478,12 +2481,12 @@
             
             // Get vehicle details for enhanced display
             const vehicle = vehicleData[index];
-            const color = vehicle[2] || 'Unknown';
-            const department = vehicle[3] || 'Unknown';
-            const year = vehicle[4] || '';
-            const type = vehicle[5] || 'Car';
-            const assignedDrivers = vehicle[8] || '';
-            const accessStatus = vehicle[9] || 'Access';
+            const color = vehicle[3] || 'Unknown';
+            const department = vehicle[4] || 'Unknown';
+            const year = vehicle[5] || '';
+            const type = vehicle[6] || 'Car';
+            const assignedDrivers = vehicle[9] || '';
+            const accessStatus = vehicle[10] || 'Access';
             
             // Build CSS classes including access status
             let cssClasses = `card vehicle-card status-${status.toLowerCase()}`;
@@ -2639,7 +2642,7 @@
             google.script.run
                 .withSuccessHandler(function(result) {
                     if (result && result.success) {
-                        vehicleData[index][6] = newStatus;
+                        vehicleData[index][7] = newStatus;
                         displayVehicles();
                         updateStatistics();
                         showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`, 'success');
@@ -3227,7 +3230,7 @@
                 // Create updated vehicle data with only driver field changed
                 const currentVehicle = vehicleData[index]; // Use vehicleData instead of allVehicles
                 const updatedVehicleData = [...currentVehicle]; // Copy existing data
-                updatedVehicleData[7] = newDriverValue; // Update only current driver field
+                updatedVehicleData[8] = newDriverValue; // Update only current driver field
                 
                 showVehicleModalLoading(true, 'edit');
                 google.script.run
@@ -3293,7 +3296,7 @@
             // Only check for duplicates if the plate number has changed
             if (plateNumber !== originalPlate) {
                 for (let i = 1; i < vehicleData.length; i++) {
-                    if (vehicleData[i][0] === plateNumber) {
+                    if (vehicleData[i][1] === plateNumber) {
                         showToast('Another vehicle with this plate number already exists', 'danger');
                         return;
                     }
@@ -3348,7 +3351,7 @@
             }
             
             const vehicle = vehicleData[index];
-            const plateNumber = vehicle[0];
+            const plateNumber = vehicle[1];
             
             // Confirm deletion
             if (!confirm(`Are you sure you want to delete vehicle ${plateNumber}?\n\nThis action cannot be undone.`)) {
@@ -4693,20 +4696,20 @@
             
             for (let i = 1; i < vehicleData.length; i++) {
                 const vehicle = vehicleData[i];
-                if (vehicle && vehicle[0] && vehicle[0].trim().toUpperCase() === plateNumber) {
+                if (vehicle && vehicle[1] && vehicle[1].trim().toUpperCase() === plateNumber) {
                     // Return vehicle info in the same format as server response
                     return {
                         found: true,
-                        plateNumber: vehicle[0] || '',
-                        makeModel: vehicle[1] || '',
-                        color: vehicle[2] || '',
-                        department: vehicle[3] || '',
-                        year: vehicle[4] || '',
-                        type: vehicle[5] || '',
-                        currentStatus: vehicle[6] || 'OUT',
-                        currentDriver: vehicle[7] || '',
-                        assignedDrivers: vehicle[8] || '',
-                        accessStatus: vehicle[9] || 'Access'
+                        plateNumber: vehicle[1] || '',
+                        makeModel: vehicle[2] || '',
+                        color: vehicle[3] || '',
+                        department: vehicle[4] || '',
+                        year: vehicle[5] || '',
+                        type: vehicle[6] || '',
+                        currentStatus: vehicle[7] || 'OUT',
+                        currentDriver: vehicle[8] || '',
+                        assignedDrivers: vehicle[9] || '',
+                        accessStatus: vehicle[10] || 'Access'
                     };
                 }
             }
@@ -4800,8 +4803,8 @@
             // Update the local vehicle data for immediate UI response
             if (vehicleData && vehicleData.length > 1) {
                 for (let i = 1; i < vehicleData.length; i++) {
-                    if (vehicleData[i] && vehicleData[i][0] === plateNumber) {
-                        vehicleData[i][6] = newStatus; // Update status
+                    if (vehicleData[i] && vehicleData[i][1] === plateNumber) {
+                        vehicleData[i][7] = newStatus; // Update status
                         break;
                     }
                 }
@@ -5118,7 +5121,7 @@
             const logsBody = document.getElementById('transactionLogsBody');
             logsBody.innerHTML = `
                 <tr>
-                    <td colspan="8" class="text-center py-4">
+                    <td colspan="4" class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -5133,7 +5136,7 @@
                     console.error('Error loading transaction logs:', error);
                     logsBody.innerHTML = `
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-danger">
+                            <td colspan="4" class="text-center py-4 text-danger">
                                 <i class="bi bi-exclamation-triangle me-2"></i>
                                 Failed to load transaction logs
                             </td>
