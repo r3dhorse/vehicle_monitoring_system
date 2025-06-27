@@ -85,6 +85,13 @@
                 height: 50px;
             }
             
+            .qr-scanner-btn {
+                bottom: 20px;
+                left: 20px; /* Position in lower left on mobile */
+                width: 50px;
+                height: 50px;
+            }
+            
             .login-card {
                 margin: 1rem;
             }
@@ -657,6 +664,24 @@
             transform: scale(1.1);
             box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
         }
+        
+        .qr-scanner-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 100px; /* Position to the left of add button */
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(40, 167, 69, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: none; /* Hidden by default */
+        }
+        
+        .qr-scanner-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 25px rgba(40, 167, 69, 0.6);
+        }
         .role-badge {
             font-size: 0.8rem;
             padding: 4px 8px;
@@ -868,9 +893,6 @@
                     </button>
                     <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
                         <i class="bi bi-door-open me-1"></i>Manage Gates
-                    </button>
-                    <button class="btn btn-outline-success btn-sm me-3" id="qrScannerBtn" onclick="showQRScanner()">
-                        <i class="bi bi-qr-code me-1"></i>QR Scanner
                     </button>
                     <div class="dropdown me-3" id="userManagementDropdown" style="display: none;">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -1197,10 +1219,17 @@
         </div>
     </div>
 
+    <!-- QR Scanner Button -->
+    <button class="btn btn-success qr-scanner-btn" onclick="showQRScanner()" title="QR Code Scanner" id="qrScannerBtn">
+        <i class="bi bi-qr-code fs-4"></i>
+    </button>
+    
     <!-- Add Vehicle Button -->
     <button class="btn btn-primary add-vehicle-btn" onclick="showVehicleManagement()" title="Manage Vehicles" id="addVehicleBtn">
         <i class="bi bi-plus-lg fs-4"></i>
     </button>
+
+    
 
 
     <!-- Vehicle Details Modal -->
@@ -1925,6 +1954,14 @@
                 addVehicleBtn.style.display = 'none';
             }
             
+            // Show/hide QR scanner button
+            const qrScannerBtn = document.getElementById('qrScannerBtn');
+            if (hasPermission('scan_vehicles')) {
+                qrScannerBtn.style.display = 'block';
+            } else {
+                qrScannerBtn.style.display = 'none';
+            }
+            
             // Show/hide user management dropdown
             const userManagementDropdown = document.getElementById('userManagementDropdown');
             if (hasPermission('manage_users')) {
@@ -1954,10 +1991,10 @@
         function hasPermission(permission) {
             const role = currentUser.role;
             const permissions = {
-                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config'],
-                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'manage_regular_users'],
-                'supervisor': ['view_all', 'vehicle_operations', 'manage_gates', 'generate_reports'],
-                'security': ['vehicle_operations', 'gate_operations', 'view_assigned'],
+                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config', 'scan_vehicles'],
+                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'manage_regular_users', 'scan_vehicles'],
+                'supervisor': ['view_all', 'vehicle_operations', 'manage_gates', 'generate_reports', 'scan_vehicles'],
+                'security': ['vehicle_operations', 'gate_operations', 'view_assigned', 'scan_vehicles'],
                 'user': ['view_own', 'basic_operations']
             };
             
@@ -4023,7 +4060,7 @@
                         gate: gate,
                         driverId: vehicleInfo.currentDriver || '',
                         remarks: 'QR Scanner auto-transaction',
-                        loggedBy: currentUser.username
+                        username: currentUser.username
                     };
 
                     // Update status to show processing
@@ -4339,7 +4376,7 @@
                 gate: gate,
                 driverId: driverId,
                 remarks: enhancedRemarks,
-                loggedBy: currentUser.username
+                username: currentUser.username
             };
 
             // Disable form
