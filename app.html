@@ -31,6 +31,28 @@
             will-change: transform;
         }
         
+        /* Enhanced search input styling */
+        #searchInput {
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+            padding-left: 2.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 0.75rem center;
+            background-size: 1rem;
+        }
+        
+        #searchInput:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            outline: none;
+        }
+        
+        #searchInput::placeholder {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
         /* Mobile-first responsive design */
         @media (max-width: 767px) {
             .navbar-nav {
@@ -926,11 +948,6 @@
                     <div class="summary-card">
                         <div class="summary-stats">
                             <div class="summary-item">
-                                <i class="bi bi-activity text-primary"></i>
-                                <p class="value" id="occupancyRate">0%</p>
-                                <p class="label">Occupancy Rate</p>
-                            </div>
-                            <div class="summary-item">
                                 <i class="bi bi-clock-history text-info"></i>
                                 <p class="value" id="lastUpdate">Just now</p>
                                 <p class="label">Last Update</p>
@@ -969,23 +986,46 @@
             <div class="row mb-4">
                 <div class="col-12 col-md-3 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
-                        <small><i class="bi bi-search me-1"></i>Search by:</small>
+                        <small>
+                            <i class="bi bi-search me-1"></i>Search by:
+                            <i class="bi bi-info-circle ms-1 text-primary" 
+                               data-bs-toggle="tooltip" 
+                               data-bs-placement="top" 
+                               title="Search across: Plate Number, Model/Make, Department, Current Driver, and Assigned Drivers"
+                               style="cursor: help;"></i>
+                        </small>
                     </label>
                     <input type="text" class="form-control" id="searchInput" 
-                           placeholder="Search vehicles..." 
-                           onkeyup="debounceFilter()">
+                           placeholder="Search plate, model, department, driver..." 
+                           onkeyup="debounceFilter()"
+                           title="Search by plate number, model/make, department, or driver"
+                           autocomplete="off">
+                    <small class="text-muted d-none d-md-block mt-1">
+                        <i class="bi bi-lightbulb me-1"></i>Tip: Type any part of plate, model, dept, or driver name
+                    </small>
                 </div>
                 <div class="col-6 col-md-2 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
                         <small><i class="bi bi-filter me-1"></i>Status:</small>
                     </label>
                     <select class="form-select" id="filterStatus" onchange="filterVehicles()">
-                        <option value="">All Vehicles</option>
+                        <option value="">All Status</option>
                         <option value="IN">🟢 Checked IN</option>
                         <option value="OUT">🔴 Checked OUT</option>
                     </select>
                 </div>
-                <div class="col-6 col-md-3 mb-2 mb-md-0">
+                <div class="col-6 col-md-2 mb-2 mb-md-0">
+                    <label class="form-label mb-1 d-none d-md-block">
+                        <small><i class="bi bi-shield me-1"></i>Access:</small>
+                    </label>
+                    <select class="form-select" id="filterAccessStatus" onchange="filterVehicles()">
+                        <option value="">All Access</option>
+                        <option value="Access">✅ Access</option>
+                        <option value="No Access">⚠️ No Access</option>
+                        <option value="Banned">🚫 Banned</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
                         <small><i class="bi bi-geo-alt me-1"></i>Gate:</small>
                     </label>
@@ -998,7 +1038,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="col-12 col-md-4 text-center text-md-end mt-2 mt-md-0 d-flex align-items-end justify-content-center justify-content-md-end gap-2">
+                <div class="col-12 col-md-3 text-center text-md-end mt-2 mt-md-0 d-flex align-items-end justify-content-center justify-content-md-end gap-2">
                     <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()" title="Clear all filters">
                         <i class="bi bi-x-circle me-1"></i><span class="d-none d-lg-inline">Clear</span>
                     </button>
@@ -1753,6 +1793,10 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Application starting...');
             
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+            
             // Check for existing session first
             checkExistingSession();
             
@@ -2465,15 +2509,16 @@
         function filterVehicles() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             const filterStatus = document.getElementById('filterStatus').value;
+            const filterAccessStatus = document.getElementById('filterAccessStatus').value;
 
             // Show filter feedback
-            showFilterFeedback(searchTerm, filterStatus);
+            showFilterFeedback(searchTerm, filterStatus, filterAccessStatus);
 
             // Build search criteria for server-side filtering
             const searchCriteria = {
                 searchTerm: searchTerm,
                 statusFilter: filterStatus,
-                accessStatusFilter: '',
+                accessStatusFilter: filterAccessStatus,
                 departmentFilter: '',
                 pageSize: 50,
                 pageOffset: 0
@@ -2487,6 +2532,7 @@
             // Clear all filter inputs
             document.getElementById('searchInput').value = '';
             document.getElementById('filterStatus').value = '';
+            document.getElementById('filterAccessStatus').value = '';
             
             // Reset to default search criteria (load all vehicles)
             loadVehicles();
@@ -2495,10 +2541,10 @@
             showToast('Filters cleared - showing all vehicles', 'info');
         }
 
-        function showFilterFeedback(searchTerm, filterStatus) {
+        function showFilterFeedback(searchTerm, filterStatus, filterAccessStatus) {
             // Update clear button visibility
             const clearBtn = document.querySelector('button[onclick="clearFilters()"]');
-            if (searchTerm || filterStatus) {
+            if (searchTerm || filterStatus || filterAccessStatus) {
                 clearBtn.style.opacity = '1';
                 clearBtn.disabled = false;
             } else {
@@ -2513,12 +2559,6 @@
             if (clearBtn) {
                 clearBtn.style.opacity = '0.5';
                 clearBtn.disabled = true;
-            }
-            
-            // Add enhanced search placeholder
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.setAttribute('placeholder', 'Search plate number');
             }
         }
 
@@ -2539,11 +2579,12 @@
             // Load vehicles for the new page
             const searchTerm = document.getElementById('searchInput').value.trim();
             const filterStatus = document.getElementById('filterStatus').value;
+            const filterAccessStatus = document.getElementById('filterAccessStatus').value;
             
             const searchCriteria = {
                 searchTerm: searchTerm,
                 statusFilter: filterStatus,
-                accessStatusFilter: '',
+                accessStatusFilter: filterAccessStatus,
                 departmentFilter: '',
                 pageSize: pageSize,
                 pageOffset: (currentPage - 1) * pageSize
@@ -2560,11 +2601,12 @@
             // Reload vehicles with new page size
             const searchTerm = document.getElementById('searchInput').value.trim();
             const filterStatus = document.getElementById('filterStatus').value;
+            const filterAccessStatus = document.getElementById('filterAccessStatus').value;
             
             const searchCriteria = {
                 searchTerm: searchTerm,
                 statusFilter: filterStatus,
-                accessStatusFilter: '',
+                accessStatusFilter: filterAccessStatus,
                 departmentFilter: '',
                 pageSize: pageSize,
                 pageOffset: 0
@@ -2683,16 +2725,6 @@
         }
 
         function updateSummaryStats(vehiclesIn, totalRegistered = null) {
-            // Update occupancy rate using database statistics
-            // If totalRegistered is provided, use it; otherwise get it from the current display
-            let total = totalRegistered;
-            if (total === null) {
-                total = parseInt(document.getElementById('totalVehicles').textContent) || 0;
-            }
-            
-            const occupancyRate = total > 0 ? Math.round((vehiclesIn / total) * 100) : 0;
-            document.getElementById('occupancyRate').textContent = occupancyRate + '%';
-            
             // Update last update time
             const now = new Date();
             const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
