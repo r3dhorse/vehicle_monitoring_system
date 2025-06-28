@@ -21,6 +21,61 @@ class VehicleMonitoringError extends Error {
   }
 }
 
+// Password hashing utility functions
+function hashPassword(password) {
+  try {
+    // Use SHA-256 for password hashing with salt
+    const salt = Utilities.getUuid();
+    const hashedPassword = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      password + salt,
+      Utilities.Charset.UTF_8
+    );
+    
+    // Convert to hex string
+    const hashHex = hashedPassword.map(byte => 
+      (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, '0')
+    ).join('');
+    
+    // Return salt:hash format
+    return salt + ':' + hashHex;
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw new VehicleMonitoringError("Failed to hash password", "HASH_ERROR");
+  }
+}
+
+function verifyPassword(password, hashedPassword) {
+  try {
+    // Check if this is an old plain text password (no salt:hash format)
+    if (!hashedPassword.includes(':')) {
+      // Legacy plain text comparison - should be migrated
+      return password === hashedPassword;
+    }
+    
+    // Extract salt and hash
+    const [salt, hash] = hashedPassword.split(':');
+    
+    // Hash the provided password with the stored salt
+    const computedHash = Utilities.computeDigest(
+      Utilities.DigestAlgorithm.SHA_256,
+      password + salt,
+      Utilities.Charset.UTF_8
+    );
+    
+    // Convert to hex string
+    const computedHashHex = computedHash.map(byte => 
+      (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, '0')
+    ).join('');
+    
+    // Compare hashes
+    return computedHashHex === hash;
+  } catch (error) {
+    console.error("Error verifying password:", error);
+    return false;
+  }
+}
+
 // Cache utility functions for improved performance
 function clearVehicleCache() {
   try {
@@ -1474,9 +1529,9 @@ function loginUser(username, password) {
     }
 
     for (let i = 1; i < data.length; i++) {
-      // Simple comparison - in production, use proper password hashing
+      // Secure password verification with hashing
       // Username is at index 1, password at index 2, role at index 3, status at index 6 (after ID field)
-      if (data[i][1] === username && data[i][2] === password) {
+      if (data[i][1] === username && verifyPassword(password, data[i][2])) {
         // Check user status (column G, index 6)
         const userStatus = data[i][6] || "active";
         if (userStatus !== "active") {
@@ -1852,7 +1907,7 @@ function createDefaultAdmin() {
     sheet.appendRow([
       userId,                                    // ID
       "admin",                                  // Username
-      "admin123",                               // Password
+      hashPassword("admin123"),                  // Password (hashed)
       "super-admin",                            // Role
       "System Administrator",                   // Full Name
       "admin@vehiclemonitoring.com",            // Email
@@ -1882,7 +1937,7 @@ function resetAdminUser() {
         sheet.getRange(i + 1, 1, 1, 8).setValues([[
           data[i][0] || 1,                                // Keep existing ID or default to 1
           "admin",                                        // Username
-          "admin123",                                     // Password
+          hashPassword("admin123"),                       // Password (hashed)
           "super-admin",                                  // Role
           "System Administrator",                         // Full Name
           "admin@vehiclemonitoring.com",                  // Email
@@ -2674,7 +2729,7 @@ function saveUser(userData, userRole, editIndex = -1) {
       userRow = [
         existingData[0],                                           // ID (keep existing)
         sanitizeInput(userData.username),                          // Username
-        userData.password ? sanitizeInput(userData.password) : (existingData[2] || ""), // Keep existing password if not provided
+        userData.password ? hashPassword(userData.password) : (existingData[2] || ""), // Hash new password or keep existing
         userData.role,                                             // Role
         sanitizeInput(userData.fullName),                          // Full Name
         sanitizeInput(userData.email),                             // Email
@@ -2687,7 +2742,7 @@ function saveUser(userData, userRole, editIndex = -1) {
       userRow = [
         userId,                                                    // ID (auto-generated)
         sanitizeInput(userData.username),                          // Username
-        sanitizeInput(userData.password),                          // Password
+        hashPassword(userData.password),                           // Password (hashed)
         userData.role,                                             // Role
         sanitizeInput(userData.fullName),                          // Full Name
         sanitizeInput(userData.email),                             // Email
