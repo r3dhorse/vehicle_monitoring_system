@@ -255,6 +255,365 @@ function logUserActivity(username, userRole, action, resource, result, details =
 }
 
 /**
+ * Log vehicle audit trail for super-admin and admin only
+ * Format: Timestamp (June 23, 2025 23:30) | Username | Old Data | New Data
+ * @param {string} username - Username performing the action
+ * @param {string} userRole - User's role
+ * @param {Array} oldData - Previous vehicle data
+ * @param {Array} newData - New vehicle data
+ */
+function logVehicleAuditTrail(username, userRole, oldData, newData) {
+  // Only super-admin and admin can use audit trail
+  if (userRole !== "super-admin" && userRole !== "admin") {
+    return;
+  }
+  
+  try {
+    let auditSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("VehicleAuditTrail");
+    
+    // Create audit sheet if it doesn't exist
+    if (!auditSheet) {
+      const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+      auditSheet = spreadsheet.insertSheet("VehicleAuditTrail");
+      
+      // Add headers
+      const headers = ["Timestamp", "Username", "Old Data", "New Data"];
+      auditSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      auditSheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+    }
+    
+    // Try to get current user from session or use passed username
+    let actualUsername = username;
+    console.log(`Starting audit trail username resolution. Initial username: ${actualUsername}, userRole: ${userRole}`);
+    
+    if (!actualUsername || actualUsername === 'Unknown') {
+      console.log("Username is Unknown, trying to resolve...");
+      
+      // First try to get from cached session
+      try {
+        const currentUserSession = getCurrentUser();
+        console.log("getCurrentUser() result:", currentUserSession);
+        if (currentUserSession.success) {
+          // Accept any cached user for now (not just matching role)
+          actualUsername = currentUserSession.username;
+          console.log(`Got username from session cache: ${actualUsername}`);
+        }
+      } catch (e) {
+        console.log("Could not get user from session cache:", e);
+      }
+      
+      // Try to get the current active user from Google Apps Script
+      if (!actualUsername || actualUsername === 'Unknown') {
+        try {
+          const currentUser = Session.getActiveUser().getEmail();
+          console.log("Google Session user email:", currentUser);
+          if (currentUser && currentUser !== '') {
+            // Extract username from email (everything before @)
+            const emailUsername = currentUser.split('@')[0];
+            
+            // Try to match this with a known user in the Users sheet
+            try {
+              const usersSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Users");
+              if (usersSheet) {
+                const userData = usersSheet.getDataRange().getValues();
+                let foundMatchingUser = false;
+                
+                // Look for user with matching email or similar username
+                for (let i = 1; i < userData.length; i++) {
+                  const dbUsername = userData[i][1]; // Username at index 1
+                  const dbEmail = userData[i][5]; // Email at index 5
+                  const dbRole = userData[i][3]; // Role at index 3
+                  
+                  // Check if email matches exactly or username matches
+                  if (dbEmail === currentUser || dbUsername === emailUsername || 
+                      dbUsername.toLowerCase() === emailUsername.toLowerCase()) {
+                    actualUsername = dbUsername;
+                    console.log(`Found matching user in database: ${actualUsername} (${dbRole})`);
+                    foundMatchingUser = true;
+                    break;
+                  }
+                }
+                
+                // If no exact match found, use the email username but try to find similar
+                if (!foundMatchingUser) {
+                  // Look for partial matches (useful for cases like r3dhorse1985 -> admin, jun, etc.)
+                  for (let i = 1; i < userData.length; i++) {
+                    const dbUsername = userData[i][1];
+                    const dbRole = userData[i][3];
+                    
+                    // Check if this could be a known admin user based on role
+                    if (userRole === dbRole && (dbRole === 'super-admin' || dbRole === 'admin')) {
+                      actualUsername = dbUsername;
+                      console.log(`Using role-matched user: ${actualUsername} (${dbRole}) for Google user ${emailUsername}`);
+                      foundMatchingUser = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            } catch (userLookupError) {
+              console.log("Error looking up user in database:", userLookupError);
+            }
+            
+            // Fallback to email username if no database match found
+            if (!actualUsername || actualUsername === 'Unknown') {
+              actualUsername = emailUsername;
+              console.log(`Using email username as fallback: ${actualUsername}`);
+            }
+          }
+        } catch (e) {
+          console.log("Could not get active user from session:", e);
+        }
+      }
+      
+      // If still unknown, try to find the most recent login from UserActivity
+      if (!actualUsername || actualUsername === 'Unknown') {
+        try {
+          const userActivitySheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("UserActivity");
+          if (userActivitySheet) {
+            const activityData = userActivitySheet.getDataRange().getValues();
+            console.log(`Checking ${activityData.length} activity rows for recent login`);
+            
+            // Look for recent successful login (within last 10 entries)
+            const recentEntries = Math.min(10, activityData.length - 1);
+            for (let i = activityData.length - 1; i >= Math.max(1, activityData.length - recentEntries); i--) {
+              const row = activityData[i];
+              console.log(`Checking activity row ${i}:`, row);
+              if (row[2] === userRole && row[3] === 'login' && row[4] === 'success') {
+                actualUsername = row[1]; // Username is at index 1
+                console.log(`Found recent login for ${userRole}: ${actualUsername}`);
+                break;
+              }
+            }
+            
+            // If still not found, try any recent successful login regardless of role
+            if (!actualUsername || actualUsername === 'Unknown') {
+              for (let i = activityData.length - 1; i >= Math.max(1, activityData.length - recentEntries); i--) {
+                const row = activityData[i];
+                if (row[3] === 'login' && row[4] === 'success') {
+                  actualUsername = row[1]; // Username is at index 1
+                  console.log(`Found any recent login: ${actualUsername}`);
+                  break;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.log("Could not find user from activity log:", e);
+        }
+      }
+    }
+    
+    console.log(`Final resolved username: ${actualUsername}`);
+    
+    // If still unknown, use a more descriptive placeholder
+    if (!actualUsername || actualUsername === 'Unknown') {
+      actualUsername = `${userRole}-user`;
+      console.log(`Using role-based placeholder: ${actualUsername}`);
+    }
+    
+    // Format timestamp as requested: June 23, 2025 23:30
+    const now = new Date();
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    const formattedTimestamp = `${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    // Format old and new data as readable strings
+    const formatVehicleData = (data) => {
+      if (!data || data.length === 0) return "No data";
+      return `ID: ${data[0]}, Plate: ${data[1]}, Model: ${data[2]}, Color: ${data[3]}, Dept: ${data[4]}, Year: ${data[5]}, Type: ${data[6]}, Status: ${data[7]}, Driver: ${data[8]}, Assigned: ${data[9]}, Access: ${data[10]}`;
+    };
+    
+    const oldDataFormatted = formatVehicleData(oldData);
+    const newDataFormatted = formatVehicleData(newData);
+    
+    const auditEntry = [
+      formattedTimestamp,
+      actualUsername,
+      oldDataFormatted,
+      newDataFormatted
+    ];
+    
+    auditSheet.appendRow(auditEntry);
+    console.log(`Vehicle audit trail logged: ${actualUsername} updated vehicle data`);
+  } catch (error) {
+    console.error("Error logging vehicle audit trail:", error);
+  }
+}
+
+/**
+ * Get vehicle audit trail for super-admin and admin only
+ * @param {string} userRole - User's role
+ * @returns {Array} - Array of audit trail entries
+ */
+function getVehicleAuditTrail(userRole) {
+  // Only super-admin and admin can access audit trail
+  if (userRole !== "super-admin" && userRole !== "admin") {
+    throw new Error("Access denied: Only super-admin and admin can access audit trail");
+  }
+  
+  try {
+    const auditSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("VehicleAuditTrail");
+    
+    if (!auditSheet) {
+      return []; // Return empty array if audit sheet doesn't exist yet
+    }
+    
+    const data = auditSheet.getDataRange().getValues();
+    
+    // Return all data including headers
+    return data;
+  } catch (error) {
+    console.error("Error retrieving vehicle audit trail:", error);
+    throw new Error("Failed to retrieve audit trail");
+  }
+}
+
+/**
+ * Wrapper functions for frontend to call with username
+ * These functions help ensure the current username is properly passed to audit trail
+ */
+
+/**
+ * Save vehicle with current username for audit trail
+ * @param {Object} vehicleData - Vehicle data
+ * @param {string} userRole - User's role
+ * @param {number} editIndex - Index for editing (-1 for new)
+ * @param {string} currentUsername - Current logged-in username
+ * @returns {Object} - Success/error result
+ */
+function saveVehicleRecordWithUser(vehicleData, userRole, editIndex = -1, currentUsername = 'Unknown') {
+  return saveVehicleRecord(vehicleData, userRole, editIndex, currentUsername);
+}
+
+/**
+ * Update vehicle with current username for audit trail
+ * @param {number} rowIndex - Row index
+ * @param {Array} updatedData - Updated vehicle data
+ * @param {string} userRole - User's role
+ * @param {string} currentUsername - Current logged-in username
+ * @returns {boolean} - Success result
+ */
+function updateVehicleRecordWithUser(rowIndex, updatedData, userRole, currentUsername = 'Unknown') {
+  return updateVehicleRecord(rowIndex, updatedData, userRole, currentUsername);
+}
+
+/**
+ * Delete vehicle with current username for audit trail
+ * @param {number} vehicleIndex - Vehicle index
+ * @param {string} userRole - User's role
+ * @param {string} currentUsername - Current logged-in username
+ * @returns {Object} - Success/error result
+ */
+function deleteVehicleRecordWithUser(vehicleIndex, userRole, currentUsername = 'Unknown') {
+  return deleteVehicleRecord(vehicleIndex, userRole, currentUsername);
+}
+
+/**
+ * Set current session username for audit trail
+ * Call this function from frontend after login to set the username for audit logging
+ * @param {string} username - Current logged-in username
+ * @param {string} userRole - User's role
+ */
+function setCurrentUser(username, userRole) {
+  try {
+    // Store in script cache for session duration
+    const cache = CacheService.getScriptCache();
+    const userData = {
+      username: username,
+      userRole: userRole,
+      loginTime: new Date().toISOString()
+    };
+    
+    // Store for 6 hours (21600 seconds)
+    cache.put('current_user_session', JSON.stringify(userData), 21600);
+    
+    console.log(`Current user session set: ${username} (${userRole})`);
+    return { success: true, message: 'User session set successfully' };
+  } catch (error) {
+    console.error('Error setting current user session:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get current session username for audit trail
+ * @returns {Object} - Current user info or null if not set
+ */
+function getCurrentUser() {
+  try {
+    const cache = CacheService.getScriptCache();
+    const userDataStr = cache.get('current_user_session');
+    
+    if (userDataStr) {
+      const userData = JSON.parse(userDataStr);
+      return {
+        success: true,
+        username: userData.username,
+        userRole: userData.userRole,
+        loginTime: userData.loginTime
+      };
+    }
+    
+    return { success: false, message: 'No active user session found' };
+  } catch (error) {
+    console.error('Error getting current user session:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Test function to verify audit trail username resolution
+ * @param {string} userRole - User role to test with
+ * @returns {Object} - Test results
+ */
+function testAuditTrailUsername(userRole = 'super-admin') {
+  try {
+    console.log("=== Testing Audit Trail Username Resolution ===");
+    
+    // Test 1: Check current session
+    const sessionResult = getCurrentUser();
+    console.log("Current session:", sessionResult);
+    
+    // Test 2: Check Google session
+    let googleUser = null;
+    try {
+      googleUser = Session.getActiveUser().getEmail();
+      console.log("Google active user:", googleUser);
+    } catch (e) {
+      console.log("Google active user error:", e);
+    }
+    
+    // Test 3: Check recent activity
+    const userActivitySheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("UserActivity");
+    let recentLogins = [];
+    if (userActivitySheet) {
+      const activityData = userActivitySheet.getDataRange().getValues();
+      recentLogins = activityData.slice(-5).map(row => ({
+        timestamp: row[0],
+        username: row[1],
+        userRole: row[2],
+        action: row[3],
+        result: row[4]
+      }));
+    }
+    
+    return {
+      success: true,
+      tests: {
+        sessionCache: sessionResult,
+        googleUser: googleUser,
+        recentLogins: recentLogins
+      },
+      message: "Check console logs for detailed test results"
+    };
+  } catch (error) {
+    console.error("Error in test function:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get user permissions for frontend - called by frontend to determine UI visibility
  * @param {string} userRole - User's role  
  * @returns {object} - Complete permission object for frontend use
@@ -531,12 +890,15 @@ function getVehicleListForManagement() {
 }
 
 // Save vehicle (create or update) - for management
-function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
+function saveVehicleRecord(vehicleData, userRole, editIndex = -1, currentUsername = 'Unknown') {
   // Use new permission system
   enforcePermission(userRole, "vehicles", "create", "Access denied: Cannot create or update vehicles");
   
+  // Get username from parameter, vehicleData, or default to Unknown
+  const username = currentUsername !== 'Unknown' ? currentUsername : (vehicleData.username || 'Unknown');
+  
   // Log the activity
-  logUserActivity(vehicleData.username || 'Unknown', userRole, editIndex === -1 ? 'create' : 'update', 'vehicle', 'attempting');
+  logUserActivity(username, userRole, editIndex === -1 ? 'create' : 'update', 'vehicle', 'attempting');
 
   try {
     validateRequired(vehicleData.plateNumber, "Plate Number");
@@ -559,6 +921,9 @@ function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
 
     let vehicleRow;
     if (editIndex > 0 && editIndex < data.length) {
+      // Capture old data for audit trail
+      const oldVehicleData = data[editIndex].slice(); // Copy original data
+      
       // Update existing vehicle - keep existing ID
       vehicleRow = [
         data[editIndex][0], // Keep existing ID
@@ -573,6 +938,9 @@ function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
         sanitizeInput(vehicleData.assignedDrivers || ""),
         vehicleData.accessStatus || "Access",
       ];
+      
+      // Log audit trail before updating (for super-admin and admin only)
+      logVehicleAuditTrail(username, userRole, oldVehicleData, vehicleRow);
       
       // Update existing vehicle
       const range = sheet.getRange(editIndex + 1, 1, 1, vehicleRow.length);
@@ -617,12 +985,12 @@ function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
 }
 
 // Delete vehicle (management)
-function deleteVehicleRecord(vehicleIndex, userRole) {
+function deleteVehicleRecord(vehicleIndex, userRole, currentUsername = 'Unknown') {
   // Use new permission system - only super-admin can delete vehicles
   enforcePermission(userRole, "vehicles", "delete", "Access denied: Only Super Admin can delete vehicles");
   
   // Log the activity
-  logUserActivity('Unknown', userRole, 'delete', 'vehicle', 'attempting');
+  logUserActivity(currentUsername, userRole, 'delete', 'vehicle', 'attempting');
 
   try {
     const sheet =
@@ -1122,7 +1490,11 @@ function loginUser(username, password) {
         
         // Log successful login
         logUserActivity(username, "login", "success");
-        return { success: true, role: data[i][3] || "security" };
+        
+        // Automatically set current user session for audit trail
+        setCurrentUser(username, data[i][3] || "security");
+        
+        return { success: true, role: data[i][3] || "security", username: username };
       }
     }
 
@@ -1135,11 +1507,18 @@ function loginUser(username, password) {
   }
 }
 
-// Admin and Security: update vehicle record
-function updateVehicleRecord(rowIndex, updatedData, userRole) {
-  if (userRole !== "admin" && userRole !== "security") {
-    throw new Error("Unauthorized: Admin or Security access required.");
+// Update vehicle record with proper permission checking
+function updateVehicleRecord(rowIndex, updatedData, userRole, currentUsername = 'Unknown') {
+  // Use new permission system instead of hardcoded role checks
+  // Security users need updateDriver permission, others need update permission
+  if (userRole === "security") {
+    enforcePermission(userRole, "vehicles", "updateDriver", "Access denied: Cannot update vehicle driver");
+  } else {
+    enforcePermission(userRole, "vehicles", "update", "Access denied: Cannot update vehicles");
   }
+  
+  // Log the activity
+  logUserActivity(currentUsername, userRole, 'update', 'vehicle', 'attempting');
 
   try {
     const sheet =
@@ -1168,9 +1547,16 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
         // Security users can only update the current driver field (index 7)
         const currentData = sheet.getDataRange().getValues();
         if (rowIndex >= 0 && rowIndex < currentData.length) {
+          // Capture old data for audit trail
+          const oldVehicleData = currentData[rowIndex].slice(); // Copy original data
+          
           // Only update the driver field, keep everything else the same
           const currentVehicle = currentData[rowIndex];
           currentVehicle[7] = updatedData[7]; // Update only current driver field
+          
+          // Note: Security users don't have audit trail access, but we could log this differently if needed
+          // For now, only admin and super-admin get audit trail logging per requirements
+          
           const range = sheet.getRange(
             rowIndex + 1,
             1,
@@ -1183,13 +1569,19 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
         }
       } else {
         // Admin users can update all fields
-        // Check if plate number already exists (excluding current vehicle)
+        // Capture old data for audit trail
         const data = sheet.getDataRange().getValues();
+        const oldVehicleData = data[rowIndex].slice(); // Copy original data
+        
+        // Check if plate number already exists (excluding current vehicle)
         for (let i = 1; i < data.length; i++) {
           if (i !== rowIndex && data[i][1] === updatedData[1]) { // Compare plate numbers (column B, index 1)
             throw new Error("Vehicle with this plate number already exists");
           }
         }
+
+        // Log audit trail before updating (for super-admin and admin only)
+        logVehicleAuditTrail(currentUsername, userRole, oldVehicleData, updatedData);
 
         const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
         range.setValues([updatedData]);
@@ -1207,12 +1599,12 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
 }
 
 // Super-admin only: delete vehicle record (legacy function - should be consolidated)
-function deleteVehicleRecordLegacy(rowIndex, userRole) {
+function deleteVehicleRecordLegacy(rowIndex, userRole, currentUsername = 'Unknown') {
   // Use new permission system - only super-admin can delete vehicles
   enforcePermission(userRole, "vehicles", "delete", "Access denied: Only Super Admin can delete vehicles");
   
   // Log the activity
-  logUserActivity('Unknown', userRole, 'delete', 'vehicle', 'attempting');
+  logUserActivity(currentUsername, userRole, 'delete', 'vehicle', 'attempting');
 
   try {
     const sheet =

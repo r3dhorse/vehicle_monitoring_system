@@ -2130,9 +2130,9 @@
                 qrScannerBtn.style.display = 'none';
             }
             
-            // Show/hide user management dropdown
+            // Show/hide user management dropdown (only super-admin)
             const userManagementDropdown = document.getElementById('userManagementDropdown');
-            if (hasPermission('users', 'read')) {
+            if (hasPermission('users', 'read') && role === 'super-admin') {
                 userManagementDropdown.style.display = 'block';
             } else {
                 userManagementDropdown.style.display = 'none';
@@ -2146,9 +2146,9 @@
                 vehicleManagementBtn.style.display = 'none';
             }
             
-            // Show/hide gate management button
+            // Show/hide gate management button (only super-admin)
             const gateManagementBtn = document.getElementById('gateManagementBtn');
-            if (hasPermission('gates', 'read') || hasPermission('gates', 'create')) {
+            if ((hasPermission('gates', 'read') || hasPermission('gates', 'create')) && role === 'super-admin') {
                 gateManagementBtn.style.display = 'inline-block';
             } else {
                 gateManagementBtn.style.display = 'none';
