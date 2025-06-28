@@ -1110,18 +1110,23 @@ function getVehicleList(searchCriteria = {}) {
       !departmentFilter
     ) {
       console.log("No search criteria - returning paginated results");
-      const startRow = Math.max(2, pageOffset + 2);
-      const endRow = Math.min(lastRow, startRow + pageSize - 1);
-
-      if (startRow <= lastRow) {
-        const paginatedData = sheet
-          .getRange(startRow, 1, endRow - startRow + 1, 11)
-          .getValues(); // Keep all columns including ID
-        allData = allData.concat(paginatedData);
-      }
+      
+      // Get all data first for sorting
+      const allVehicleData = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+      
+      // Sort by ID (column 0) in descending order
+      allVehicleData.sort((a, b) => {
+        const idA = parseInt(a[0]) || 0;
+        const idB = parseInt(b[0]) || 0;
+        return idB - idA; // Descending order
+      });
+      
+      // Apply pagination to sorted data
+      const paginatedData = allVehicleData.slice(pageOffset, pageOffset + pageSize);
+      allData = allData.concat(paginatedData);
 
       console.log(
-        `Paginated data: ${allData.length - 1} rows (${startRow}-${endRow})`
+        `Paginated data: ${paginatedData.length} rows from sorted results`
       );
       return allData;
     }
@@ -1185,7 +1190,14 @@ function getVehicleList(searchCriteria = {}) {
       }
     }
 
-    // Apply pagination to filtered results
+    // Sort matching rows by ID (column 0) in descending order
+    matchingRows.sort((a, b) => {
+      const idA = parseInt(a[0]) || 0;
+      const idB = parseInt(b[0]) || 0;
+      return idB - idA; // Descending order
+    });
+
+    // Apply pagination to sorted filtered results
     const paginatedResults = matchingRows.slice(
       pageOffset,
       pageOffset + pageSize
