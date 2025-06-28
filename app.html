@@ -35,11 +35,7 @@
         #searchInput {
             border: 2px solid #e0e0e0;
             transition: all 0.3s ease;
-            padding-left: 2.5rem;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: 0.75rem center;
-            background-size: 1rem;
+            padding-left: 1rem;
         }
         
         #searchInput:focus {
@@ -848,6 +844,469 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             transition: all 0.2s ease;
         }
+        
+        /* Fullscreen mode styles with immersive experience */
+        .fullscreen-mode {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+            transition: background 0.8s ease, opacity 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Overlay for better content visibility */
+        .fullscreen-mode::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: -1;
+            animation: fadeInOverlay 0.8s ease;
+        }
+        
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Fullscreen entrance animation */
+        .fullscreen-mode .container-fluid {
+            animation: slideInFromTop 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        @keyframes slideInFromTop {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .fullscreen-mode .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            height: 56px;
+            transform: translateY(0);
+            background: rgba(0, 0, 0, 0.9) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Glass morphism effect for navbar */
+        .fullscreen-mode .navbar .navbar-brand,
+        .fullscreen-mode .navbar .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .fullscreen-mode .navbar .nav-link:hover {
+            color: white !important;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+        }
+        
+        /* Auto-hide navbar with smooth animations */
+        .fullscreen-mode .navbar.navbar-hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        
+        .fullscreen-mode .navbar:hover {
+            transform: translateY(0) !important;
+            opacity: 1 !important;
+        }
+        
+        /* Focus mode - hide all UI except main content */
+        .fullscreen-mode.focus-mode .navbar {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .fullscreen-mode.focus-mode .stats-row,
+        .fullscreen-mode.focus-mode .quick-summary-card {
+            opacity: 0.3;
+            transition: opacity 0.4s ease;
+        }
+        
+        .fullscreen-mode.focus-mode .stats-row:hover,
+        .fullscreen-mode.focus-mode .quick-summary-card:hover {
+            opacity: 1;
+        }
+        
+        .fullscreen-mode .container-fluid:first-of-type {
+            margin-top: 56px;
+            padding: 0.5rem;
+            position: relative;
+        }
+        
+        /* Contextual toolbar for fullscreen */
+        .fullscreen-toolbar {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 1040;
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .fullscreen-mode .fullscreen-toolbar {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .fullscreen-toolbar .btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .fullscreen-toolbar .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Visual indicators */
+        .fullscreen-mode::after {
+            content: 'FULLSCREEN';
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            z-index: 1100;
+            opacity: 0;
+            animation: showIndicator 3s ease;
+            pointer-events: none;
+        }
+        
+        @keyframes showIndicator {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+        
+        /* Loading states */
+        .fullscreen-mode .loading-overlay {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Enhanced transitions for all interactive elements */
+        .fullscreen-mode .btn,
+        .fullscreen-mode .form-control,
+        .fullscreen-mode .card {
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .fullscreen-mode .stats-row {
+            margin-bottom: 0.75rem; /* Reduced margin */
+        }
+        
+        .fullscreen-mode .stats-card {
+            margin-bottom: 0.5rem;
+        }
+        
+        .fullscreen-mode .quick-summary-card {
+            margin-bottom: 0.75rem; /* Reduced margin */
+        }
+        
+        /* Enhanced stats cards for fullscreen - maintain original gradient backgrounds */
+        .fullscreen-mode .stats-card {
+            /* Keep original gradient backgrounds from the stats cards */
+            /* background is already set inline with gradients, so don't override */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+            overflow: hidden;
+            animation: slideInCard 0.6s ease;
+        }
+        
+        @keyframes slideInCard {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .fullscreen-mode .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .fullscreen-mode .stats-card:hover::before {
+            opacity: 1;
+        }
+        
+        .fullscreen-mode .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+        }
+        
+        .fullscreen-mode .stats-card .card-body {
+            padding: 1rem 1.25rem;
+            position: relative;
+        }
+        
+        .fullscreen-mode .stats-number {
+            font-size: 2rem !important; /* Slightly smaller numbers */
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .fullscreen-mode .stats-label {
+            font-size: 0.8rem !important; /* Smaller labels */
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .fullscreen-mode .stats-percentage {
+            font-size: 0.7rem !important; /* Even smaller percentage */
+            margin-top: 0.25rem !important;
+        }
+        
+        .fullscreen-mode .stats-icon {
+            font-size: 2.5rem !important; /* Smaller icons */
+            right: 15px !important;
+        }
+        
+        /* Compact summary card */
+        .fullscreen-mode .summary-card {
+            padding: 0.75rem !important; /* Reduced padding */
+            margin-bottom: 0.75rem !important;
+        }
+        
+        .fullscreen-mode .summary-stats {
+            gap: 0.75rem !important; /* Reduced gap */
+        }
+        
+        .fullscreen-mode .summary-item .value {
+            font-size: 1rem !important; /* Smaller values */
+        }
+        
+        .fullscreen-mode .summary-item .label {
+            font-size: 0.65rem !important; /* Smaller labels */
+        }
+        
+        .fullscreen-mode .summary-item i {
+            font-size: 1.25rem !important; /* Smaller icons */
+        }
+        
+        /* Optimized main content area with smart scaling */
+        .fullscreen-mode .vehicle-list {
+            height: calc(100vh - 250px) !important;
+            max-height: none;
+            animation: expandContent 0.5s ease;
+        }
+        
+        .fullscreen-mode .transaction-logs {
+            height: calc(100vh - 250px) !important;
+            max-height: none;
+            animation: expandContent 0.5s ease;
+        }
+        
+        @keyframes expandContent {
+            from {
+                height: calc(100vh - 320px);
+                opacity: 0.8;
+            }
+            to {
+                height: calc(100vh - 250px);
+                opacity: 1;
+            }
+        }
+        
+        /* Content scaling based on screen size */
+        @media (min-width: 1400px) {
+            .fullscreen-mode .stats-number {
+                font-size: 2.5rem !important;
+            }
+            
+            .fullscreen-mode .stats-icon {
+                font-size: 3rem !important;
+            }
+        }
+        
+        @media (max-width: 1200px) and (min-width: 992px) {
+            .fullscreen-mode .stats-number {
+                font-size: 1.8rem !important;
+            }
+            
+            .fullscreen-mode .stats-icon {
+                font-size: 2.2rem !important;
+            }
+        }
+        
+        .fullscreen-mode .main-content-row {
+            height: calc(100vh - 210px); /* Reduced from 280px to 210px */
+        }
+        
+        .fullscreen-mode .col-lg-8,
+        .fullscreen-mode .col-lg-4 {
+            height: 100%;
+        }
+        
+        .fullscreen-mode .vehicle-list-container,
+        .fullscreen-mode .transaction-logs-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .fullscreen-mode .table-responsive {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        /* Compact search and filter row */
+        .fullscreen-mode .row.mb-4 {
+            margin-bottom: 0.75rem !important; /* Reduced margin for search row */
+        }
+        
+        .fullscreen-mode .form-control,
+        .fullscreen-mode .form-select {
+            padding: 0.375rem 0.75rem !important; /* Standard Bootstrap padding */
+            font-size: 0.875rem !important; /* Slightly smaller font */
+        }
+        
+        .fullscreen-mode .btn {
+            padding: 0.375rem 0.75rem !important; /* Compact buttons */
+            font-size: 0.875rem !important;
+        }
+        
+        /* Hide pagination in fullscreen for cleaner view */
+        .fullscreen-mode #paginationRow {
+            display: none !important;
+        }
+        
+        /* Fullscreen button styles */
+        #fullscreenBtn {
+            transition: all 0.3s ease;
+        }
+        
+        #fullscreenBtn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+        
+        /* Hide floating buttons in fullscreen for cleaner view */
+        .fullscreen-mode .add-vehicle-btn,
+        .fullscreen-mode .qr-scanner-btn {
+            display: none !important;
+        }
+        
+        /* Responsive fullscreen adjustments */
+        @media (max-width: 991px) {
+            .fullscreen-mode .vehicle-list,
+            .fullscreen-mode .transaction-logs {
+                height: calc(100vh - 280px) !important; /* Reduced from 400px */
+            }
+            
+            .fullscreen-mode .container-fluid:first-of-type {
+                margin-top: 56px; /* Keep consistent with desktop */
+                padding: 0.5rem;
+            }
+            
+            .fullscreen-mode .main-content-row {
+                height: calc(100vh - 240px); /* Adjusted for tablet */
+            }
+            
+            /* More compact stats on tablet */
+            .fullscreen-mode .stats-number {
+                font-size: 1.75rem !important;
+            }
+            
+            .fullscreen-mode .stats-icon {
+                font-size: 2rem !important;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .fullscreen-mode .vehicle-list,
+            .fullscreen-mode .transaction-logs {
+                height: calc(100vh - 320px) !important; /* Reduced from 450px */
+            }
+            
+            .fullscreen-mode .main-content-row {
+                height: calc(100vh - 280px); /* Adjusted for mobile */
+            }
+            
+            .fullscreen-mode .col-lg-4 {
+                margin-top: 0.75rem; /* Reduced margin */
+            }
+            
+            /* Even more compact on mobile */
+            .fullscreen-mode .stats-card .card-body {
+                padding: 0.75rem 1rem !important;
+            }
+            
+            .fullscreen-mode .stats-number {
+                font-size: 1.5rem !important;
+            }
+            
+            .fullscreen-mode .stats-label {
+                font-size: 0.75rem !important;
+            }
+            
+            .fullscreen-mode .stats-icon {
+                font-size: 1.75rem !important;
+                right: 10px !important;
+            }
+            
+            .fullscreen-mode .summary-card {
+                padding: 0.5rem !important;
+            }
+            
+            .fullscreen-mode .summary-item .value {
+                font-size: 0.9rem !important;
+            }
+            
+            .fullscreen-mode .summary-item .label {
+                font-size: 0.6rem !important;
+            }
+            
+            .fullscreen-mode .summary-item i {
+                font-size: 1rem !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -937,6 +1396,9 @@
                             </button></li>
                         </ul>
                     </div>
+                    <button class="btn btn-outline-light btn-sm me-3" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                        <i class="bi bi-arrows-fullscreen" id="fullscreenIcon"></i>
+                    </button>
                    
                     <button class="btn btn-outline-light btn-sm" onclick="logout()">
                         <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -945,6 +1407,22 @@
                 </div>
             </div>
         </nav>
+
+        <!-- Fullscreen Toolbar -->
+        <div class="fullscreen-toolbar">
+            <button class="btn" id="focusModeBtn" onclick="toggleFocusMode()" title="Focus Mode (F)">
+                <i class="bi bi-eye"></i>
+            </button>
+            <button class="btn" id="zenModeBtn" onclick="toggleZenMode()" title="Zen Mode (Z)">
+                <i class="bi bi-moon"></i>
+            </button>
+            <button class="btn" id="refreshBtn" onclick="refreshData()" title="Refresh (R)">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+            <button class="btn" onclick="exitFullscreen()" title="Exit Fullscreen (ESC)">
+                <i class="bi bi-fullscreen-exit"></i>
+            </button>
+        </div>
 
         <!-- Main Content -->
         <div class="container-fluid py-4">
@@ -3081,6 +3559,479 @@
             showToast('You have been logged out successfully', 'info');
         }
 
+        // Fullscreen functionality with browser compatibility check
+        function isFullscreenSupported() {
+            return document.fullscreenEnabled || 
+                   document.mozFullScreenEnabled || 
+                   document.webkitFullscreenEnabled || 
+                   document.msFullscreenEnabled;
+        }
+
+        function toggleFullscreen() {
+            if (!isFullscreenSupported()) {
+                showToast('Fullscreen mode is not supported in your browser', 'warning');
+                return;
+            }
+
+            if (!document.fullscreenElement && !document.mozFullScreenElement && 
+                !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                enterFullscreen();
+            } else {
+                exitFullscreen();
+            }
+        }
+
+        function enterFullscreen() {
+            const elem = document.documentElement;
+            try {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.error('Error entering fullscreen:', err);
+                        showToast('Failed to enter fullscreen mode', 'error');
+                    });
+                } else if (elem.mozRequestFullScreen) { // Firefox
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) { // Chrome, Safari, Opera
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { // IE/Edge
+                    elem.msRequestFullscreen();
+                }
+            } catch (error) {
+                console.error('Fullscreen error:', error);
+                showToast('Failed to enter fullscreen mode', 'error');
+            }
+        }
+
+        function exitFullscreen() {
+            try {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(err => {
+                        console.error('Error exiting fullscreen:', err);
+                    });
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari, Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+            } catch (error) {
+                console.error('Fullscreen exit error:', error);
+            }
+        }
+
+        // Listen for fullscreen changes to update icon
+        function handleFullscreenChange() {
+            const fullscreenIcon = document.getElementById('fullscreenIcon');
+            const dashboardPage = document.getElementById('dashboardPage');
+            
+            if (document.fullscreenElement) {
+                fullscreenIcon.className = 'bi bi-fullscreen-exit';
+                dashboardPage.classList.add('fullscreen-mode');
+                optimizeFullscreenLayout();
+            } else {
+                fullscreenIcon.className = 'bi bi-arrows-fullscreen';
+                dashboardPage.classList.remove('fullscreen-mode');
+            }
+        }
+
+        // Add event listeners for fullscreen changes
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange); // Firefox
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Chrome, Safari, Opera
+        document.addEventListener('msfullscreenchange', handleFullscreenChange); // IE/Edge
+
+        // Enhanced keyboard shortcuts for fullscreen
+        document.addEventListener('keydown', function(event) {
+            // Only process shortcuts in fullscreen mode (except for Ctrl+F to enter)
+            const inFullscreen = !!document.fullscreenElement;
+            
+            // Ctrl+F to toggle fullscreen
+            if (event.key === 'f' && event.ctrlKey && !event.shiftKey && !event.altKey) {
+                event.preventDefault();
+                toggleFullscreen();
+                return;
+            }
+            
+            // Only process other shortcuts in fullscreen mode
+            if (!inFullscreen) return;
+            
+            // Prevent default for all our custom shortcuts
+            if (!event.ctrlKey && !event.altKey && !event.metaKey) {
+                switch (event.key.toLowerCase()) {
+                    case 'f':
+                        event.preventDefault();
+                        toggleFocusMode();
+                        break;
+                    case 'z':
+                        event.preventDefault();
+                        toggleZenMode();
+                        break;
+                    case 'r':
+                        event.preventDefault();
+                        refreshData();
+                        break;
+                    case 'h':
+                        event.preventDefault();
+                        showFullscreenHelp();
+                        break;
+                    case 'escape':
+                        event.preventDefault();
+                        exitFullscreen();
+                        break;
+                }
+            }
+        });
+
+        // Enhance fullscreen experience by adjusting layout
+        function optimizeFullscreenLayout() {
+            const dashboardPage = document.getElementById('dashboardPage');
+            if (document.fullscreenElement && dashboardPage) {
+                // Temporarily hide elements during transition for smoother experience
+                dashboardPage.style.transition = 'all 0.3s ease';
+                
+                // Set up auto-hide navbar functionality
+                setupAutoHideNavbar();
+                
+                // Force layout recalculation after a brief delay
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 100);
+            } else {
+                // Clean up when exiting fullscreen
+                cleanupFullscreenModes();
+            }
+        }
+
+        function cleanupFullscreenModes() {
+            cleanupAutoHideNavbar();
+            
+            // Reset focus mode
+            if (focusModeActive) {
+                const dashboardPage = document.getElementById('dashboardPage');
+                dashboardPage.classList.remove('focus-mode');
+                focusModeActive = false;
+            }
+            
+            // Reset zen mode
+            if (zenModeActive) {
+                const statsRow = document.querySelector('.stats-row');
+                const summaryCard = document.querySelector('.quick-summary-card');
+                const mainContentRow = document.querySelector('.main-content-row');
+                
+                if (statsRow) statsRow.style.display = '';
+                if (summaryCard) summaryCard.style.display = '';
+                if (mainContentRow) mainContentRow.style.height = '';
+                
+                zenModeActive = false;
+            }
+        }
+
+        // Auto-hide navbar functionality for fullscreen mode
+        let scrollTimeout;
+        let lastScrollY = 0;
+        let navbarHideTimeout;
+
+        function setupAutoHideNavbar() {
+            if (!document.fullscreenElement) return;
+            
+            const navbar = document.querySelector('.navbar');
+            const vehicleList = document.querySelector('.vehicle-logs-container');
+            const transactionLogs = document.querySelector('.transaction-logs-container');
+            
+            function handleScroll() {
+                clearTimeout(scrollTimeout);
+                clearTimeout(navbarHideTimeout);
+                
+                const currentScrollY = this.scrollTop || window.pageYOffset;
+                
+                // Show navbar immediately when scrolling up or at top
+                if (currentScrollY < lastScrollY || currentScrollY <= 10) {
+                    navbar.classList.remove('navbar-hidden');
+                } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+                    // Hide navbar when scrolling down after some distance
+                    navbarHideTimeout = setTimeout(() => {
+                        navbar.classList.add('navbar-hidden');
+                    }, 150); // Small delay to prevent flicker
+                }
+                
+                lastScrollY = currentScrollY;
+                
+                // Auto-show navbar after inactivity
+                scrollTimeout = setTimeout(() => {
+                    navbar.classList.remove('navbar-hidden');
+                }, 3000); // Show after 3 seconds of no scrolling
+            }
+            
+            // Add scroll listeners to both main content areas
+            if (vehicleList) {
+                vehicleList.addEventListener('scroll', handleScroll, { passive: true });
+            }
+            if (transactionLogs) {
+                transactionLogs.addEventListener('scroll', handleScroll, { passive: true });
+            }
+            
+            // Also listen to main window scroll as fallback
+            window.addEventListener('scroll', handleScroll, { passive: true });
+            
+            // Show navbar on mouse move to top
+            document.addEventListener('mousemove', function(e) {
+                if (e.clientY <= 60) { // Mouse near top of screen
+                    navbar.classList.remove('navbar-hidden');
+                }
+            });
+            
+            // Touch gesture support for mobile
+            let touchStartY = 0;
+            let touchStartTime = 0;
+            
+            document.addEventListener('touchstart', function(e) {
+                touchStartY = e.touches[0].clientY;
+                touchStartTime = Date.now();
+            }, { passive: true });
+            
+            document.addEventListener('touchend', function(e) {
+                const touchEndY = e.changedTouches[0].clientY;
+                const touchDuration = Date.now() - touchStartTime;
+                const swipeDistance = touchEndY - touchStartY;
+                
+                // Detect swipe down from top to show navbar
+                if (touchStartY <= 100 && swipeDistance > 50 && touchDuration < 500) {
+                    navbar.classList.remove('navbar-hidden');
+                }
+                
+                // Detect swipe up to hide navbar
+                if (swipeDistance < -50 && touchDuration < 500) {
+                    navbar.classList.add('navbar-hidden');
+                }
+            }, { passive: true });
+            
+            // Auto-hide after initial delay in fullscreen
+            navbarHideTimeout = setTimeout(() => {
+                navbar.classList.add('navbar-hidden');
+            }, 5000); // Hide after 5 seconds
+        }
+
+        function cleanupAutoHideNavbar() {
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.classList.remove('navbar-hidden');
+            }
+            
+            clearTimeout(scrollTimeout);
+            clearTimeout(navbarHideTimeout);
+            
+            // Remove event listeners if needed (though they're passive and will be cleaned up)
+            lastScrollY = 0;
+        }
+
+        // Advanced fullscreen features
+        let focusModeActive = false;
+        let zenModeActive = false;
+
+        function toggleFocusMode() {
+            if (!document.fullscreenElement) return;
+            
+            const dashboardPage = document.getElementById('dashboardPage');
+            const focusBtn = document.getElementById('focusModeBtn');
+            
+            focusModeActive = !focusModeActive;
+            
+            if (focusModeActive) {
+                dashboardPage.classList.add('focus-mode');
+                focusBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+                focusBtn.title = 'Exit Focus Mode (F)';
+                showToast('Focus Mode: Stats dimmed, content highlighted', 'info');
+            } else {
+                dashboardPage.classList.remove('focus-mode');
+                focusBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+                focusBtn.title = 'Focus Mode (F)';
+                showToast('Focus Mode disabled', 'info');
+            }
+        }
+
+        function toggleZenMode() {
+            if (!document.fullscreenElement) return;
+            
+            const dashboardPage = document.getElementById('dashboardPage');
+            const zenBtn = document.getElementById('zenModeBtn');
+            const statsRow = document.querySelector('.stats-row');
+            const summaryCard = document.querySelector('.quick-summary-card');
+            
+            zenModeActive = !zenModeActive;
+            
+            if (zenModeActive) {
+                // Hide stats and summary in zen mode
+                if (statsRow) statsRow.style.display = 'none';
+                if (summaryCard) summaryCard.style.display = 'none';
+                
+                zenBtn.style.background = 'rgba(255, 255, 255, 0.3)';
+                zenBtn.querySelector('i').className = 'bi bi-sun';
+                zenBtn.title = 'Exit Zen Mode (Z)';
+                showToast('Zen Mode: Minimal UI, maximum focus', 'info');
+                
+                // Adjust main content to use full space
+                const mainContentRow = document.querySelector('.main-content-row');
+                if (mainContentRow) {
+                    mainContentRow.style.height = 'calc(100vh - 120px)';
+                }
+            } else {
+                // Show stats and summary
+                if (statsRow) statsRow.style.display = '';
+                if (summaryCard) summaryCard.style.display = '';
+                
+                zenBtn.style.background = 'rgba(0, 0, 0, 0.7)';
+                zenBtn.querySelector('i').className = 'bi bi-moon';
+                zenBtn.title = 'Zen Mode (Z)';
+                showToast('Zen Mode disabled', 'info');
+                
+                // Reset main content height
+                const mainContentRow = document.querySelector('.main-content-row');
+                if (mainContentRow) {
+                    mainContentRow.style.height = '';
+                }
+            }
+        }
+
+        function refreshData() {
+            if (document.fullscreenElement) {
+                showToast('Refreshing data...', 'info');
+                
+                // Add visual feedback
+                const refreshBtn = document.getElementById('refreshBtn');
+                const icon = refreshBtn.querySelector('i');
+                icon.style.animation = 'spin 1s linear infinite';
+                
+                // Instead of reloading the page, refresh just the dashboard data
+                // This preserves the fullscreen state and avoids the black screen issue
+                Promise.all([
+                    new Promise(resolve => {
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(resolve)
+                            .getVehicleList({
+                                searchTerm: document.getElementById('searchInput').value.trim(),
+                                statusFilter: document.getElementById('filterStatus').value,
+                                accessStatusFilter: document.getElementById('filterAccessStatus').value,
+                                departmentFilter: '',
+                                pageSize: 50,
+                                pageOffset: 0
+                            });
+                    }),
+                    new Promise(resolve => {
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(resolve)
+                            .getDatabaseStatistics();
+                    }),
+                    new Promise(resolve => {
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(resolve)
+                            .getRecentTransactions(50);
+                    })
+                ]).then(([vehicles, stats, transactions]) => {
+                    // Update vehicle data
+                    if (vehicles && !vehicles.error) {
+                        allVehicles = vehicles;
+                        vehicleData = allVehicles;
+                        displayVehicles();
+                    }
+                    
+                    // Update statistics
+                    if (stats && !stats.error) {
+                        animateNumber('totalVehicles', stats.totalRegistered || 0);
+                        animateNumber('vehiclesIn', stats.totalIn || 0);
+                        animateNumber('vehiclesOut', stats.totalOut || 0);
+                        animateNumber('accessCount', stats.accessCount || 0);
+                        animateNumber('noAccessCount', stats.noAccessCount || 0);
+                        animateNumber('bannedCount', stats.bannedCount || 0);
+                        updatePercentages(stats.totalRegistered || 0, stats.totalIn || 0, stats.totalOut || 0);
+                        updateSummaryStats(stats.totalIn || 0);
+                        addPulseEffect();
+                    }
+                    
+                    // Update transaction logs
+                    if (transactions) {
+                        displayTransactionLogs(transactions);
+                    }
+                    
+                    // Reset button animation
+                    icon.style.animation = '';
+                    showToast('Dashboard refreshed successfully!', 'success');
+                }).catch(error => {
+                    console.error('Error refreshing data:', error);
+                    icon.style.animation = '';
+                    showToast('Error refreshing data', 'danger');
+                });
+            }
+        }
+
+        function showFullscreenHelp() {
+            const helpContent = `
+                <div class="text-start">
+                    <h6 class="mb-3"><i class="bi bi-keyboard me-2"></i>Fullscreen Keyboard Shortcuts</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <p class="mb-2"><kbd>Ctrl+F</kbd> - Toggle Fullscreen</p>
+                            <p class="mb-2"><kbd>F</kbd> - Focus Mode</p>
+                            <p class="mb-2"><kbd>Z</kbd> - Zen Mode</p>
+                        </div>
+                        <div class="col-6">
+                            <p class="mb-2"><kbd>R</kbd> - Refresh Data</p>
+                            <p class="mb-2"><kbd>H</kbd> - Show This Help</p>
+                            <p class="mb-2"><kbd>ESC</kbd> - Exit Fullscreen</p>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="small text-muted">
+                        <p class="mb-1"><strong>Focus Mode:</strong> Dims stats, highlights main content</p>
+                        <p class="mb-1"><strong>Zen Mode:</strong> Minimal UI for maximum focus</p>
+                        <p class="mb-0"><strong>Auto-hide:</strong> Navbar hides on scroll, shows on mouse hover at top</p>
+                    </div>
+                </div>
+            `;
+            
+            // Create and show modal
+            const helpModal = document.createElement('div');
+            helpModal.className = 'modal fade';
+            helpModal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Fullscreen Help</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${helpContent}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(helpModal);
+            const modal = new bootstrap.Modal(helpModal);
+            modal.show();
+            
+            // Remove modal from DOM when hidden
+            helpModal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(helpModal);
+            });
+        }
+
+        // CSS for spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
         function showLoading(show) {
             const spinner = document.getElementById('loadingSpinner');
             if (show) {
@@ -3391,8 +4342,8 @@
         function saveVehicleEdit() {
             const index = parseInt(document.getElementById('editVehicleIndex').value);
             
-            // Handle Security role - only update current driver
-            if (currentUser.role === 'security') {
+            // Handle users with driver-only permissions - only update current driver
+            if (hasPermission('vehicles', 'updateDriver') && !hasPermission('vehicles', 'update')) {
                 const newDriverValue = document.getElementById('editDriver').value || '';
                 
                 // Create updated vehicle data with only driver field changed
@@ -3404,14 +4355,19 @@
                 google.script.run
                     .withSuccessHandler(function(success) {
                         if (success) {
-                            // Update local data
+                            console.log('Driver update successful, updating local data and refreshing...');
+                            
+                            // Update local data immediately
                             vehicleData[index] = updatedVehicleData;
                             
-                            // Reload vehicles to ensure consistency
-                            loadVehicles();
-                            
-                            // Update UI
-                            displayVehicles();
+                            // Add small delay before reloading to ensure backend update is complete
+                            setTimeout(function() {
+                                // Reload vehicles to ensure consistency with database
+                                loadVehicles();
+                                
+                                // Update UI
+                                displayVehicles();
+                            }, 500); // 500ms delay
                             
                             // Hide modal and show success
                             bootstrap.Modal.getInstance(document.getElementById('editVehicleModal')).hide();
