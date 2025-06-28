@@ -2415,17 +2415,6 @@
                                                     </label>
                                                 </div>
                                             </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Driver ID</label>
-                                                <input type="text" class="form-control" id="qrDriverId" placeholder="Driver ID">
-                                            </div>
-                                            <div class="mb-3">
-                                                <label class="form-label">Remarks (Optional)</label>
-                                                <input type="text" class="form-control" id="qrRemarks" placeholder="Additional notes">
-                                            </div>
-                                            <button type="submit" class="btn btn-primary w-100">
-                                                <i class="bi bi-check-lg me-1"></i>Log Transaction
-                                            </button>
                                         </form>
                                     </div>
                                 </div>
@@ -3578,6 +3567,11 @@
             document.getElementById('loginMsg').innerHTML = '';
             showLoginPage();
             showToast('You have been logged out successfully', 'info');
+            
+            // Refresh the screen after logout
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000); // 1 second delay to allow toast message to be seen
         }
 
         // Fullscreen functionality with browser compatibility check
@@ -6113,7 +6107,7 @@
             const nextActionText = document.getElementById('nextActionText');
             
             if (vehicleInfo.accessStatus === 'Access' || nextAction === 'OUT') {
-                nextActionText.textContent = `Vehicle ready for ${nextAction}`;
+                nextActionText.textContent = `Access Granted - ${nextAction}`;
                 nextActionText.parentElement.className = 'alert alert-info';
                 document.getElementById(`qrAction${nextAction}`).checked = true;
                 transactionForm.classList.remove('d-none');
