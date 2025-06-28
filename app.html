@@ -1214,15 +1214,16 @@
                                 <table class="table table-sm table-hover mb-0" id="transactionLogsTable">
                                     <thead class="table-light sticky-top">
                                         <tr>
-                                            <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Time</th>
-                                            <th style="width: 70px; font-size: 0.85rem; padding: 8px 8px;">Plate</th>
+                                            <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Date and Time</th>
+                                            <th style="width: 70px; font-size: 0.85rem; padding: 8px 8px;">Plate #</th>
+                                            <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Driver</th>
                                             <th style="width: 60px; font-size: 0.85rem; padding: 8px 8px;">Gate</th>
                                             <th style="width: 50px; font-size: 0.85rem; padding: 8px 8px;" class="text-center">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="transactionLogsBody">
                                         <tr>
-                                            <td colspan="4" class="text-center py-3">
+                                            <td colspan="5" class="text-center py-3">
                                                 <div class="spinner-border spinner-border-sm text-secondary" role="status">
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
@@ -3424,7 +3425,7 @@
                         showToast('Error updating driver: ' + error, 'danger');
                         showVehicleModalLoading(false, 'edit');
                     })
-                    .updateVehicleRecord(index, updatedVehicleData, currentUser.role);
+                    .updateVehicleRecord(index, updatedVehicleData, currentUser.role, currentUser.username);
                 
                 return; // Exit early for Security users
             }
@@ -3510,7 +3511,7 @@
                     showToast('Failed to update vehicle: ' + error, 'danger');
                     showVehicleModalLoading(false, 'edit');
                 })
-                .updateVehicleRecord(actualIndex, updatedVehicleData, currentUser.role);
+                .updateVehicleRecord(actualIndex, updatedVehicleData, currentUser.role, currentUser.username);
         }
 
         function deleteVehicle(index) {
@@ -5285,7 +5286,7 @@
             const logsBody = document.getElementById('transactionLogsBody');
             logsBody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="text-center py-4">
+                    <td colspan="5" class="text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -5354,6 +5355,7 @@
                     <tr>
                         <td style="padding: 8px 8px; font-size: 0.85rem;">${formattedDateTime}</td>
                         <td style="padding: 8px 8px; font-size: 0.85rem;" class="fw-bold">${log.plate || '-'}</td>
+                        <td style="padding: 8px 8px; font-size: 0.85rem;">${log.driver || '-'}</td>
                         <td style="padding: 8px 8px; font-size: 0.85rem;">${log.gate || '-'}</td>
                         <td style="padding: 8px 8px;" class="text-center">${actionBadge}</td>
                     </tr>

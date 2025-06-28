@@ -1552,7 +1552,7 @@ function updateVehicleRecord(rowIndex, updatedData, userRole, currentUsername = 
           
           // Only update the driver field, keep everything else the same
           const currentVehicle = currentData[rowIndex];
-          currentVehicle[7] = updatedData[7]; // Update only current driver field
+          currentVehicle[8] = updatedData[8]; // Update only current driver field (Column I)
           
           // Note: Security users don't have audit trail access, but we could log this differently if needed
           // For now, only admin and super-admin get audit trail logging per requirements
