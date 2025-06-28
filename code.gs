@@ -2036,8 +2036,8 @@ function getDatabaseStatistics() {
         totalOut++;
       }
 
-      // Count access statuses from column J (index 9)
-      const accessStatus = (data[i][9] || "Access").toString().trim();
+      // Count access statuses from column K (index 10)
+      const accessStatus = (data[i][10] || "Access").toString().trim();
       if (accessStatus === "Access") {
         accessCount++;
       } else if (accessStatus === "No Access") {

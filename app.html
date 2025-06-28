@@ -1494,17 +1494,17 @@
                             </div>
                             <div class="summary-item">
                                 <i class="bi bi-check-circle-fill text-success"></i>
-                                <p class="value" id="accessCount">0</p>
+                                <p class="value" id="accessCount">-</p>
                                 <p class="label">Access Allowed</p>
                             </div>
                             <div class="summary-item">
                                 <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-                                <p class="value" id="noAccessCount">0</p>
+                                <p class="value" id="noAccessCount">-</p>
                                 <p class="label">No Access</p>
                             </div>
                             <div class="summary-item">
                                 <i class="bi bi-x-circle-fill text-danger"></i>
-                                <p class="value" id="bannedCount">0</p>
+                                <p class="value" id="bannedCount">-</p>
                                 <p class="label">Banned</p>
                             </div>
                         </div>
@@ -2837,6 +2837,11 @@
         }
 
         function refreshDashboard() {
+            // Clear filter fields (except gate selector)
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterAccessStatus').value = '';
+            
             // Refresh all dashboard data
             loadVehicles();
             loadDatabaseStatistics(); 
@@ -3477,7 +3482,20 @@
 
         function animateNumber(elementId, targetNumber) {
             const element = document.getElementById(elementId);
-            const currentNumber = parseInt(element.textContent) || 0;
+            const currentText = element.textContent.trim();
+            
+            // Handle loading state (when value is "-")
+            if (currentText === "-" || currentText === "") {
+                element.textContent = targetNumber;
+                // Add a subtle scale effect when complete
+                element.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                }, 200);
+                return;
+            }
+            
+            const currentNumber = parseInt(currentText) || 0;
             const increment = targetNumber > currentNumber ? 1 : -1;
             const steps = Math.abs(targetNumber - currentNumber);
             const duration = Math.min(1000, steps * 50); // Max 1 second animation
