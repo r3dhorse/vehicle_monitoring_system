@@ -1,5 +1,25 @@
 # Vehicle Monitoring System - User Stories
 
+## Epic: Enterprise Vehicle Access Control and Monitoring Platform
+
+### Epic Overview
+The Vehicle Monitoring System is an enterprise-grade solution designed to revolutionize how organizations manage vehicle access, track movements, and ensure security across their premises. This comprehensive platform integrates real-time monitoring, advanced security protocols, and intuitive user interfaces to create a seamless vehicle management ecosystem.
+
+### Epic Goals
+1. **Enhanced Security**: Implement robust access control mechanisms to prevent unauthorized vehicle entry
+2. **Operational Efficiency**: Streamline gate operations and reduce manual processing time by 80%
+3. **Real-time Visibility**: Provide instant insights into vehicle occupancy and movement patterns
+4. **Compliance & Audit**: Maintain comprehensive logs for regulatory compliance and security audits
+5. **Scalability**: Support multiple gates, locations, and thousands of vehicles
+6. **User Experience**: Deliver intuitive interfaces for all user roles from security officers to administrators
+
+### Success Metrics
+- Reduce unauthorized vehicle entries by 95%
+- Process vehicles at gates in under 10 seconds
+- Achieve 99.9% system uptime
+- Support 1000+ concurrent users
+- Maintain complete audit trail for 100% of transactions
+
 ## Overview
 This document outlines the user stories for the Vehicle Monitoring System, a comprehensive web application for managing vehicle access, tracking, and monitoring within organizational premises.
 
@@ -7,6 +27,9 @@ This document outlines the user stories for the Vehicle Monitoring System, a com
 - **Super Admin**: Full system access, configuration, and user management
 - **Admin**: Vehicle management, reporting, and operational oversight
 - **Security Officer**: Gate operations, vehicle verification, and access control
+- **Supervisor**: Override authority for access exceptions and escalations
+- **Auditor**: Read-only access to logs and compliance reports
+- **Visitor Management**: Handle temporary vehicle registrations and visitor passes
 
 ---
 
@@ -335,6 +358,136 @@ This document outlines the user stories for the Vehicle Monitoring System, a com
 - Backup verification and testing procedures
 - Disaster recovery documentation
 - Data integrity monitoring and alerts
+
+### US-026: Visitor Vehicle Management
+**As a** Visitor Management Officer  
+**I want to** create temporary vehicle passes for visitors  
+**So that** legitimate visitors can access the premises with proper tracking  
+
+**Acceptance Criteria:**
+- Create time-limited vehicle passes (hours/days)
+- Capture visitor details and purpose of visit
+- Generate printable visitor vehicle tags with QR codes
+- Automatic expiration of visitor passes
+- Visitor vehicle history and analytics
+- Pre-registration capability for expected visitors
+
+### US-027: Multi-Site Management
+**As a** Super Admin managing multiple locations  
+**I want to** configure and monitor vehicles across different sites  
+**So that** I can manage enterprise-wide vehicle access from a single platform  
+
+**Acceptance Criteria:**
+- Configure multiple site locations with unique gates
+- Assign vehicles to specific sites or all sites
+- Cross-site vehicle movement tracking
+- Site-specific reporting and analytics
+- Centralized dashboard for all locations
+- Site-specific user access controls
+
+### US-028: Vehicle Incident Reporting
+**As a** Security Officer  
+**I want to** report and track vehicle-related incidents  
+**So that** security events are properly documented and investigated  
+
+**Acceptance Criteria:**
+- Create incident reports linked to vehicles
+- Attach photos and documents to incidents
+- Categorize incidents by type and severity
+- Track incident resolution status
+- Generate incident reports and statistics
+- Automatic notifications for serious incidents
+
+### US-029: Advanced Analytics Dashboard
+**As an** Admin  
+**I want to** view advanced analytics and trends  
+**So that** I can make data-driven decisions about vehicle management  
+
+**Acceptance Criteria:**
+- Peak hour traffic analysis
+- Vehicle dwell time statistics
+- Department-wise vehicle utilization
+- Historical trend comparisons
+- Predictive occupancy forecasting
+- Custom report builder with saved templates
+
+### US-030: API Integration
+**As a** System Administrator  
+**I want to** integrate with external systems via API  
+**So that** vehicle data can be synchronized with other enterprise systems  
+
+**Acceptance Criteria:**
+- RESTful API for vehicle data access
+- Webhook support for real-time events
+- API authentication and rate limiting
+- Integration with HR systems for driver data
+- Integration with fleet management systems
+- API documentation and testing tools
+
+### US-031: Compliance Reporting
+**As an** Auditor  
+**I want to** generate compliance reports  
+**So that** I can verify adherence to security policies and regulations  
+
+**Acceptance Criteria:**
+- Automated compliance report generation
+- Customizable report templates
+- Scheduled report delivery via email
+- Access violation summaries
+- User activity audit trails
+- Export in regulatory-required formats
+
+### US-032: Emergency Vehicle Priority
+**As a** Security Officer  
+**I want to** give priority access to emergency vehicles  
+**So that** emergency response is never delayed  
+
+**Acceptance Criteria:**
+- Mark vehicles as emergency type
+- Automatic gate opening for emergency vehicles
+- Override all access restrictions
+- Priority alerts for incoming emergency vehicles
+- Track emergency vehicle response times
+- Integration with emergency dispatch systems
+
+### US-033: Vehicle Maintenance Tracking
+**As an** Admin  
+**I want to** track vehicle maintenance schedules  
+**So that** fleet safety and compliance are maintained  
+
+**Acceptance Criteria:**
+- Record maintenance schedules and history
+- Automatic alerts for due maintenance
+- Block access for overdue maintenance vehicles
+- Integration with maintenance management systems
+- Maintenance cost tracking and reporting
+- Document storage for maintenance records
+
+### US-034: Parking Space Management
+**As an** Admin  
+**I want to** manage and assign parking spaces  
+**So that** parking resources are optimally utilized  
+
+**Acceptance Criteria:**
+- Define parking zones and spaces
+- Assign vehicles to specific parking areas
+- Real-time parking occupancy tracking
+- Parking violation detection and alerts
+- Reserved parking management
+- Parking utilization analytics
+
+### US-035: Environmental Compliance
+**As a** Compliance Officer  
+**I want to** track vehicle emissions and environmental impact  
+**So that** we meet environmental regulations and sustainability goals  
+
+**Acceptance Criteria:**
+- Record vehicle emission ratings
+- Track electric/hybrid vehicle usage
+- Generate environmental impact reports
+- Set and monitor emission targets
+- Incentive tracking for green vehicles
+- Carbon footprint calculations
 
 ---
 

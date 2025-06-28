@@ -45,6 +45,7 @@ for i in range(RECORD_COUNT):
     current_driver = random.choice(assigned_drivers) if random.random() > 0.1 else ""
     
     data.append({
+        "ID": i + 1,  # Incremental ID starting from 1
         "Plate Number": plate_numbers[i],
         "Make/Model": random.choice(MAKES_MODELS),
         "Color": random.choice(COLORS),
