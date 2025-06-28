@@ -2320,9 +2320,9 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopQRScanner()"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Gates Dropdown at the top -->
+                    <!-- Gates and Camera Selection -->
                     <div class="row mb-3">
-                        <div class="col-12">
+                        <div class="col-md-8">
                             <div class="d-flex align-items-center gap-2">
                                 <label class="form-label mb-0"><i class="bi bi-door-open me-1"></i>Select Gate:</label>
                                 <select class="form-select" id="qrGateSelect" style="flex: 1;">
@@ -2331,6 +2331,15 @@
                                 <button type="button" class="btn btn-sm btn-outline-secondary" onclick="loadGatesForQRScanner()" title="Refresh gates">
                                     <i class="bi bi-arrow-clockwise"></i>
                                 </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <label class="form-label mb-0"><i class="bi bi-camera me-1"></i>Camera:</label>
+                                <select class="form-select" id="cameraSelect" onchange="switchCamera()">
+                                    <option value="environment">Back Camera</option>
+                                    <option value="user">Front Camera</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -5781,7 +5790,7 @@
                             if (gate[0]) { // Gate name exists
                                 const option = document.createElement('option');
                                 option.value = gate[0];
-                                option.textContent = `${gate[0]} - ${gate[1] || 'No description'}`;
+                                option.textContent = gate[1] ? `${gate[0]} - ${gate[1]}` : gate[0];
                                 select.appendChild(option);
                             }
                         }
@@ -5813,6 +5822,7 @@
             const status = document.getElementById('qrScannerStatus');
             const cameraError = document.getElementById('cameraError');
             const scannerContainer = document.getElementById('qrScannerContainer');
+            const cameraSelect = document.getElementById('cameraSelect');
 
             try {
                 // Hide error and show scanner
@@ -5824,10 +5834,13 @@
                     stopQRScanner();
                 }
 
+                // Get selected camera mode
+                const selectedCamera = cameraSelect ? cameraSelect.value : 'environment';
+
                 // Request camera access
                 qrScannerStream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: 'environment', // Use back camera on mobile
+                        facingMode: selectedCamera, // Use selected camera
                         width: { ideal: 400 },
                         height: { ideal: 400 }
                     }
@@ -5851,6 +5864,18 @@
                 video.style.display = 'none';
                 cameraError.classList.remove('d-none');
                 status.textContent = 'Camera access denied';
+            }
+        }
+
+        // Function to switch camera when dropdown changes
+        async function switchCamera() {
+            const cameraSelect = document.getElementById('cameraSelect');
+            const status = document.getElementById('qrScannerStatus');
+            
+            if (qrScannerActive && cameraSelect) {
+                status.textContent = 'Switching camera...';
+                // Restart scanner with new camera
+                await initQRScanner();
             }
         }
 
