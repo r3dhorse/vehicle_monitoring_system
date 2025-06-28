@@ -3562,10 +3562,31 @@
                 document.getElementById('activeGateDisplay').textContent = currentGate.name;
             }
             
-            // Update today's activity (this would need actual data from logs)
-            // For now, we'll just show a placeholder
-            const todayActivity = sessionStorage.getItem('todayActivity') || '0';
-            document.getElementById('recentActivity').textContent = todayActivity;
+            // Update today's activity from InOutLogs
+            updateTodayActivity();
+        }
+
+        // Function to update today's activity count from backend
+        function updateTodayActivity() {
+            try {
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        if (result && result.success) {
+                            document.getElementById('recentActivity').textContent = result.count;
+                        } else {
+                            console.error('Error getting today activity:', result?.error);
+                            document.getElementById('recentActivity').textContent = '0';
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        console.error('Failed to get today activity:', error);
+                        document.getElementById('recentActivity').textContent = '0';
+                    })
+                    .getTodayActivityCount();
+            } catch (error) {
+                console.error('Error calling getTodayActivityCount:', error);
+                document.getElementById('recentActivity').textContent = '0';
+            }
         }
 
         function logout() {

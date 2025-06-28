@@ -3278,6 +3278,45 @@ function getGateActivityReport(gateId, dateFrom, dateTo) {
   }
 }
 
+// Get today's activity count from InOutLogs
+function getTodayActivityCount() {
+  try {
+    const logSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(LOG_SHEET);
+    
+    if (!logSheet) {
+      console.log("Log sheet not found");
+      return { count: 0, error: "Log sheet not found" };
+    }
+
+    const logData = logSheet.getDataRange().getValues();
+    
+    // Set today's date boundary (start of today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let todayCount = 0;
+    
+    // Loop through log data starting from row 1 (skip header)
+    for (let i = 1; i < logData.length; i++) {
+      if (logData[i] && logData[i][0]) { // Check if row exists and has timestamp
+        const logDate = new Date(logData[i][0]); // Column A (index 0) is timestamp
+        
+        // Check if log entry is from today
+        if (logDate >= today) {
+          todayCount++;
+        }
+      }
+    }
+    
+    console.log(`Today's activity count: ${todayCount}`);
+    return { count: todayCount, success: true };
+    
+  } catch (error) {
+    console.error("Error getting today's activity count:", error);
+    return { count: 0, error: error.message };
+  }
+}
+
 // Get comprehensive gate usage analytics
 function getGateAnalytics() {
   try {
