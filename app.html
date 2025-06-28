@@ -809,6 +809,45 @@
                 background-color: rgba(0,0,0,0.1);
             }
         }
+        
+        /* Role Badge Styles */
+        .role-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
+            padding: 4px 8px;
+            border: 1px solid;
+        }
+        
+        .badge-super-admin {
+            background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%);
+            color: white;
+            border-color: #bd2130;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+        }
+        
+        .badge-admin {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border-color: #0056b3;
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+        }
+        
+        .badge-security {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: white;
+            border-color: #1e7e34;
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        }
+        
+        /* Role badge hover effects */
+        .role-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -871,7 +910,7 @@
                 </a>
                   <span class="navbar-text me-3">
                       <i class="bi bi-person-circle me-1"></i>
-                      <span id="userRole" class="badge role-badge"></span>
+                      <span id="currentRole" class="badge role-badge"></span>
                       <small class="text-light ms-1">(<span id="currentUsername"></span>)</small>
                   </span>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -1930,6 +1969,7 @@
         let currentUser = null;
         let vehicleData = [];
         let allVehicles = [];
+        let userPermissions = null; // Store user permissions from backend
         
         // Session management functions
         function saveSession() {
@@ -1983,8 +2023,19 @@
         function checkExistingSession() {
             // Try to restore session using the new function
             if (restoreSession()) {
-                console.log('User session restored, showing dashboard');
-                showDashboard();
+                console.log('User session restored, fetching permissions and showing dashboard');
+                
+                // Fetch permissions for the restored session
+                fetchUserPermissions()
+                    .then(() => {
+                        showDashboard();
+                    })
+                    .catch((error) => {
+                        console.error('Failed to load permissions for restored session:', error);
+                        // Still show dashboard but warn user
+                        showMessage('Session restored but failed to load permissions. Please refresh the page.', 'warning');
+                        showDashboard();
+                    });
             } else {
                 console.log('No valid session found, showing login page');
                 showLoginPage();
@@ -2028,14 +2079,18 @@
             document.getElementById('dashboardPage').classList.remove('hidden');
             
             // Update user role display
-            const roleElement = document.getElementById('userRole');
             const usernameElement = document.getElementById('currentUsername');
-            roleElement.textContent = currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1);
-            roleElement.className = `badge role-badge ${currentUser.role}`;
             usernameElement.textContent = currentUser.username;
             
-            // Show/hide features based on role permissions
-            updateUIBasedOnRole();
+            // Update role badge using the dedicated function
+            updateRoleBadge(currentUser.role);
+            
+            // Show/hide features based on role permissions (only if permissions are loaded)
+            if (userPermissions) {
+                updateUIBasedOnRole();
+            } else {
+                console.warn('Permissions not loaded yet when showing dashboard');
+            }
             
             loadVehicles();
             loadActiveGates();
@@ -2051,19 +2106,25 @@
         }
 
         function updateUIBasedOnRole() {
+            if (!userPermissions) {
+                console.warn('User permissions not loaded, cannot update UI');
+                return;
+            }
+            
             const role = currentUser.role;
+            console.log('Updating UI for role:', role);
             
             // Show/hide add vehicle button
             const addVehicleBtn = document.getElementById('addVehicleBtn');
-            if (hasPermission('manage_vehicles')) {
+            if (hasPermission('vehicles', 'create')) {
                 addVehicleBtn.style.display = 'block';
             } else {
                 addVehicleBtn.style.display = 'none';
             }
             
-            // Show/hide QR scanner button
+            // Show/hide QR scanner button  
             const qrScannerBtn = document.getElementById('qrScannerBtn');
-            if (hasPermission('scan_vehicles')) {
+            if (hasPermission('gates', 'transactions')) {
                 qrScannerBtn.style.display = 'block';
             } else {
                 qrScannerBtn.style.display = 'none';
@@ -2071,7 +2132,7 @@
             
             // Show/hide user management dropdown
             const userManagementDropdown = document.getElementById('userManagementDropdown');
-            if (hasPermission('manage_users') || hasPermission('manage_users_limited')) {
+            if (hasPermission('users', 'read')) {
                 userManagementDropdown.style.display = 'block';
             } else {
                 userManagementDropdown.style.display = 'none';
@@ -2079,31 +2140,122 @@
             
             // Show/hide vehicle management button
             const vehicleManagementBtn = document.getElementById('vehicleManagementBtn');
-            if (hasPermission('manage_vehicles')) {
+            if (hasPermission('vehicles', 'read') || hasPermission('vehicles', 'create')) {
                 vehicleManagementBtn.style.display = 'inline-block';
             } else {
                 vehicleManagementBtn.style.display = 'none';
             }
             
-            
             // Show/hide gate management button
             const gateManagementBtn = document.getElementById('gateManagementBtn');
-            if (hasPermission('manage_gates')) {
+            if (hasPermission('gates', 'read') || hasPermission('gates', 'create')) {
                 gateManagementBtn.style.display = 'inline-block';
             } else {
                 gateManagementBtn.style.display = 'none';
             }
+            
+            // Update role badge with appropriate styling
+            updateRoleBadge(role);
         }
 
-        function hasPermission(permission) {
-            const role = currentUser.role;
-            const permissions = {
-                'super-admin': ['manage_users', 'manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'system_config', 'scan_vehicles', 'full_system_access'],
-                'admin': ['manage_vehicles', 'manage_drivers', 'manage_gates', 'view_all', 'scan_vehicles', 'manage_users_limited'],
-                'security': ['vehicle_operations', 'gate_operations', 'view_assigned', 'scan_vehicles']
+        function updateRoleBadge(role) {
+            const roleElement = document.getElementById('currentRole');
+            if (roleElement) {
+                // Remove existing role classes
+                roleElement.classList.remove('badge-super-admin', 'badge-admin', 'badge-security');
+                
+                // Add appropriate class and text
+                switch(role) {
+                    case 'super-admin':
+                        roleElement.classList.add('badge-super-admin');
+                        roleElement.textContent = 'Super Admin';
+                        break;
+                    case 'admin':
+                        roleElement.classList.add('badge-admin');
+                        roleElement.textContent = 'Admin';
+                        break;
+                    case 'security':
+                        roleElement.classList.add('badge-security');
+                        roleElement.textContent = 'Security';
+                        break;
+                    default:
+                        roleElement.textContent = role;
+                }
+            }
+        }
+
+        /**
+         * Fetch user permissions from backend
+         */
+        function fetchUserPermissions() {
+            if (!currentUser || !currentUser.role) {
+                console.warn('No current user or role available');
+                return Promise.resolve(false);
+            }
+            
+            return new Promise((resolve, reject) => {
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        if (result && result.success) {
+                            userPermissions = result.permissions;
+                            console.log('User permissions loaded:', userPermissions);
+                            resolve(true);
+                        } else {
+                            console.error('Failed to load permissions:', result.error);
+                            reject(result.error || 'Failed to load permissions');
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        console.error('Error fetching permissions:', error);
+                        reject(error);
+                    })
+                    .getPermissionsForFrontend(currentUser.role);
+            });
+        }
+
+        /**
+         * Check if user has specific permission based on backend permission system
+         * @param {string} resource - Resource type (users, vehicles, gates, system)
+         * @param {string} action - Action type (create, read, update, delete, etc.)
+         * @returns {boolean} - Whether permission is granted
+         */
+        function hasPermission(resource, action) {
+            if (!userPermissions || !currentUser) {
+                console.warn('User permissions not loaded or no current user');
+                return false;
+            }
+            
+            const resourcePerms = userPermissions[resource];
+            if (!resourcePerms) {
+                console.warn(`Resource '${resource}' not found in permissions`);
+                return false;
+            }
+            
+            return resourcePerms[action] === true;
+        }
+
+        /**
+         * Legacy permission check function for backward compatibility
+         * Maps old permission strings to new resource/action format
+         */
+        function hasLegacyPermission(permission) {
+            const permissionMap = {
+                'manage_users': () => hasPermission('users', 'create') || hasPermission('users', 'update'),
+                'manage_users_limited': () => hasPermission('users', 'create') || hasPermission('users', 'update'),
+                'manage_vehicles': () => hasPermission('vehicles', 'create') || hasPermission('vehicles', 'update'),
+                'manage_drivers': () => hasPermission('vehicles', 'updateDriver'),
+                'manage_gates': () => hasPermission('gates', 'create') || hasPermission('gates', 'update'),
+                'view_all': () => hasPermission('vehicles', 'read') || hasPermission('users', 'read'),
+                'system_config': () => hasPermission('system', 'exportLogs') || hasPermission('system', 'clearData'),
+                'scan_vehicles': () => hasPermission('gates', 'transactions'),
+                'vehicle_operations': () => hasPermission('vehicles', 'updateDriver'),
+                'gate_operations': () => hasPermission('gates', 'transactions'),
+                'view_assigned': () => hasPermission('vehicles', 'read'),
+                'full_system_access': () => currentUser.role === 'super-admin'
             };
             
-            return permissions[role]?.includes(permission) || false;
+            const checkFunction = permissionMap[permission];
+            return checkFunction ? checkFunction() : false;
         }
 
         function login() {
@@ -2125,9 +2277,21 @@
                         currentUser = { username: username, role: result.role };
                         saveSession(); // Save session to prevent logout on refresh
                         showMessage('Login successful!', 'success');
-                        setTimeout(() => {
-                            showDashboard();
-                        }, 1000);
+                        
+                        // Fetch user permissions after successful login
+                        fetchUserPermissions()
+                            .then(() => {
+                                setTimeout(() => {
+                                    showDashboard();
+                                }, 1000);
+                            })
+                            .catch((error) => {
+                                console.error('Failed to load permissions:', error);
+                                showMessage('Login successful but failed to load permissions. Some features may not work correctly.', 'warning');
+                                setTimeout(() => {
+                                    showDashboard();
+                                }, 1000);
+                            });
                     } else {
                         // Show specific error message if provided (for account status issues)
                         const errorMessage = result.message || 'Invalid username or password';
@@ -3068,21 +3232,21 @@
             
             // Add action buttons based on user permissions
             const footer = document.getElementById('detailsModalFooter');
-            if (hasPermission('manage_vehicles')) {
-                // Super Admin, Admin, Supervisor - full edit and delete capability
+            if (hasPermission('vehicles', 'update')) {
+                // Super Admin, Admin - full edit and delete capability
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
                         <i class="bi bi-pencil-square me-2"></i>Edit
                     </button>
-                    ${currentUser.role === 'super-admin' || currentUser.role === 'admin' ? `
+                    ${hasPermission('vehicles', 'delete') ? `
                     <button type="button" class="btn btn-danger" onclick="deleteVehicle(${index})">
                         <i class="bi bi-trash me-2"></i>Delete
                     </button>
                     ` : ''}
                 `;
-            } else if (hasPermission('vehicle_operations')) {
-                // Security - limited edit capability
+            } else if (hasPermission('vehicles', 'updateDriver')) {
+                // Security - limited edit capability (driver only)
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
@@ -3090,7 +3254,7 @@
                     </button>
                 `;
             } else {
-                // User and other roles - view only
+                // No edit permissions - view only
                 footer.innerHTML = `
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 `;
@@ -3129,7 +3293,7 @@
         }
 
         function editVehicle(index) {
-            if (!hasPermission('manage_vehicles') && !hasPermission('vehicle_operations')) {
+            if (!hasPermission('vehicles', 'update') && !hasPermission('vehicles', 'updateDriver')) {
                 showToast('Access denied: Insufficient permissions to edit vehicles', 'danger');
                 return;
             }
@@ -3162,8 +3326,8 @@
                 assignedDriversField.setAttribute('data-listener-added', 'true');
             }
             
-            // Restrict Security role to only edit current driver field
-            if (currentUser.role === 'security') {
+            // Restrict users who can only update driver to current driver field only
+            if (hasPermission('vehicles', 'updateDriver') && !hasPermission('vehicles', 'update')) {
                 // Disable all fields except current driver
                 const fieldsToDisable = [
                     'editPlateNumber', 'editModel', 'editColor', 'editDepartment', 
@@ -3350,8 +3514,8 @@
         }
 
         function deleteVehicle(index) {
-            if (currentUser.role !== 'admin') {
-                showToast('Only administrators can delete vehicles', 'danger');
+            if (!hasPermission('vehicles', 'delete')) {
+                showToast('Access denied: Only Super Admin can delete vehicles', 'danger');
                 return;
             }
             
@@ -3395,10 +3559,10 @@
         function showUserManagement() {
             // Debug logging
             console.log('Current user:', currentUser);
-            console.log('Has manage_users permission:', hasPermission('manage_users'));
-            console.log('Has manage_users_limited permission:', hasPermission('manage_users_limited'));
+            console.log('Has user read permission:', hasPermission('users', 'read'));
+            console.log('Has user create permission:', hasPermission('users', 'create'));
             
-            if (!hasPermission('manage_users') && !hasPermission('manage_users_limited')) {
+            if (!hasPermission('users', 'read')) {
                 showToast('Access denied: Insufficient permissions for user management', 'danger');
                 return;
             }
@@ -4061,8 +4225,8 @@
         }
 
         function deleteUser(index) {
-            if (!hasPermission('manage_users') && !hasPermission('manage_users_limited')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
+            if (!hasPermission('users', 'delete')) {
+                showToast('Access denied: Only Super Admin can delete users', 'danger');
                 return;
             }
 
@@ -4076,13 +4240,8 @@
                 return;
             }
 
-            // Admin role restrictions - cannot delete super-admin users
-            if (hasPermission('manage_users_limited') && !hasPermission('manage_users')) {
-                if (role === 'super-admin') {
-                    showToast('Access denied: Admin users cannot delete Super Admin accounts', 'danger');
-                    return;
-                }
-            }
+            // This check is now handled by the backend permission system
+            // Only super-admin role has 'delete' permission for users
 
             // Enhanced confirmation dialog with role information
             const confirmMessage = `⚠️ DELETE USER CONFIRMATION ⚠️\n\nUsername: ${username}\nRole: ${role.charAt(0).toUpperCase() + role.slice(1)}\n\nThis action cannot be undone.\nAre you sure you want to permanently delete this user?`;
@@ -4251,8 +4410,8 @@
         }
 
         function showGateManagement() {
-            if (!hasPermission('manage_gates')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
+            if (!hasPermission('gates', 'create') && !hasPermission('gates', 'read')) {
+                showToast('Access denied: Insufficient permissions for gate management', 'danger');
                 return;
             }
 
@@ -4374,8 +4533,8 @@
 
 
         function showVehicleManagement() {
-            if (!hasPermission('manage_vehicles')) {
-                showToast('Access denied: Insufficient permissions', 'danger');
+            if (!hasPermission('vehicles', 'create')) {
+                showToast('Access denied: Insufficient permissions to create vehicles', 'danger');
                 return;
             }
 

@@ -41,6 +41,260 @@ function sanitizeInput(input) {
     .replace(/[<>"'&]/g, "");
 }
 
+// ===== ROLE-BASED ACCESS CONTROL SYSTEM =====
+
+/**
+ * Role-based permissions matrix
+ * Defines what each role can access and modify
+ */
+const ROLE_PERMISSIONS = {
+  "super-admin": {
+    // Full access to all features
+    users: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      manageRoles: ["super-admin", "admin", "security"] // Can create any role
+    },
+    vehicles: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      updateDriver: true
+    },
+    gates: {
+      create: true,
+      read: true,
+      update: true,
+      delete: true,
+      transactions: true
+    },
+    system: {
+      exportLogs: true,
+      clearData: true,
+      viewReports: true
+    }
+  },
+  "admin": {
+    // Can manage vehicles, limited user management
+    users: {
+      create: true,
+      read: true,
+      update: true,
+      delete: false, // Cannot delete users
+      manageRoles: ["admin", "security"] // Cannot create super-admin
+    },
+    vehicles: {
+      create: true,
+      read: true,
+      update: true,
+      delete: false, // Cannot delete vehicles
+      updateDriver: true
+    },
+    gates: {
+      create: true,
+      read: true,
+      update: true,
+      delete: false, // Cannot delete gates
+      transactions: true
+    },
+    system: {
+      exportLogs: true,
+      clearData: false,
+      viewReports: true
+    }
+  },
+  "security": {
+    // Limited to driver updates and gate transactions
+    users: {
+      create: false,
+      read: false,
+      update: false,
+      delete: false,
+      manageRoles: []
+    },
+    vehicles: {
+      create: false,
+      read: true,
+      update: false,
+      delete: false,
+      updateDriver: true // Only can update current driver field
+    },
+    gates: {
+      create: false,
+      read: true,
+      update: false,
+      delete: false,
+      transactions: true // Can manage IN/OUT transactions
+    },
+    system: {
+      exportLogs: false,
+      clearData: false,
+      viewReports: false
+    }
+  }
+};
+
+/**
+ * Check if a user role has specific permission
+ * @param {string} userRole - User's role
+ * @param {string} resource - Resource type (users, vehicles, gates, system)
+ * @param {string} action - Action type (create, read, update, delete, etc.)
+ * @returns {boolean} - Whether permission is granted
+ */
+function hasPermission(userRole, resource, action) {
+  if (!userRole || !resource || !action) {
+    console.warn("hasPermission: Missing required parameters", { userRole, resource, action });
+    return false;
+  }
+  
+  const rolePerms = ROLE_PERMISSIONS[userRole];
+  if (!rolePerms) {
+    console.warn(`hasPermission: Invalid role '${userRole}'`);
+    return false;
+  }
+  
+  const resourcePerms = rolePerms[resource];
+  if (!resourcePerms) {
+    console.warn(`hasPermission: Invalid resource '${resource}' for role '${userRole}'`);
+    return false;
+  }
+  
+  return resourcePerms[action] === true;
+}
+
+/**
+ * Check if user can manage specific roles
+ * @param {string} userRole - User's role
+ * @param {string} targetRole - Role to be managed
+ * @returns {boolean} - Whether user can manage the target role
+ */
+function canManageRole(userRole, targetRole) {
+  if (!userRole || !targetRole) {
+    return false;
+  }
+  
+  const rolePerms = ROLE_PERMISSIONS[userRole];
+  if (!rolePerms || !rolePerms.users) {
+    return false;
+  }
+  
+  return rolePerms.users.manageRoles.includes(targetRole);
+}
+
+/**
+ * Enforce permission check with automatic error throwing
+ * @param {string} userRole - User's role
+ * @param {string} resource - Resource type
+ * @param {string} action - Action type
+ * @param {string} customMessage - Optional custom error message
+ * @throws {Error} - If permission is denied
+ */
+function enforcePermission(userRole, resource, action, customMessage = null) {
+  if (!hasPermission(userRole, resource, action)) {
+    const message = customMessage || `Access denied: ${userRole} role cannot ${action} ${resource}`;
+    console.warn(`Permission denied: ${userRole} attempted to ${action} ${resource}`);
+    throw new VehicleMonitoringError(message, "PERMISSION_DENIED");
+  }
+}
+
+/**
+ * Get user's role-specific permissions for frontend
+ * @param {string} userRole - User's role
+ * @returns {object} - Permission object for frontend
+ */
+function getUserPermissions(userRole) {
+  const rolePerms = ROLE_PERMISSIONS[userRole];
+  if (!rolePerms) {
+    return {
+      users: { create: false, read: false, update: false, delete: false },
+      vehicles: { create: false, read: false, update: false, delete: false, updateDriver: false },
+      gates: { create: false, read: false, update: false, delete: false, transactions: false },
+      system: { exportLogs: false, clearData: false, viewReports: false }
+    };
+  }
+  
+  return JSON.parse(JSON.stringify(rolePerms)); // Deep copy to prevent modification
+}
+
+/**
+ * Log user activity with role information
+ * @param {string} username - Username
+ * @param {string} userRole - User's role
+ * @param {string} action - Action performed
+ * @param {string} resource - Resource affected
+ * @param {string} result - Result of action (success/failure)
+ * @param {string} details - Additional details
+ */
+function logUserActivity(username, userRole, action, resource, result, details = '') {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("UserActivity");
+    if (!sheet) {
+      console.warn("UserActivity sheet not found, skipping activity log");
+      return;
+    }
+    
+    const timestamp = new Date();
+    const logEntry = [
+      timestamp,
+      username || 'Unknown',
+      userRole || 'Unknown',
+      action || 'Unknown',
+      resource || 'Unknown',
+      result || 'Unknown',
+      details
+    ];
+    
+    sheet.appendRow(logEntry);
+    console.log(`Activity logged: ${username} (${userRole}) ${action} ${resource} - ${result}`);
+  } catch (error) {
+    console.error("Error logging user activity:", error);
+  }
+}
+
+/**
+ * Get user permissions for frontend - called by frontend to determine UI visibility
+ * @param {string} userRole - User's role  
+ * @returns {object} - Complete permission object for frontend use
+ */
+function getPermissionsForFrontend(userRole) {
+  try {
+    console.log(`Getting permissions for role: ${userRole}`);
+    
+    if (!userRole) {
+      console.warn("No user role provided, returning empty permissions");
+      return {
+        error: "No user role provided",
+        permissions: {}
+      };
+    }
+    
+    const permissions = getUserPermissions(userRole);
+    
+    // Add role-specific information
+    const result = {
+      success: true,
+      userRole: userRole,
+      permissions: permissions,
+      canManageRoles: ROLE_PERMISSIONS[userRole]?.users?.manageRoles || [],
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log(`Permissions retrieved for ${userRole}:`, JSON.stringify(result, null, 2));
+    return result;
+    
+  } catch (error) {
+    console.error("Error getting permissions for frontend:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to retrieve permissions",
+      permissions: {}
+    };
+  }
+}
+
 // Generate next sequential user ID
 function generateNextUserId() {
   try {
@@ -278,9 +532,11 @@ function getVehicleListForManagement() {
 
 // Save vehicle (create or update) - for management
 function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access required.");
-  }
+  // Use new permission system
+  enforcePermission(userRole, "vehicles", "create", "Access denied: Cannot create or update vehicles");
+  
+  // Log the activity
+  logUserActivity(vehicleData.username || 'Unknown', userRole, editIndex === -1 ? 'create' : 'update', 'vehicle', 'attempting');
 
   try {
     validateRequired(vehicleData.plateNumber, "Plate Number");
@@ -362,9 +618,11 @@ function saveVehicleRecord(vehicleData, userRole, editIndex = -1) {
 
 // Delete vehicle (management)
 function deleteVehicleRecord(vehicleIndex, userRole) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access required.");
-  }
+  // Use new permission system - only super-admin can delete vehicles
+  enforcePermission(userRole, "vehicles", "delete", "Access denied: Only Super Admin can delete vehicles");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'delete', 'vehicle', 'attempting');
 
   try {
     const sheet =
@@ -948,11 +1206,13 @@ function updateVehicleRecord(rowIndex, updatedData, userRole) {
   }
 }
 
-// Admin-only: delete vehicle record
-function deleteVehicleRecord(rowIndex, userRole) {
-  if (userRole !== "admin") {
-    throw new Error("Unauthorized: Admin access required.");
-  }
+// Super-admin only: delete vehicle record (legacy function - should be consolidated)
+function deleteVehicleRecordLegacy(rowIndex, userRole) {
+  // Use new permission system - only super-admin can delete vehicles
+  enforcePermission(userRole, "vehicles", "delete", "Access denied: Only Super Admin can delete vehicles");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'delete', 'vehicle', 'attempting');
 
   try {
     const sheet =
@@ -1586,11 +1846,13 @@ function getRecentTransactions(limit = 50) {
   }
 }
 
-// Export logs to PDF (admin only)
+// Export logs to PDF (admin and super-admin)
 function exportLogsToPDF(userRole, dateFrom, dateTo) {
-  if (userRole !== "admin") {
-    throw new Error("Unauthorized: Admin access required.");
-  }
+  // Use new permission system
+  enforcePermission(userRole, "system", "exportLogs", "Access denied: Cannot export logs");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'export', 'logs', 'attempting');
 
   try {
     const sheet =
@@ -1736,13 +1998,15 @@ function debugSpreadsheetStatus() {
 }
 
 /**
- * Clear all sample/mock data from the system (Admin only)
+ * Clear all sample/mock data from the system (Super Admin only)
  * Keeps the headers and essential system data
  */
 function clearSampleData(userRole) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access required.");
-  }
+  // Use new permission system - only super-admin can clear data
+  enforcePermission(userRole, "system", "clearData", "Access denied: Only Super Admin can clear system data");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'clear', 'system_data', 'attempting');
 
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -1883,13 +2147,15 @@ function migrateUserRoles() {
   }
 }
 
-// Get all users (super-admin only)
+// Get all users (super-admin and admin only)
 function getUserList(userRole) {
   console.log("getUserList called with role:", userRole);
   
-  if (userRole !== "super-admin" && userRole !== "admin") {
-    throw new Error("Unauthorized: Admin or Super admin access required.");
-  }
+  // Use new permission system
+  enforcePermission(userRole, "users", "read", "Access denied: Cannot view user list");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'read', 'users', 'attempting');
 
   try {
     const sheet =
@@ -1939,9 +2205,17 @@ function getUserList(userRole) {
 function saveUser(userData, userRole, editIndex = -1) {
   console.log("saveUser called with:", { userData: userData.username, userRole, editIndex });
   
-  if (userRole !== "super-admin" && userRole !== "admin") {
-    return { success: false, error: "Unauthorized: Admin or Super admin access required." };
+  // Use new permission system
+  const action = editIndex === -1 ? "create" : "update";
+  enforcePermission(userRole, "users", action, `Access denied: Cannot ${action} users`);
+  
+  // Check if user can manage the target role
+  if (!canManageRole(userRole, userData.role)) {
+    throw new VehicleMonitoringError(`Access denied: Cannot assign role '${userData.role}'`, "ROLE_ASSIGNMENT_DENIED");
   }
+  
+  // Log the activity
+  logUserActivity(userData.username, userRole, action, 'user', 'attempting');
 
   try {
     // Enhanced validation
@@ -1964,16 +2238,6 @@ function saveUser(userData, userRole, editIndex = -1) {
 
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
     const data = sheet.getDataRange().getValues();
-
-    // Role validation based on current user's role
-    const validRoles = {
-      "super-admin": ["super-admin", "admin", "security"],
-      "admin": ["admin", "security"], // Admin can manage admin role (but not super-admin)
-    };
-
-    if (!validRoles[userRole].includes(userData.role)) {
-      throw new Error(`You cannot assign the role: ${userData.role}`);
-    }
 
     let isEditing = false;
     let targetRowIndex = -1;
@@ -2069,9 +2333,11 @@ function saveUser(userData, userRole, editIndex = -1) {
 function deleteUser(userIndex, userRole) {
   console.log("deleteUser called with index:", userIndex, "role:", userRole);
   
-  if (userRole !== "super-admin") {
-    throw new Error("Unauthorized: Super admin access required.");
-  }
+  // Use new permission system
+  enforcePermission(userRole, "users", "delete", "Access denied: Only Super Admin can delete users");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'delete', 'user', 'attempting');
 
   try {
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
@@ -2151,9 +2417,12 @@ function getGateList() {
 
 // Save gate (simple - just name)
 function saveGate(gateName, userRole, editIndex = -1) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access or higher required.");
-  }
+  // Use new permission system
+  const action = editIndex === -1 ? "create" : "update";
+  enforcePermission(userRole, "gates", action, `Access denied: Cannot ${action} gates`);
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, action, 'gate', 'attempting');
 
   try {
     if (!gateName || gateName.trim() === "") {
@@ -2190,9 +2459,11 @@ function saveGate(gateName, userRole, editIndex = -1) {
 
 // Delete gate (simple)
 function deleteGate(gateIndex, userRole) {
-  if (!["super-admin", "admin"].includes(userRole)) {
-    throw new Error("Unauthorized: Admin access or higher required.");
-  }
+  // Use new permission system - only super-admin can delete gates
+  enforcePermission(userRole, "gates", "delete", "Access denied: Only Super Admin can delete gates");
+  
+  // Log the activity
+  logUserActivity('Unknown', userRole, 'delete', 'gate', 'attempting');
 
   try {
     const sheet =
