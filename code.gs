@@ -25,14 +25,8 @@ class VehicleMonitoringError extends Error {
 function clearVehicleCache() {
   try {
     const cache = CacheService.getScriptCache();
-    
-    // Clear all vehicle-related cache keys
     cache.remove("vehicle_list_data");
-    cache.remove("vehicle_list_summary");
-    
-    // Clear search-based cache keys (we can't easily iterate through all keys, 
-    // but the main ones should be cleared by the above)
-    console.log("Vehicle cache cleared (all related keys)");
+    console.log("Vehicle cache cleared");
   } catch (error) {
     console.warn("Could not clear vehicle cache:", error);
   }
@@ -1116,23 +1110,18 @@ function getVehicleList(searchCriteria = {}) {
       !departmentFilter
     ) {
       console.log("No search criteria - returning paginated results");
-      
-      // Get all data first for sorting
-      const allVehicleData = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
-      
-      // Sort by ID (column 0) in descending order
-      allVehicleData.sort((a, b) => {
-        const idA = parseInt(a[0]) || 0;
-        const idB = parseInt(b[0]) || 0;
-        return idB - idA; // Descending order
-      });
-      
-      // Apply pagination to sorted data
-      const paginatedData = allVehicleData.slice(pageOffset, pageOffset + pageSize);
-      allData = allData.concat(paginatedData);
+      const startRow = Math.max(2, pageOffset + 2);
+      const endRow = Math.min(lastRow, startRow + pageSize - 1);
+
+      if (startRow <= lastRow) {
+        const paginatedData = sheet
+          .getRange(startRow, 1, endRow - startRow + 1, 11)
+          .getValues(); // Keep all columns including ID
+        allData = allData.concat(paginatedData);
+      }
 
       console.log(
-        `Paginated data: ${paginatedData.length} rows from sorted results`
+        `Paginated data: ${allData.length - 1} rows (${startRow}-${endRow})`
       );
       return allData;
     }
@@ -1196,14 +1185,7 @@ function getVehicleList(searchCriteria = {}) {
       }
     }
 
-    // Sort matching rows by ID (column 0) in descending order
-    matchingRows.sort((a, b) => {
-      const idA = parseInt(a[0]) || 0;
-      const idB = parseInt(b[0]) || 0;
-      return idB - idA; // Descending order
-    });
-
-    // Apply pagination to sorted filtered results
+    // Apply pagination to filtered results
     const paginatedResults = matchingRows.slice(
       pageOffset,
       pageOffset + pageSize
@@ -1562,37 +1544,26 @@ function updateVehicleRecord(rowIndex, updatedData, userRole, currentUsername = 
     } else {
       // Update existing vehicle
       if (userRole === "security") {
-        // Security users can only update the current driver field (index 8 = Column I)
+        // Security users can only update the current driver field (index 7)
         const currentData = sheet.getDataRange().getValues();
-        // rowIndex is already the data array index (0-based), currentData[0] is header
-        // so currentData[rowIndex + 1] is the correct vehicle row
-        const dataRowIndex = rowIndex + 1; // +1 because currentData[0] is header
-        if (dataRowIndex >= 1 && dataRowIndex < currentData.length) {
+        if (rowIndex >= 0 && rowIndex < currentData.length) {
           // Capture old data for audit trail
-          const oldVehicleData = currentData[dataRowIndex].slice(); // Copy original data
+          const oldVehicleData = currentData[rowIndex].slice(); // Copy original data
           
           // Only update the driver field, keep everything else the same
-          const currentVehicle = currentData[dataRowIndex];
-          const oldDriverValue = currentVehicle[8];
+          const currentVehicle = currentData[rowIndex];
           currentVehicle[8] = updatedData[8]; // Update only current driver field (Column I)
-          
-          console.log(`Security user driver update: Row ${dataRowIndex + 1}, Old driver: '${oldDriverValue}', New driver: '${updatedData[8]}'`);
           
           // Note: Security users don't have audit trail access, but we could log this differently if needed
           // For now, only admin and super-admin get audit trail logging per requirements
           
           const range = sheet.getRange(
-            dataRowIndex + 1,
+            rowIndex + 1,
             1,
             1,
             currentVehicle.length
           );
           range.setValues([currentVehicle]);
-          
-          // Force immediate update to spreadsheet
-          SpreadsheetApp.flush();
-          
-          console.log(`Driver update completed for security user. Vehicle at row ${dataRowIndex + 1} updated successfully.`);
         } else {
           throw new Error("Invalid vehicle index");
         }
@@ -1600,12 +1571,11 @@ function updateVehicleRecord(rowIndex, updatedData, userRole, currentUsername = 
         // Admin users can update all fields
         // Capture old data for audit trail
         const data = sheet.getDataRange().getValues();
-        const dataRowIndex = rowIndex + 1; // +1 because data[0] is header
-        const oldVehicleData = data[dataRowIndex].slice(); // Copy original data
+        const oldVehicleData = data[rowIndex].slice(); // Copy original data
         
         // Check if plate number already exists (excluding current vehicle)
         for (let i = 1; i < data.length; i++) {
-          if (i !== dataRowIndex && data[i][1] === updatedData[1]) { // Compare plate numbers (column B, index 1)
+          if (i !== rowIndex && data[i][1] === updatedData[1]) { // Compare plate numbers (column B, index 1)
             throw new Error("Vehicle with this plate number already exists");
           }
         }
@@ -1613,11 +1583,8 @@ function updateVehicleRecord(rowIndex, updatedData, userRole, currentUsername = 
         // Log audit trail before updating (for super-admin and admin only)
         logVehicleAuditTrail(currentUsername, userRole, oldVehicleData, updatedData);
 
-        const range = sheet.getRange(dataRowIndex + 1, 1, 1, updatedData.length);
+        const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
         range.setValues([updatedData]);
-        
-        // Force immediate update to spreadsheet
-        SpreadsheetApp.flush();
       }
     }
 
