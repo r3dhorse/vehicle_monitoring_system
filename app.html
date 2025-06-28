@@ -1837,7 +1837,10 @@
                                         <option value="">Select a driver...</option>
                                         <!-- Options will be loaded dynamically -->
                                     </select>
-                                    <div class="form-text">Currently assigned driver</div>
+                                    <div class="form-text text-warning">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <span id="driverChangeWarning">Changing driver will log a vehicle IN/OUT transaction</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1872,7 +1875,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-warning" onclick="saveVehicleEdit()">
+                    <button type="button" class="btn btn-warning" id="saveVehicleEditBtn" onclick="saveVehicleEdit()">
                         <i class="bi bi-check-lg me-2"></i>Save Changes
                     </button>
                 </div>
@@ -4308,7 +4311,21 @@
                 // Update modal title for Security users
                 const modalTitle = document.querySelector('#editVehicleModal .modal-title');
                 if (modalTitle) {
-                    modalTitle.textContent = 'Change Current Driver';
+                    modalTitle.innerHTML = '<i class="bi bi-person-gear me-2"></i>Change Current Driver';
+                }
+                
+                // Show driver change warning and update save button
+                const warningElement = document.getElementById('driverChangeWarning');
+                if (warningElement) {
+                    warningElement.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Changing driver will create a vehicle ' + 
+                        (vehicle[7] === 'IN' ? 'OUT' : 'IN') + ' transaction log';
+                    warningElement.parentElement.style.display = 'block';
+                }
+                
+                // Update save button text
+                const saveBtn = document.getElementById('saveVehicleEditBtn');
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<i class="bi bi-person-check me-2"></i>Change Driver & Log Transaction';
                 }
             } else {
                 // Reset all fields for admin, supervisor, and super-admin users
@@ -4330,7 +4347,19 @@
                 // Reset modal title for privileged users
                 const modalTitle = document.querySelector('#editVehicleModal .modal-title');
                 if (modalTitle) {
-                    modalTitle.textContent = 'Edit Vehicle';
+                    modalTitle.innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Vehicle';
+                }
+                
+                // Hide driver change warning for admin users
+                const warningElement = document.getElementById('driverChangeWarning');
+                if (warningElement && warningElement.parentElement) {
+                    warningElement.parentElement.style.display = 'none';
+                }
+                
+                // Reset save button text
+                const saveBtn = document.getElementById('saveVehicleEditBtn');
+                if (saveBtn) {
+                    saveBtn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Save Changes';
                 }
             }
             
@@ -4348,10 +4377,50 @@
                 
                 // Create updated vehicle data with only driver field changed
                 const currentVehicle = vehicleData[index]; // Use vehicleData instead of allVehicles
+                const oldDriverValue = currentVehicle[8] || ''; // Get current driver
                 const updatedVehicleData = [...currentVehicle]; // Copy existing data
                 updatedVehicleData[8] = newDriverValue; // Update only current driver field
                 
+                // Check if we need to log a transaction (driver changed)
+                const shouldLogTransaction = oldDriverValue !== newDriverValue && newDriverValue !== '';
+                const vehicleStatus = currentVehicle[7] || 'OUT'; // Get current status
+                const plateNumber = currentVehicle[1]; // Get plate number
+                
                 showVehicleModalLoading(true, 'edit');
+                
+                // Function to log the transaction
+                const logDriverChangeTransaction = function() {
+                    if (!shouldLogTransaction) {
+                        return Promise.resolve();
+                    }
+                    
+                    // Get current gate
+                    const currentGate = getCurrentGate();
+                    if (!currentGate) {
+                        showToast('Please select a gate before changing driver', 'warning');
+                        return Promise.reject('No gate selected');
+                    }
+                    
+                    // Determine the action based on current status
+                    const action = vehicleStatus === 'IN' ? 'OUT' : 'IN';
+                    
+                    const transactionData = {
+                        plateNumber: plateNumber,
+                        action: action,
+                        gate: currentGate.id,
+                        driverId: newDriverValue,
+                        remarks: `Driver change: ${oldDriverValue || 'Unassigned'} → ${newDriverValue}`,
+                        username: currentUser.username
+                    };
+                    
+                    return new Promise((resolve, reject) => {
+                        google.script.run
+                            .withSuccessHandler(resolve)
+                            .withFailureHandler(reject)
+                            .logVehicleAction(transactionData);
+                    });
+                };
+                
                 google.script.run
                     .withSuccessHandler(function(success) {
                         if (success) {
@@ -4360,18 +4429,40 @@
                             // Update local data immediately
                             vehicleData[index] = updatedVehicleData;
                             
-                            // Add small delay before reloading to ensure backend update is complete
-                            setTimeout(function() {
-                                // Reload vehicles to ensure consistency with database
-                                loadVehicles();
-                                
-                                // Update UI
-                                displayVehicles();
-                            }, 500); // 500ms delay
+                            // Log the transaction if driver changed
+                            if (shouldLogTransaction) {
+                                logDriverChangeTransaction()
+                                    .then(function(result) {
+                                        console.log('Transaction logged for driver change');
+                                        // Update the vehicle status based on the action
+                                        vehicleData[index][7] = vehicleStatus === 'IN' ? 'OUT' : 'IN';
+                                    })
+                                    .catch(function(error) {
+                                        console.error('Failed to log transaction:', error);
+                                        showToast('Driver updated but transaction log failed', 'warning');
+                                    })
+                                    .finally(function() {
+                                        // Reload data regardless
+                                        setTimeout(function() {
+                                            loadVehicles();
+                                            loadTransactionLogs();
+                                            displayVehicles();
+                                        }, 500);
+                                    });
+                            } else {
+                                // No transaction needed, just reload
+                                setTimeout(function() {
+                                    loadVehicles();
+                                    displayVehicles();
+                                }, 500);
+                            }
                             
                             // Hide modal and show success
                             bootstrap.Modal.getInstance(document.getElementById('editVehicleModal')).hide();
-                            showToast('Driver updated successfully', 'success');
+                            const message = shouldLogTransaction ? 
+                                `Driver changed to ${newDriverValue} and ${vehicleStatus === 'IN' ? 'OUT' : 'IN'} transaction logged` : 
+                                'Driver updated successfully';
+                            showToast(message, 'success');
                         } else {
                             showToast('Failed to update driver', 'danger');
                         }
