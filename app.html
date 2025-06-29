@@ -6419,19 +6419,19 @@
             noResult.classList.add('d-none');
             scanData.classList.remove('d-none');
             
-            // Update status with alert
+            // Update status with alert and manual action instruction
             const alertIcon = alertType === 'BANNED' ? '🚫' : '⚠️';
-            status.textContent = `${alertIcon} ${alertType}: ${vehicleInfo.plateNumber}`;
+            status.textContent = `${alertIcon} ${alertType}: ${vehicleInfo.plateNumber} - Review complete, click "Start Scanning" to continue`;
             status.style.background = alertType === 'BANNED' ? 'rgba(220, 53, 69, 0.9)' : 'rgba(255, 193, 7, 0.9)';
             
             // Show toast notification for additional alert
             showToast(`${alertIcon} ${alertType}: ${vehicleInfo.plateNumber} - ${message}`, alertType === 'BANNED' ? 'danger' : 'warning');
             
-            // Auto-continue scanning after alert display (longer delay for restricted access)
-            setTimeout(() => {
-                resetForNextScan();
-                continuousScanning();
-            }, alertType === 'BANNED' ? 4000 : 3000); // Longer delay for banned vehicles
+            // For restricted access vehicles, do NOT auto-continue scanning
+            // User must manually click "Start Scanning" to continue after reviewing vehicle info
+            // This ensures security personnel have adequate time to review restricted vehicle details
+            
+            // Note: Auto-continue is disabled for Banned and No Access vehicles to allow proper security review
         }
         
         function showQRScanError(message) {
