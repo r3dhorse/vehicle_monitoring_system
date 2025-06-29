@@ -2338,7 +2338,7 @@
     </div>
 
     <!-- QR Scanner Modal -->
-    <div class="modal fade" id="qrScannerModal" tabindex="-1">
+    <div class="modal fade" id="qrScannerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
@@ -2352,7 +2352,7 @@
                     <div class="row mb-3">
                         <div class="col-md-8">
                             <div class="d-flex align-items-center gap-2">
-                                <label class="form-label mb-0"><i class="bi bi-door-open me-1"></i>Select Gate:</label>
+                                <label class="form-label mb-0"><i class="bi bi-door-open me-1"></i>Gate:</label>
                                 <select class="form-select" id="qrGateSelect" style="flex: 1;">
                                     <option value="">Loading gates...</option>
                                 </select>
@@ -2363,7 +2363,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="d-flex align-items-center gap-2">
-                                <label class="form-label mb-0"><i class="bi bi-camera me-1"></i>Camera:</label>
+                                <label class="form-label mb-0"><i class="bi bi-camera me-1"></i></label>
                                 <select class="form-select" id="cameraSelect" onchange="switchCamera()">
                                     <option value="environment">Back Camera</option>
                                     <option value="user">Front Camera</option>
@@ -2426,6 +2426,10 @@
                                             <div class="mb-3">
                                                 <strong>Driver:</strong>
                                                 <span class="ms-2" id="scannedDriver">-</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <strong>Department/Company:</strong>
+                                                <span class="ms-2" id="scannedDepartment">-</span>
                                             </div>
                                             <div class="alert alert-info" id="nextActionInfo">
                                                 <i class="bi bi-info-circle me-2"></i>
@@ -2725,6 +2729,14 @@
                 gateManagementBtn.style.display = 'inline-block';
             } else {
                 gateManagementBtn.style.display = 'none';
+            }
+            
+            // Hide user profile dropdown for super-admin (they can edit passwords in User Management)
+            const userProfileDropdown = document.getElementById('userProfileDropdown');
+            if (role === 'super-admin') {
+                userProfileDropdown.style.display = 'none';
+            } else {
+                userProfileDropdown.style.display = 'block';
             }
             
             // Update role badge with appropriate styling
@@ -5953,7 +5965,10 @@
         let scanSessionStartTime = null; // Track session duration
 
         function showQRScanner() {
-            const modal = new bootstrap.Modal(document.getElementById('qrScannerModal'));
+            const modal = new bootstrap.Modal(document.getElementById('qrScannerModal'), {
+                backdrop: 'static',
+                keyboard: false
+            });
             
             // Reset modal state
             resetQRScannerModal();
@@ -6331,6 +6346,7 @@
             // Update UI elements
             document.getElementById('scannedPlate').textContent = vehicleInfo.plateNumber;
             document.getElementById('scannedDriver').textContent = vehicleInfo.currentDriver || 'Not assigned';
+            document.getElementById('scannedDepartment').textContent = vehicleInfo.department || 'Not specified';
             
             // Set access status badge
             const accessBadge = document.getElementById('scannedAccessStatus');
@@ -6392,6 +6408,7 @@
             // Update vehicle info display
             document.getElementById('scannedPlate').textContent = vehicleInfo.plateNumber;
             document.getElementById('scannedDriver').textContent = vehicleInfo.currentDriver || 'Not assigned';
+            document.getElementById('scannedDepartment').textContent = vehicleInfo.department || 'Not specified';
             
             // Set access status badge with appropriate styling
             const accessBadge = document.getElementById('scannedAccessStatus');
