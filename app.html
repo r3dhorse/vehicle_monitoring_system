@@ -220,6 +220,17 @@
             border-color: #667eea;
             box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
         }
+        
+        /* User Management Modal close button visibility */
+        /* Close button style in user management modal */
+        #userManagementModal .btn-close {
+            filter: invert(100%); /* More readable than just '1' */
+            opacity: 1; /* Ensure full visibility */
+            transition: opacity 0.2s ease, filter 0.2s ease; /* Smooth transitions */
+            background-color: transparent; /* Ensures no background color issues */
+            border: none; /* Removes any border styling */
+        }
+
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
@@ -1372,6 +1383,19 @@
                       <span id="currentRole" class="badge role-badge"></span>
                       <small class="text-light ms-1">(<span id="currentUsername"></span>)</small>
                   </span>
+                  
+                  <!-- User Profile Dropdown -->
+                  <div class="dropdown me-3" id="userProfileDropdown">
+                      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                          <i class="bi bi-person-gear me-1"></i>Profile
+                      </button>
+                      <ul class="dropdown-menu">
+                          <li><button type="button" class="dropdown-item" onclick="showChangePassword()">
+                              <i class="bi bi-key me-2"></i>Change Password
+                          </button></li>
+                      </ul>
+                  </div>
+                  
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -2075,6 +2099,11 @@
                         </button>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-2"></i>Close
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2433,6 +2462,66 @@
         </div>
     </div>
 
+    <!-- Password Change Modal -->
+    <div class="modal fade" id="passwordChangeModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-key-fill me-2"></i>Change Password
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="passwordChangeForm" onsubmit="event.preventDefault(); submitPasswordChange();">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">
+                                <i class="bi bi-lock me-1"></i>Current Password
+                            </label>
+                            <input type="password" class="form-control" id="currentPassword" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">
+                                <i class="bi bi-key me-1"></i>New Password
+                            </label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                            <div class="form-text">Password must be at least 6 characters long.</div>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">
+                                <i class="bi bi-check-circle me-1"></i>Confirm Password
+                            </label>
+                            <input type="password" class="form-control" id="confirmPassword" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Password Requirements:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>At least 6 characters long</li>
+                                <li>Must be different from your current password</li>
+                                <li>New password and confirmation must match</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="changePasswordBtn" onclick="submitPasswordChange()">
+                        <i class="bi bi-check-circle me-1"></i>Change Password
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
@@ -2611,9 +2700,9 @@
                 userManagementDropdown.style.display = 'none';
             }
             
-            // Show/hide vehicle management button
+            // Show/hide vehicle management button (hide for security role)
             const vehicleManagementBtn = document.getElementById('vehicleManagementBtn');
-            if (hasPermission('vehicles', 'read') || hasPermission('vehicles', 'create')) {
+            if ((hasPermission('vehicles', 'read') || hasPermission('vehicles', 'create')) && role !== 'security') {
                 vehicleManagementBtn.style.display = 'inline-block';
             } else {
                 vehicleManagementBtn.style.display = 'none';
@@ -5356,6 +5445,112 @@
                     showToast('Failed to delete user: ' + error, 'danger');
                 })
                 .deleteUser(index, currentUser.role);
+        }
+
+        // Password Change Functions
+        function showChangePassword() {
+            if (!currentUser) {
+                showToast('Please log in to change password', 'danger');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('passwordChangeModal'));
+            modal.show();
+            
+            // Reset form and clear any previous validation states
+            const form = document.getElementById('passwordChangeForm');
+            form.reset();
+            form.classList.remove('was-validated');
+            
+            // Clear any existing validation feedback
+            const inputs = form.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+            });
+        }
+
+        function submitPasswordChange() {
+            const currentPassword = document.getElementById('currentPassword').value.trim();
+            const newPassword = document.getElementById('newPassword').value.trim();
+            const confirmPassword = document.getElementById('confirmPassword').value.trim();
+            
+            // Clear previous validation states
+            const form = document.getElementById('passwordChangeForm');
+            const inputs = form.querySelectorAll('.form-control');
+            inputs.forEach(input => {
+                input.classList.remove('is-invalid', 'is-valid');
+            });
+            
+            let hasErrors = false;
+            
+            // Validation
+            if (!currentPassword) {
+                setFieldError('currentPassword', 'Current password is required');
+                hasErrors = true;
+            }
+            
+            if (!newPassword) {
+                setFieldError('newPassword', 'New password is required');
+                hasErrors = true;
+            } else if (newPassword.length < 6) {
+                setFieldError('newPassword', 'Password must be at least 6 characters long');
+                hasErrors = true;
+            }
+            
+            if (!confirmPassword) {
+                setFieldError('confirmPassword', 'Password confirmation is required');
+                hasErrors = true;
+            } else if (newPassword !== confirmPassword) {
+                setFieldError('confirmPassword', 'New passwords do not match');
+                hasErrors = true;
+            }
+            
+            if (newPassword === currentPassword) {
+                setFieldError('newPassword', 'New password must be different from current password');
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                return;
+            }
+            
+            // Show loading state
+            const submitButton = document.getElementById('changePasswordBtn');
+            const originalText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Changing Password...';
+            
+            // Google Apps Script call
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
+                    
+                    if (result.success) {
+                        // Hide modal and reset form
+                        bootstrap.Modal.getInstance(document.getElementById('passwordChangeModal')).hide();
+                        document.getElementById('passwordChangeForm').reset();
+                        showToast('Password changed successfully!', 'success');
+                    } else {
+                        showToast('Error: ' + (result.error || 'Failed to change password'), 'danger');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
+                    showToast('Error changing password: ' + error, 'danger');
+                })
+                .changeUserPassword(currentUser.username, currentPassword, newPassword, confirmPassword);
+        }
+
+        function setFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const feedback = field.nextElementSibling;
+            
+            field.classList.add('is-invalid');
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+                feedback.textContent = message;
+            }
         }
 
         function showRoleSettings() {

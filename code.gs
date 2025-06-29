@@ -2835,6 +2835,101 @@ function logUserActivity(username, action, status, details = "") {
   }
 }
 
+/**
+ * Change user password with validation
+ * @param {string} username - Username of the user changing password
+ * @param {string} currentPassword - Current password for verification
+ * @param {string} newPassword - New password to set
+ * @param {string} confirmPassword - Confirmation of new password
+ * @returns {Object} - Success/error result
+ */
+function changeUserPassword(username, currentPassword, newPassword, confirmPassword) {
+  console.log("changeUserPassword called for user:", username);
+  
+  try {
+    // Input validation
+    validateRequired(username, "Username");
+    validateRequired(currentPassword, "Current password");
+    validateRequired(newPassword, "New password");
+    validateRequired(confirmPassword, "Confirm password");
+    
+    // Password strength validation
+    if (newPassword.length < 6) {
+      throw new VehicleMonitoringError("New password must be at least 6 characters long", "PASSWORD_TOO_SHORT");
+    }
+    
+    // Check if new password and confirmation match
+    if (newPassword !== confirmPassword) {
+      throw new VehicleMonitoringError("New password and confirmation do not match", "PASSWORD_MISMATCH");
+    }
+    
+    // Check if new password is different from current password
+    if (newPassword === currentPassword) {
+      throw new VehicleMonitoringError("New password must be different from current password", "PASSWORD_SAME");
+    }
+    
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    if (!sheet) {
+      throw new VehicleMonitoringError("Users database not available", "DATABASE_ERROR");
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    let userFound = false;
+    let userRowIndex = -1;
+    
+    // Find user and verify current password
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const dbUsername = row[1]; // Username is at index 1
+      const dbPassword = row[2]; // Password is at index 2
+      
+      if (dbUsername === username) {
+        userFound = true;
+        userRowIndex = i;
+        
+        // Verify current password
+        if (!verifyPassword(currentPassword, dbPassword)) {
+          logUserActivity(username, 'change_password', 'failed', 'incorrect_current_password');
+          throw new VehicleMonitoringError("Current password is incorrect", "INVALID_CURRENT_PASSWORD");
+        }
+        break;
+      }
+    }
+    
+    if (!userFound) {
+      logUserActivity(username, 'change_password', 'failed', 'user_not_found');
+      throw new VehicleMonitoringError("User not found", "USER_NOT_FOUND");
+    }
+    
+    // Hash the new password
+    const hashedNewPassword = hashPassword(newPassword);
+    
+    // Update the password in the sheet
+    sheet.getRange(userRowIndex + 1, 3).setValue(hashedNewPassword); // Column C (index 3) is password
+    
+    // Log successful password change
+    logUserActivity(username, 'change_password', 'success', 'password_updated');
+    console.log("Password changed successfully for user:", username);
+    
+    return { 
+      success: true, 
+      message: "Password changed successfully"
+    };
+    
+  } catch (error) {
+    console.error("Error changing password:", error);
+    
+    // Log the failure with appropriate username
+    const logUsername = username || 'unknown';
+    logUserActivity(logUsername, 'change_password', 'failed', error.message || error.toString());
+    
+    return { 
+      success: false, 
+      error: error.message || "Failed to change password"
+    };
+  }
+}
+
 // Gate Management Functions - Simplified
 
 // Get all gates (simple)
