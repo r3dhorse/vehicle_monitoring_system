@@ -689,6 +689,12 @@
             transform: scale(1.1);
             box-shadow: 0 6px 25px rgba(40, 167, 69, 0.6);
         }
+        
+        /* Hide buttons when login page is active */
+        #loginPage:not(.hidden) ~ * .add-vehicle-btn,
+        #loginPage:not(.hidden) ~ * .qr-scanner-btn {
+            display: none !important;
+        }
         .role-badge {
             font-size: 0.8rem;
             padding: 4px 8px;
@@ -3697,6 +3703,11 @@
         function logout() {
             currentUser = null;
             clearSession(); // Clear stored session data
+            
+            // Immediately hide buttons
+            document.getElementById('addVehicleBtn').style.display = 'none';
+            document.getElementById('qrScannerBtn').style.display = 'none';
+            
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
             document.getElementById('loginMsg').innerHTML = '';
