@@ -962,19 +962,20 @@
         /* Contextual toolbar for fullscreen */
         .fullscreen-toolbar {
             position: fixed;
-            top: 70px;
+            top: 50%;
             right: 20px;
+            transform: translateY(-50%) translateX(50px);
             z-index: 1040;
             display: flex;
+            flex-direction: column;
             gap: 10px;
             opacity: 0;
-            transform: translateX(50px);
             transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
         
         .fullscreen-mode .fullscreen-toolbar {
             opacity: 1;
-            transform: translateX(0);
+            transform: translateY(-50%) translateX(0);
         }
         
         .fullscreen-toolbar .btn {
@@ -1021,6 +1022,19 @@
             10% { opacity: 1; transform: translateX(-50%) translateY(0); }
             90% { opacity: 1; transform: translateX(-50%) translateY(0); }
             100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+        
+        /* Responsive styles for fullscreen toolbar */
+        @media (max-width: 768px) {
+            .fullscreen-toolbar {
+                right: 10px;
+            }
+            
+            .fullscreen-toolbar .btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
         }
         
         /* Loading states */
@@ -1437,9 +1451,6 @@
         <div class="fullscreen-toolbar">
             <button class="btn" id="focusModeBtn" onclick="toggleFocusMode()" title="Focus Mode (F)">
                 <i class="bi bi-eye"></i>
-            </button>
-            <button class="btn" id="refreshBtn" onclick="refreshData()" title="Refresh (R)">
-                <i class="bi bi-arrow-clockwise"></i>
             </button>
             <button class="btn" onclick="exitFullscreen()" title="Exit Fullscreen (ESC)">
                 <i class="bi bi-fullscreen-exit"></i>
@@ -2381,13 +2392,18 @@
                                     </button>
                                 </div>
                             </div>
+                             <div class="mt-3 text-center">
+                                  <button type="button" class="btn btn-success" onclick="initQRScanner()" id="restartScannerBtn">
+                                     Start Scanning <i class="bi bi-qr-code-scan"></i>
+                                  </button>
+                              </div>
                         </div>
                         <div class="col-md-6">
                             <h6 class="mb-3">Scan Result</h6>
                             <div class="scan-result-container" id="scanResultContainer">
                                 <div class="text-center text-muted py-4" id="noScanResult">
                                     <i class="bi bi-qr-code-scan fs-1 mb-3"></i>
-                                    <p>Scan a QR code to view vehicle details</p>
+                                    <p>No activity detected. Awaiting transactions..."</p>
                                 </div>
                                 <div class="d-none" id="scanResultData">
                                     <div class="card">
@@ -2430,16 +2446,16 @@
                                         <form id="qrTransactionForm">
                                             <div class="mb-3">
                                                 <label class="form-label">Action</label>
-                                                <div class="btn-group w-100" role="group">
-                                                    <input type="radio" class="btn-check" name="qrAction" id="qrActionIN" value="IN">
+                                                    <div class="btn-group w-100" role="group">
+                                                    <input type="radio" class="btn-check" name="qrAction" id="qrActionIN" value="IN" disabled>
                                                     <label class="btn btn-outline-success" for="qrActionIN">
                                                         <i class="bi bi-arrow-left me-1"></i>Vehicle IN
                                                     </label>
-                                                    <input type="radio" class="btn-check" name="qrAction" id="qrActionOUT" value="OUT">
+                                                    <input type="radio" class="btn-check" name="qrAction" id="qrActionOUT" value="OUT" disabled>
                                                     <label class="btn btn-outline-danger" for="qrActionOUT">
                                                         <i class="bi bi-arrow-right me-1"></i>Vehicle OUT
-                                                    </label>
-                                                </div>
+                                                  </label>
+                                              </div>
                                             </div>
                                         </form>
                                     </div>
@@ -2448,11 +2464,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <!-- <div class="modal-footer">
                     <button type="button" class="btn btn-success" onclick="initQRScanner()" id="restartScannerBtn">
                        Next Vehicle <i class="bi-car-front-fill"></i> 
                     </button>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
@@ -4436,8 +4452,8 @@
                 // Show driver change warning and update save button
                 const warningElement = document.getElementById('driverChangeWarning');
                 if (warningElement) {
-                    warningElement.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Changing driver will create a vehicle ' + 
-                        (vehicle[7] === 'IN' ? 'OUT' : 'IN') + ' transaction log';
+                    warningElement.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>The current driver will be logged in the vehicle ' + 
+                        (vehicle[7] === 'IN' ? 'OUT' : 'IN') + ' transaction record';
                     warningElement.parentElement.style.display = 'block';
                 }
                 
@@ -6210,7 +6226,7 @@
                                 const sessionDuration = (new Date() - scanSessionStartTime) / 1000 / 60; // minutes
                                 const scansPerMinute = sessionDuration > 0 ? (qrScanCount / sessionDuration).toFixed(1) : '0';
                                 
-                                status.textContent = `✓ ${vehicleInfo.plateNumber} ${nextAction} (#${qrScanCount} @ ${scansPerMinute}/min) - Ready for next`;
+                                status.textContent = `✓ Press 'Start Scanning' to initiate the next transaction.`;
                                 status.style.background = 'rgba(40, 167, 69, 0.8)'; // Green background
                                 
                                 // Update local vehicle data for immediate UI refresh
@@ -6222,13 +6238,11 @@
                                 
                                 // Quick toast notification for additional feedback
                                 showToast(`${vehicleInfo.plateNumber} ${nextAction} logged successfully`, 'success');
-                                
-                                // Reset for next scan after a short delay and auto-continue
-                                setTimeout(() => {
-                                    resetForNextScan();
-                                    // Auto-continue scanning without restart
-                                    continuousScanning();
-                                }, 1200); // Even faster reset for better throughput
+                               
+                                // setTimeout(() => {
+                                //     resetForNextScan();
+                                //     continuousScanning();
+                                // }, 1200)
                             } else {
                                 showQRScanError('Transaction failed: ' + result.message);
                             }
@@ -6297,7 +6311,7 @@
                 const gateSelect = document.getElementById('qrGateSelect');
                 const selectedGate = gateSelect.options[gateSelect.selectedIndex]?.textContent || 'Gate';
                 if (qrScanCount > 0) {
-                    status.textContent = `🔍 Scanning for vehicle #${qrScanCount + 1} - ${selectedGate}`;
+                    status.textContent = `Press 'Start Scanning' to initiate the next transaction.`;
                 } else {
                     status.textContent = `🔍 Scanning for QR code - ${selectedGate}`;
                 }

@@ -57,7 +57,7 @@ function verifyPassword(password, hashedPassword) {
 
     // Extract salt and hash
     const [salt, hash] = hashedPassword.split(":");
-    
+
     if (!salt || !hash) {
       console.warn("Invalid password format: missing salt or hash");
       return false;
@@ -2211,7 +2211,7 @@ function cleanupPlainTextPasswords() {
       // Check if password is plain text (doesn't contain salt:hash format)
       if (!password.includes(":")) {
         console.log(`Found plain text password for user: ${username}`);
-        
+
         // Check if it's a known default password
         if (password === "admin123" || password === "security123") {
           // Hash the password and update the cell
@@ -2221,8 +2221,12 @@ function cleanupPlainTextPasswords() {
           console.log(`Cleaned password for user: ${username}`);
         } else {
           // Unknown plain text password - log but don't change
-          issues.push(`User ${username} has unknown plain text password: ${password}`);
-          console.warn(`Unknown plain text password for user ${username}: ${password}`);
+          issues.push(
+            `User ${username} has unknown plain text password: ${password}`
+          );
+          console.warn(
+            `Unknown plain text password for user ${username}: ${password}`
+          );
         }
       }
     }
@@ -2231,7 +2235,7 @@ function cleanupPlainTextPasswords() {
       success: true,
       cleanedCount: cleanedCount,
       issues: issues,
-      message: `Cleaned ${cleanedCount} plain text passwords. ${issues.length} issues found.`
+      message: `Cleaned ${cleanedCount} plain text passwords. ${issues.length} issues found.`,
     };
 
     console.log("Password cleanup completed:", result);
