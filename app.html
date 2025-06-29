@@ -1381,20 +1381,11 @@
                   <span class="navbar-text me-3">
                       <i class="bi bi-person-circle me-1"></i>
                       <span id="currentRole" class="badge role-badge"></span>
-                      <small class="text-light ms-1">(<span id="currentUsername"></span>)</small>
+                      <small class="text-light ms-1"><span id="currentUsername"></span></small>
                   </span>
                   
                   <!-- User Profile Dropdown -->
-                  <div class="dropdown me-3" id="userProfileDropdown">
-                      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                          <i class="bi bi-person-gear me-1"></i>Profile
-                      </button>
-                      <ul class="dropdown-menu">
-                          <li><button type="button" class="dropdown-item" onclick="showChangePassword()">
-                              <i class="bi bi-key me-2"></i>Change Password
-                          </button></li>
-                      </ul>
-                  </div>
+                 
                   
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -1420,6 +1411,16 @@
                             </button></li>
                         </ul>
                     </div>
+                    <div class="dropdown me-3" id="userProfileDropdown">
+                      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                          <i class="bi bi-person-gear me-1"></i>Profile
+                      </button>
+                      <ul class="dropdown-menu">
+                          <li><button type="button" class="dropdown-item" onclick="showChangePassword()">
+                              <i class="bi bi-key me-2"></i>Change Password
+                          </button></li>
+                      </ul>
+                    </div>
                     <button class="btn btn-outline-light btn-sm me-3" id="fullscreenBtn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
                         <i class="bi bi-arrows-fullscreen" id="fullscreenIcon"></i>
                     </button>
@@ -1436,9 +1437,6 @@
         <div class="fullscreen-toolbar">
             <button class="btn" id="focusModeBtn" onclick="toggleFocusMode()" title="Focus Mode (F)">
                 <i class="bi bi-eye"></i>
-            </button>
-            <button class="btn" id="zenModeBtn" onclick="toggleZenMode()" title="Zen Mode (Z)">
-                <i class="bi bi-moon"></i>
             </button>
             <button class="btn" id="refreshBtn" onclick="refreshData()" title="Refresh (R)">
                 <i class="bi bi-arrow-clockwise"></i>
@@ -1554,9 +1552,6 @@
                            onkeyup="debounceFilter()"
                            title="Search by plate number, model/make, department, or driver"
                            autocomplete="off">
-                    <small class="text-muted d-none d-md-block mt-1">
-                        <i class="bi bi-lightbulb me-1"></i>Tip: Type any part of plate, model, dept, or driver name
-                    </small>
                 </div>
                 <div class="col-6 col-md-2 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
@@ -1716,11 +1711,11 @@
                                 <table class="table table-sm table-hover mb-0" id="transactionLogsTable">
                                     <thead class="table-light sticky-top">
                                         <tr>
-                                            <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Date and Time</th>
-                                            <th style="width: 70px; font-size: 0.85rem; padding: 8px 8px;">Plate #</th>
+                                            <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Timestamp</th>
+                                            <th style="width: 70px; font-size: 0.85rem; padding: 8px 8px;">Plate</th>
                                             <th style="width: 80px; font-size: 0.85rem; padding: 8px 8px;">Driver</th>
                                             <th style="width: 60px; font-size: 0.85rem; padding: 8px 8px;">Gate</th>
-                                            <th style="width: 50px; font-size: 0.85rem; padding: 8px 8px;" class="text-center">Action</th>
+                                            <th style="width: 50px; font-size: 0.85rem; padding: 8px 8px;" class="text-center">Transaction</th>
                                         </tr>
                                     </thead>
                                     <tbody id="transactionLogsBody">
