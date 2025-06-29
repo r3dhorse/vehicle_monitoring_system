@@ -49,14 +49,19 @@ function hashPassword(password) {
 
 function verifyPassword(password, hashedPassword) {
   try {
-    // Check if this is an old plain text password (no salt:hash format)
-    if (!hashedPassword.includes(":")) {
-      // Legacy plain text comparison - should be migrated
-      return password === hashedPassword;
+    // Security: Only accept properly hashed passwords with salt:hash format
+    if (!hashedPassword || !hashedPassword.includes(":")) {
+      console.warn("Rejecting login attempt with invalid password format");
+      return false; // Reject any non-hashed passwords
     }
 
     // Extract salt and hash
     const [salt, hash] = hashedPassword.split(":");
+    
+    if (!salt || !hash) {
+      console.warn("Invalid password format: missing salt or hash");
+      return false;
+    }
 
     // Hash the provided password with the stored salt
     const computedHash = Utilities.computeDigest(
@@ -2165,7 +2170,7 @@ function resetAdminUser() {
       sheet.appendRow([
         userId, // ID
         "admin", // Username
-        "admin123", // Password
+        hashPassword("admin123"), // Password
         "super-admin", // Role
         "System Administrator", // Full Name
         "admin@vehiclemonitoring.com", // Email
@@ -2177,6 +2182,62 @@ function resetAdminUser() {
     return { success: true, message: "Admin user reset successfully" };
   } catch (error) {
     console.error("Error resetting admin user:", error);
+    return { success: false, error: error.toString() };
+  }
+}
+
+// Clean up existing plain text passwords in database
+function cleanupPlainTextPasswords() {
+  try {
+    console.log("Starting cleanup of plain text passwords...");
+    const sheet =
+      SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(USERS_SHEET);
+    if (!sheet) {
+      return { success: false, error: "Users sheet not found" };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let cleanedCount = 0;
+    const issues = [];
+
+    // Check each user row for plain text passwords
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const username = row[1]; // Username at index 1
+      const password = row[2]; // Password at index 2
+
+      if (!username || !password) continue;
+
+      // Check if password is plain text (doesn't contain salt:hash format)
+      if (!password.includes(":")) {
+        console.log(`Found plain text password for user: ${username}`);
+        
+        // Check if it's a known default password
+        if (password === "admin123" || password === "security123") {
+          // Hash the password and update the cell
+          const hashedPassword = hashPassword(password);
+          sheet.getRange(i + 1, 3).setValue(hashedPassword); // Column C is password
+          cleanedCount++;
+          console.log(`Cleaned password for user: ${username}`);
+        } else {
+          // Unknown plain text password - log but don't change
+          issues.push(`User ${username} has unknown plain text password: ${password}`);
+          console.warn(`Unknown plain text password for user ${username}: ${password}`);
+        }
+      }
+    }
+
+    const result = {
+      success: true,
+      cleanedCount: cleanedCount,
+      issues: issues,
+      message: `Cleaned ${cleanedCount} plain text passwords. ${issues.length} issues found.`
+    };
+
+    console.log("Password cleanup completed:", result);
+    return result;
+  } catch (error) {
+    console.error("Error during password cleanup:", error);
     return { success: false, error: error.toString() };
   }
 }
@@ -4082,13 +4143,25 @@ function createSampleData() {
         console.log("Adding sample users...");
         const sampleUsers = [
           [
-            "security1",
-            "security123",
-            "security",
-            "security1@example.com",
-            new Date(),
+            generateNextUserId(), // ID
+            "security1", // Username
+            hashPassword("security123"), // Password
+            "security", // Role
+            "Security User 1", // Full Name
+            "security1@example.com", // Email
+            "active", // Status
+            new Date().toISOString(), // Created Date
           ],
-          ["admin1", "admin123", "admin", "admin1@example.com", new Date()],
+          [
+            generateNextUserId(), // ID
+            "admin1", // Username
+            hashPassword("admin123"), // Password
+            "admin", // Role
+            "Admin User 1", // Full Name
+            "admin1@example.com", // Email
+            "active", // Status
+            new Date().toISOString(), // Created Date
+          ],
         ];
 
         // Optimized: Use batch setValues instead of individual appendRow operations
