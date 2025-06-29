@@ -1896,6 +1896,16 @@
                                         <option value="Banned">Banned</option>
                                     </select>
                                 </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="editOneTimePass" role="switch">
+                                        <label class="form-check-label" for="editOneTimePass">
+                                            One Time Pass
+                                            <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" 
+                                               title="When enabled, allows a restricted vehicle one-time access. Will automatically disable after successful entry."></i>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
@@ -2322,6 +2332,20 @@
                                         <option value="No Access">No Access</option>
                                         <option value="Banned">Banned</option>
                                     </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="vehicleOneTimePass" role="switch">
+                                        <label class="form-check-label" for="vehicleOneTimePass">
+                                            One Time Pass
+                                            <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" 
+                                               title="When enabled, allows a restricted vehicle one-time access. Will automatically disable after successful entry."></i>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3713,11 +3737,6 @@
             document.getElementById('loginMsg').innerHTML = '';
             showLoginPage();
             showToast('You have been logged out successfully', 'info');
-            
-            // Refresh the screen after logout
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000); // 1 second delay to allow toast message to be seen
         }
 
         // Fullscreen functionality with browser compatibility check
@@ -4340,6 +4359,11 @@
                     <tr><th>Current Driver</th><td>${vehicle[8] || 'Unassigned'}</td></tr>
                     <tr><th>Assigned Drivers</th><td>${vehicle[9] || 'None'}</td></tr>
                     <tr><th>Access Status</th><td><span class="badge ${accessClass} ${accessTextClass}">${accessStatus}</span></td></tr>
+                    <tr><th>One Time Pass</th><td>
+                        ${vehicle[11] === 'Yes' ? 
+                            '<span class="badge bg-info text-white"><i class="bi bi-key-fill me-1"></i>Enabled</span>' : 
+                            '<span class="badge bg-secondary">Disabled</span>'}
+                    </td></tr>
                 </table>
             `;
             
@@ -4427,6 +4451,9 @@
             document.getElementById('editStatus').value = vehicle[7] || 'OUT';  // Status is at index 7
             document.getElementById('editAssignedDrivers').value = vehicle[9] || ''; // Assigned drivers is at index 9
             document.getElementById('editAccessStatus').value = vehicle[10] || 'Access'; // Access status is at index 10
+            console.log('Vehicle data for edit:', vehicle);
+            console.log('One Time Pass value (index 11):', vehicle[11]);
+            document.getElementById('editOneTimePass').checked = vehicle[11] === 'Yes'; // One Time Pass is at index 11
             
             // Populate current driver dropdown from assigned drivers
             updateCurrentDriverDropdown();
@@ -4687,7 +4714,8 @@
                 document.getElementById('editStatus').value || 'OUT',  // Status at index 7
                 document.getElementById('editDriver').value || '',     // Current Driver at index 8
                 document.getElementById('editAssignedDrivers').value || '', // Assigned Drivers at index 9
-                document.getElementById('editAccessStatus').value || 'Access' // Access Status at index 10
+                document.getElementById('editAccessStatus').value || 'Access', // Access Status at index 10
+                document.getElementById('editOneTimePass').checked ? 'Yes' : 'No' // One Time Pass at index 11
             ];
             
             showVehicleModalLoading(true, 'edit');
@@ -4715,7 +4743,20 @@
                     showToast('Failed to update vehicle: ' + error, 'danger');
                     showVehicleModalLoading(false, 'edit');
                 })
-                .updateVehicleRecord(actualIndex, updatedVehicleData, currentUser.role, currentUser.username);
+                .saveVehicleRecord({
+                    vehicleId: vehicleId, // Pass the vehicle ID for updates
+                    plateNumber: updatedVehicleData[1],
+                    model: updatedVehicleData[2],
+                    color: updatedVehicleData[3],
+                    department: updatedVehicleData[4],
+                    year: updatedVehicleData[5],
+                    type: updatedVehicleData[6],
+                    status: updatedVehicleData[7],
+                    driver: updatedVehicleData[8],
+                    assignedDrivers: updatedVehicleData[9],
+                    accessStatus: updatedVehicleData[10],
+                    oneTimePass: updatedVehicleData[11] === 'Yes'
+                }, currentUser.role, vehicleId, currentUser.username);
         }
 
         function deleteVehicle(index) {
@@ -5945,7 +5986,8 @@
                 status: document.getElementById('vehicleStatus').value,
                 driver: document.getElementById('vehicleDriver').value.trim(),
                 assignedDrivers: document.getElementById('vehicleAssignedDrivers').value.trim(),
-                accessStatus: document.getElementById('vehicleAccessStatus').value
+                accessStatus: document.getElementById('vehicleAccessStatus').value,
+                oneTimePass: document.getElementById('vehicleOneTimePass').checked
             };
 
             // Show loading state

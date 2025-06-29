@@ -6,6 +6,56 @@
 
 // Spreadsheet Setup - Consider using PropertiesService for production
 const SPREADSHEET_ID = "1OMlsS2W_N566ZEC4K9bXutQdu0qCB67Q7ezZCN1w7u8";
+
+// Function to manually clear all caches
+function clearAllCaches() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.removeAll(["vehicle_list_data", "vehicle_search_*"]);
+    return "All caches cleared successfully";
+  } catch (error) {
+    console.error("Error clearing caches:", error);
+    return "Error clearing caches: " + error.toString();
+  }
+}
+
+// One-time migration function to add One Time Pass column
+function migrateAddOneTimePassColumn() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    
+    if (!vehicleSheet) {
+      return "Vehicle sheet not found";
+    }
+    
+    // Check if column already exists
+    const headers = vehicleSheet.getRange(1, 1, 1, vehicleSheet.getLastColumn()).getValues()[0];
+    if (headers.includes("One Time Pass")) {
+      return "One Time Pass column already exists";
+    }
+    
+    // Add header in column L (12th column)
+    vehicleSheet.getRange(1, 12).setValue("One Time Pass");
+    vehicleSheet.getRange(1, 12).setFontWeight("bold");
+    
+    // Get number of vehicles (rows - 1 for header)
+    const lastRow = vehicleSheet.getLastRow();
+    if (lastRow > 1) {
+      // Set default value "No" for all existing vehicles
+      const defaultValues = Array(lastRow - 1).fill(["No"]);
+      vehicleSheet.getRange(2, 12, lastRow - 1, 1).setValues(defaultValues);
+    }
+    
+    // Auto-resize the new column
+    vehicleSheet.autoResizeColumn(12);
+    
+    return `Successfully added One Time Pass column. Updated ${lastRow - 1} vehicles.`;
+  } catch (error) {
+    console.error("Migration error:", error);
+    return "Error during migration: " + error.toString();
+  }
+}
 const VEHICLE_SHEET = "VehicleMaster";
 const DRIVER_SHEET = "DriverMaster";
 const LOG_SHEET = "InOutLogs";
@@ -1026,8 +1076,13 @@ function getVehicleListForManagement() {
     console.log(
       "Vehicle management data retrieved successfully:",
       data.length,
-      "rows"
+      "rows,",
+      data[0].length,
+      "columns"
     );
+    
+    // Clear cache to ensure fresh data
+    clearVehicleCache();
 
     if (data.length <= 1) {
       console.log("No vehicle data found, creating sample data...");
@@ -1053,6 +1108,7 @@ function getVehicleListForManagement() {
         "Current Driver",
         "Assigned Drivers",
         "Access Status",
+        "One Time Pass",
       ],
       [
         "000001",
@@ -1066,6 +1122,7 @@ function getVehicleListForManagement() {
         "John Doe",
         "John Doe",
         "Access",
+        "No",
       ],
     ];
   }
@@ -1075,9 +1132,12 @@ function getVehicleListForManagement() {
 function saveVehicleRecord(
   vehicleData,
   userRole,
-  editIndex = -1,
+  vehicleIdOrIndex = -1,
   currentUsername = "Unknown"
 ) {
+  // Note: When updating, vehicleIdOrIndex can be either:
+  // - A vehicle ID (string) that we'll use to find the correct row
+  // - -1 for new vehicles
   // Use new permission system
   enforcePermission(
     userRole,
@@ -1096,7 +1156,7 @@ function saveVehicleRecord(
   logUserActivity(
     username,
     userRole,
-    editIndex === -1 ? "create" : "update",
+    vehicleIdOrIndex === -1 ? "create" : "update",
     "vehicle",
     "attempting"
   );
@@ -1113,21 +1173,52 @@ function saveVehicleRecord(
       vehicleData.plateNumber.trim().toUpperCase()
     );
 
-    // Check if plate number already exists (excluding current edit) - plate number is now at index 1
-    for (let i = 1; i < data.length; i++) {
-      if (i !== editIndex && data[i][1] === cleanPlateNumber) {
-        throw new Error("Vehicle with this plate number already exists");
+    console.log(`SaveVehicleRecord called with vehicleIdOrIndex: ${vehicleIdOrIndex}, plateNumber: ${cleanPlateNumber}`);
+    console.log(`Total rows in sheet: ${data.length}`);
+
+    // Find the actual row index by vehicle ID if updating
+    let actualRowIndex = -1;
+    let originalPlateNumber = null;
+    
+    if (vehicleIdOrIndex !== -1) {
+      // vehicleIdOrIndex contains the vehicle ID when updating
+      const vehicleId = vehicleIdOrIndex.toString();
+      console.log(`Looking for vehicle with ID: ${vehicleId}`);
+      
+      // Find the actual row with this ID
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0] && data[i][0].toString() === vehicleId) {
+          actualRowIndex = i;
+          originalPlateNumber = data[i][1];
+          console.log(`Found vehicle ID ${vehicleId} at row ${i} with plate ${originalPlateNumber}`);
+          break;
+        }
+      }
+      
+      if (actualRowIndex === -1) {
+        throw new Error(`Vehicle with ID ${vehicleId} not found`);
+      }
+    }
+
+    // Check if plate number already exists (excluding current vehicle)
+    // Only check if it's a new vehicle or if the plate number has changed
+    if (vehicleIdOrIndex === -1 || (originalPlateNumber && originalPlateNumber !== cleanPlateNumber)) {
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][1] === cleanPlateNumber && i !== actualRowIndex) {
+          console.log(`Duplicate found: plate ${cleanPlateNumber} at row ${i}, actualRowIndex is ${actualRowIndex}`);
+          throw new Error("Vehicle with this plate number already exists");
+        }
       }
     }
 
     let vehicleRow;
-    if (editIndex > 0 && editIndex < data.length) {
+    if (actualRowIndex > 0) {
       // Capture old data for audit trail
-      const oldVehicleData = data[editIndex].slice(); // Copy original data
+      const oldVehicleData = data[actualRowIndex].slice(); // Copy original data
 
       // Update existing vehicle - keep existing ID
       vehicleRow = [
-        data[editIndex][0], // Keep existing ID
+        data[actualRowIndex][0], // Keep existing ID
         cleanPlateNumber,
         sanitizeInput(vehicleData.model || ""),
         sanitizeInput(vehicleData.color || ""),
@@ -1138,13 +1229,14 @@ function saveVehicleRecord(
         sanitizeInput(vehicleData.driver || ""),
         sanitizeInput(vehicleData.assignedDrivers || ""),
         vehicleData.accessStatus || "Access",
+        vehicleData.oneTimePass ? "Yes" : "No", // One Time Pass
       ];
 
       // Log audit trail before updating (for super-admin and admin only)
       logVehicleAuditTrail(username, userRole, oldVehicleData, vehicleRow);
 
       // Update existing vehicle
-      const range = sheet.getRange(editIndex + 1, 1, 1, vehicleRow.length);
+      const range = sheet.getRange(actualRowIndex + 1, 1, 1, vehicleRow.length);
       range.setValues([vehicleRow]);
       logUserActivity(
         "system",
@@ -1168,6 +1260,7 @@ function saveVehicleRecord(
         sanitizeInput(vehicleData.driver || ""),
         sanitizeInput(vehicleData.assignedDrivers || ""),
         vehicleData.accessStatus || "Access",
+        vehicleData.oneTimePass ? "Yes" : "No", // One Time Pass
       ];
 
       sheet.appendRow(vehicleRow);
@@ -1308,7 +1401,7 @@ function getVehicleList(searchCriteria = {}) {
     // For large datasets, use chunked reading
     let allData = [];
     const chunkSize = 1000; // Read 1000 rows at a time
-    const header = sheet.getRange(1, 1, 1, 11).getValues()[0];
+    const header = sheet.getRange(1, 1, 1, 12).getValues()[0];
     // Keep all columns including ID
     allData.push(header);
 
@@ -1325,7 +1418,7 @@ function getVehicleList(searchCriteria = {}) {
 
       if (startRow <= lastRow) {
         const paginatedData = sheet
-          .getRange(startRow, 1, endRow - startRow + 1, 11)
+          .getRange(startRow, 1, endRow - startRow + 1, 12)
           .getValues(); // Keep all columns including ID
         allData = allData.concat(paginatedData);
       }
@@ -1345,7 +1438,7 @@ function getVehicleList(searchCriteria = {}) {
     for (let chunkStart = 2; chunkStart <= lastRow; chunkStart += chunkSize) {
       const chunkEnd = Math.min(chunkStart + chunkSize - 1, lastRow);
       const chunkData = sheet
-        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 11)
+        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 12)
         .getValues();
 
       // Filter chunk data based on search criteria and remove ID column
@@ -1440,6 +1533,7 @@ function getHeaderWithSampleData() {
       "Current Driver",
       "Assigned Drivers",
       "Access Status",
+      "One Time Pass",
     ],
     [
       "ABC-123",
@@ -1624,8 +1718,18 @@ function logVehicleAction(data) {
     }
 
     // Check if vehicle has access
+    let oneTimePass = false;
+    if (vehicleRow !== -1 && vehicleData[vehicleRow][11]) {
+      oneTimePass = vehicleData[vehicleRow][11] === "Yes";
+    }
+    
     if (data.action === "IN" && accessStatus !== "Access") {
-      throw new Error(`Vehicle access denied. Status: ${accessStatus}`);
+      // Check if one-time pass is enabled
+      if (!oneTimePass) {
+        throw new Error(`Vehicle access denied. Status: ${accessStatus}`);
+      }
+      // One-time pass is enabled, allow entry but we'll disable it after successful log
+      console.log(`One-time pass detected for vehicle ${actualPlateNumber}. Allowing entry.`);
     }
 
     // Validate gate access and permissions
@@ -1676,6 +1780,12 @@ function logVehicleAction(data) {
         vehicleSheet.getRange(vehicleRow + 1, 9).setValue(actualDriverId);
       }
 
+      // Disable one-time pass if it was used for entry
+      if (data.action === "IN" && oneTimePass) {
+        console.log(`Disabling one-time pass for vehicle ${actualPlateNumber}`);
+        vehicleSheet.getRange(vehicleRow + 1, 12).setValue("No"); // Column L (index 11, column 12)
+      }
+
       // Force immediate update to spreadsheet
       SpreadsheetApp.flush();
 
@@ -1684,7 +1794,11 @@ function logVehicleAction(data) {
       console.log("Warning: Vehicle not found in sheet, status not updated");
     }
 
-    return { success: true, accessStatus: accessStatus };
+    return { 
+      success: true, 
+      accessStatus: accessStatus,
+      oneTimePassUsed: data.action === "IN" && oneTimePass
+    };
   } catch (error) {
     console.error("Error logging vehicle action:", error);
     throw error;
@@ -1903,7 +2017,7 @@ function createInitialSheets() {
     if (!vehicleSheet) {
       vehicleSheet = ss.insertSheet(VEHICLE_SHEET);
       vehicleSheet
-        .getRange(1, 1, 1, 11)
+        .getRange(1, 1, 1, 12)
         .setValues([
           [
             "ID",
@@ -1919,11 +2033,11 @@ function createInitialSheets() {
             "Access Status",
           ],
         ]);
-      vehicleSheet.getRange(1, 1, 1, 11).setFontWeight("bold");
+      vehicleSheet.getRange(1, 1, 1, 12).setFontWeight("bold");
 
       // Format the sheet
       vehicleSheet.setFrozenRows(1);
-      vehicleSheet.autoResizeColumns(1, 11);
+      vehicleSheet.autoResizeColumns(1, 12);
 
       // Add data validation for Access Status
       const accessStatusRange = vehicleSheet.getRange(2, 11, 1000, 1);
