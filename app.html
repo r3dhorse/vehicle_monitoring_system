@@ -1685,13 +1685,14 @@
                                             <th style="width: 80px; font-size: 0.85rem;" class="d-none d-lg-table-cell">Driver</th>
                                             <th style="width: 60px; font-size: 0.85rem;" class="text-center">Status</th>
                                             <th style="width: 70px; font-size: 0.85rem;" class="d-none d-xl-table-cell">Access</th>
+                                            <th style="width: 50px; font-size: 0.85rem;" class="d-none d-xl-table-cell text-center">OTP</th>
                                             <th style="width: 60px; font-size: 0.85rem;" class="text-center">Actions</th>
                                             <th style="width: 75px; font-size: 0.85rem;" class="text-center">Transaction</th>
                                         </tr>
                                     </thead>
                                     <tbody id="vehiclesTableBody">
                                         <tr>
-                                            <td colspan="9" class="text-center py-4">
+                                            <td colspan="10" class="text-center py-4">
                                                 <div class="spinner-border text-primary" role="status">
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
@@ -3112,6 +3113,7 @@
                 const currentDriver = vehicle[8] || 'Unassigned';
                 const assignedDrivers = vehicle[9] || '';
                 const accessStatus = vehicle[10] || 'Access';
+                const oneTimePass = vehicle[11] || 'No';
 
                 // Count by status
                 if (status === 'IN') {
@@ -3123,7 +3125,7 @@
                 // Create table row
                 const row = createVehicleTableRow(
                     vehicleId, plateNumber, model, color, department, year, type, 
-                    status, currentDriver, assignedDrivers, accessStatus, i
+                    status, currentDriver, assignedDrivers, accessStatus, oneTimePass, i
                 );
                 
                 vehiclesTableBody.appendChild(row);
@@ -3138,7 +3140,7 @@
             optimizeTablePerformance();
         }
 
-        function createVehicleTableRow(vehicleId, plateNumber, model, color, department, year, type, status, currentDriver, assignedDrivers, accessStatus, index) {
+        function createVehicleTableRow(vehicleId, plateNumber, model, color, department, year, type, status, currentDriver, assignedDrivers, accessStatus, oneTimePass, index) {
             const row = document.createElement('tr');
             row.className = `vehicle-row ${status === 'IN' ? 'table-success' : 'table-light'}`;
             
@@ -3252,6 +3254,11 @@
                 <td style="padding: 8px 8px; font-size: 0.85rem;" class="text-center">${statusText}</td>
                 <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-xl-table-cell">
                     <small class="${accessTextClass}">${accessStatus}</small>
+                </td>
+                <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-xl-table-cell text-center">
+                    ${oneTimePass === 'Yes' ? 
+                        '<span class="badge bg-info text-white" title="One Time Pass Enabled"><i class="bi bi-key-fill"></i></span>' : 
+                        '<span class="text-muted">-</span>'}
                 </td>
                 <td style="padding: 8px 8px;" class="text-center">${detailsButton}</td>
                 <td style="padding: 8px 8px;" class="text-center">${transactionButton}</td>
