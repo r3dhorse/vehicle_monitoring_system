@@ -248,25 +248,47 @@ This is a Google Apps Script project - no build tools, npm commands, or testing 
   - Fixed potential number vs string comparison issues in validation
   - Updated frontend to use `saveGateSimple()` for proper Id/GateName structure
 
+#### Transaction Protection System (Latest Updates)
+- **Anti-Double-Click Protection**: Implemented comprehensive system to prevent simultaneous transactions
+  - Global `isTransactionInProgress` flag prevents multiple concurrent operations
+  - All transaction buttons disabled during active transactions with visual feedback
+  - Loading spinner animation with CSS keyframes for processing indication
+- **Mobile & Tablet Optimization**: Enhanced transaction protection for touch devices
+  - Device-aware button styling with responsive opacity levels (0.4 mobile, 0.5 tablet, 0.6 desktop)
+  - 300ms debounce timer to prevent rapid double-taps on mobile devices
+  - Haptic feedback (vibration) for mobile devices when transactions start
+  - Enhanced touch targets with minimum 44px/40px sizing for accessibility
+- **Comprehensive Coverage**: Protection across all transaction entry points
+  - Vehicle list transaction buttons (`toggleVehicleStatus`)
+  - QR scanner transaction submission (`submitQRTransaction`)
+  - Gate validation failure scenarios with proper cleanup
+  - Access denial scenarios with button re-enabling
+- **Visual & UX Enhancements**: Professional loading states and feedback
+  - Device-specific loading spinner sizes and animations
+  - Complete touch event blocking (`pointerEvents: 'none`) during processing
+  - Original button state restoration after completion/failure
+  - Enhanced console logging with device type detection for debugging
+
 ## Current System Status
 
 ### File Statistics
 - **Code.gs**: 5,100+ lines (155KB) - Backend with enhanced gate validation and debug functions  
-- **app.html**: 8,950+ lines (410KB) - Complete frontend with gate selector persistence
+- **app.html**: 9,070+ lines (425KB) - Complete frontend with transaction protection and mobile optimization
 - **USER_MANUAL.md**: 509 lines (16KB) - Comprehensive user documentation
-- **Claude.md**: 370+ lines (18KB) - Technical documentation and development guide
-- **Total Project Size**: ~599KB, 14,929+ lines of code across main files
+- **Claude.md**: 390+ lines (19KB) - Technical documentation and development guide
+- **Total Project Size**: ~615KB, 15,069+ lines of code across main files
 
 ### Repository Information
-- **Git Remote**: Bitbucket repository (noc88/vehicle-monitoring-system)
+- **Git Remote**: GitHub repository (r3dhorse/vehicle-monitoring-system)
 - **Main Branch**: Single branch development model
-- **Current Version**: Enhanced with gate validation fixes
-- **Recent Activity**: Gate restriction system improvements and validation fixes
+- **Current Version**: Enhanced with comprehensive transaction protection
+- **Recent Activity**: Transaction protection system and mobile/tablet optimization
 - **Latest Changes**: 
-  - Fixed gate ID validation TypeError and comparison logic
-  - Enhanced transaction logs to show gate names instead of IDs
-  - Improved gate selector persistence and auto-refresh functionality
-  - Ensured consistent string handling for gate IDs throughout system
+  - Implemented anti-double-click protection for all transaction buttons
+  - Added mobile/tablet-specific transaction UI enhancements
+  - Enhanced gate validation system with proper error handling
+  - Improved transaction logs to display gate names instead of IDs
+  - Added device-aware debouncing and haptic feedback for mobile devices
 - **Project Structure**: Enhanced 6-file architecture (Code.gs, app.html, Claude.md, USER_MANUAL.md, README.md, USER_STORIES.md)
 
 ## Development Guidelines
@@ -326,6 +348,7 @@ The system implements a simplified driver management structure:
 - **Driver Management**: `getDriverList()`, `generateNextDriverId()`, `getDriverNameById()`, `migrateDriverIdsToNames()`
 - **Gate Management**: `saveGateSimple()`, `getActiveGates()`, `getGateNameById()`, `validateVehicleGateAccess()`
 - **UI Functions**: `editVehicle()` (replaces `showVehicleDetails()`), `toggleVehicleStatus()` (with access validation)
+- **Transaction Protection**: `setTransactionInProgress()`, mobile debouncing, haptic feedback integration
 
 ### Debug and Testing Functions
 
@@ -354,6 +377,14 @@ The system implements a simplified driver management structure:
   - Confirm transaction logs show gate names instead of gate IDs
   - Test gate selector persistence when managing gates (add/edit/delete)
   - Verify gate selector auto-refreshes after gate management operations
+- **Transaction Protection Testing**:
+  - Test rapid clicking on transaction buttons to verify protection
+  - Verify all buttons disabled during active transaction processing
+  - Test mobile double-tap prevention (300ms debounce timer)
+  - Confirm loading spinner appears on active transaction button
+  - Verify button state restoration after successful/failed transactions
+  - Test QR scanner transaction protection and mobile behavior
+  - Confirm haptic feedback works on supported mobile devices
 - **UI Testing**:
   - Verify Edit button opens Edit Vehicle modal directly
   - Ensure no errors from removed Vehicle Details Modal references
