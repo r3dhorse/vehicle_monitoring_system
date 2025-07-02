@@ -928,6 +928,16 @@
             justify-content: center;
         }
         
+        /* Spin animation for transaction buttons */
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         .gate-selector {
             border-left: 3px solid #667eea;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
@@ -3628,6 +3638,8 @@
         let vehicleData = [];
         let allVehicles = [];
         let userPermissions = null; // Store user permissions from backend
+        let isTransactionInProgress = false; // Prevent multiple simultaneous transactions
+        let currentTransactionIndex = -1; // Track which vehicle is being processed
         
         // Session management functions
         function saveSession() {
@@ -3641,6 +3653,61 @@
             sessionStorage.removeItem('currentUser');
             sessionStorage.removeItem('selectedGate');
             console.log('Session cleared');
+        }
+
+        // Transaction management functions to prevent multiple clicks
+        function setTransactionInProgress(inProgress, vehicleIndex = -1) {
+            isTransactionInProgress = inProgress;
+            currentTransactionIndex = inProgress ? vehicleIndex : -1;
+            
+            // Disable/enable all transaction buttons (vehicle list buttons)
+            const transactionButtons = document.querySelectorAll('.vehicle-action-btn, [onclick*="toggleVehicleStatus"]');
+            transactionButtons.forEach(button => {
+                if (inProgress) {
+                    button.disabled = true;
+                    button.style.opacity = '0.6';
+                    button.style.cursor = 'not-allowed';
+                    
+                    // Add loading indicator to the specific button for current transaction
+                    if (vehicleIndex >= 0 && button.getAttribute('onclick') && 
+                        button.getAttribute('onclick').includes(`toggleVehicleStatus(${vehicleIndex})`)) {
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
+                        button.setAttribute('data-original-text', originalText);
+                        button.title = 'Processing transaction...';
+                    }
+                } else {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.cursor = 'pointer';
+                    
+                    // Restore original button text and title
+                    const originalText = button.getAttribute('data-original-text');
+                    if (originalText) {
+                        button.innerHTML = originalText;
+                        button.removeAttribute('data-original-text');
+                        // Restore original title
+                        const vehicle = vehicleData[vehicleIndex];
+                        if (vehicle) {
+                            const status = vehicle[7] || 'OUT';
+                            const accessStatus = vehicle[10] || 'Access';
+                            const oneTimePass = vehicle[11] || 'No';
+                            button.title = (accessStatus === 'Banned') ? 'Vehicle is banned - check-in disabled' : 
+                                          (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT') ? 'No Access - requires active one-time pass' : 
+                                          (status === 'IN' ? 'Check out this vehicle' : 'Check in this vehicle');
+                        }
+                    }
+                }
+            });
+            
+            // Also disable QR scanner submit button if it exists
+            const qrSubmitBtn = document.querySelector('#qrTransactionForm button[type="submit"]');
+            if (qrSubmitBtn) {
+                qrSubmitBtn.disabled = inProgress;
+                qrSubmitBtn.style.opacity = inProgress ? '0.6' : '1';
+            }
+            
+            console.log('Transaction in progress:', inProgress, 'for vehicle index:', vehicleIndex);
         }
         
         function restoreSession() {
@@ -4797,6 +4864,12 @@
         }
 
         function toggleVehicleStatus(index) {
+            // Prevent multiple clicks by checking if transaction is already in progress
+            if (isTransactionInProgress) {
+                console.log('Transaction already in progress, ignoring click');
+                return;
+            }
+
             // Add error handling for vehicle data
             if (!vehicleData || vehicleData.length === 0) {
                 showToast('No vehicle data available', 'warning');
@@ -4817,8 +4890,12 @@
             
             console.log('Toggling status for vehicle:', vehicle[0], 'at index:', index);
             
+            // Set transaction in progress and disable all transaction buttons
+            setTransactionInProgress(true, index);
+            
             // Validate gate selection first
             if (!validateGateSelection()) {
+                setTransactionInProgress(false);
                 return;
             }
             
@@ -4841,6 +4918,7 @@
                         // Show detailed denial notification with reason
                         let message = `🚫This Vehicle not authorized for this gate.`;
                         showToast(message, 'danger', 8000); // Show for 8 seconds
+                        setTransactionInProgress(false); // Re-enable buttons
                         return;
                     }
                     
@@ -4851,6 +4929,7 @@
                     showLoading(false);
                     console.error('Gate validation error:', error);
                     showToast('Error validating gate access: ' + error.toString(), 'danger');
+                    setTransactionInProgress(false); // Re-enable buttons on error
                 })
                 .validateVehicleGateAccess(vehicle[0], vehicle[1], gate);
             
@@ -4859,11 +4938,13 @@
                 // Check access permissions for check-in attempts
                 if (newStatus === 'IN' && accessStatus === 'No Access' && oneTimePass !== 'Yes') {
                     showToast('Vehicle access denied. No Access vehicles require an active one-time pass to check in.', 'warning');
+                    setTransactionInProgress(false); // Re-enable buttons
                     return;
                 }
                 
                 if (accessStatus === 'Banned') {
                     showToast('Vehicle access denied. This vehicle is banned from entry.', 'danger');
+                    setTransactionInProgress(false); // Re-enable buttons
                     return;
                 }
 
@@ -4902,10 +4983,12 @@
                             
                         }
                         showLoading(false);
+                        setTransactionInProgress(false); // Re-enable buttons after successful transaction
                     })
                     .withFailureHandler(function(error) {
                         showToast('Failed to update vehicle status: ' + error, 'danger');
                         showLoading(false);
+                        setTransactionInProgress(false); // Re-enable buttons after failed transaction
                     })
                     .logVehicleAction(logData);
             }
@@ -8922,6 +9005,12 @@
         });
 
         function submitQRTransaction() {
+            // Prevent multiple submissions
+            if (isTransactionInProgress) {
+                console.log('QR Transaction already in progress, ignoring submission');
+                return;
+            }
+
             const form = document.getElementById('qrTransactionForm');
             const plateNumber = document.getElementById('scannedPlate').textContent;
             const gate = document.getElementById('qrGateSelect').value;
@@ -8935,13 +9024,18 @@
                 return;
             }
 
+            // Set transaction in progress for QR scanner
+            setTransactionInProgress(true, -1);
+
             // Special handling for restricted access vehicles
             if (accessStatus === 'Banned') {
                 if (!confirm(`⚠️ CRITICAL WARNING ⚠️\n\nVehicle ${plateNumber} is BANNED!\n\nThis vehicle should NOT be allowed on premises under any circumstances.\n\nAre you absolutely certain you want to proceed with this transaction?\n\n(This action will be logged with your username for audit purposes)`)) {
+                    setTransactionInProgress(false); // Re-enable buttons if cancelled
                     return;
                 }
             } else if (accessStatus === 'No Access' && action === 'IN') {
                 if (!confirm(`⚠️ ACCESS WARNING ⚠️\n\nVehicle ${plateNumber} does not have access permission.\n\nProceeding will allow entry despite restrictions.\n\nDo you have supervisor authorization to override this restriction?\n\n(This override will be logged for security review)`)) {
+                    setTransactionInProgress(false); // Re-enable buttons if cancelled
                     return;
                 }
             }
@@ -9005,6 +9099,7 @@
                     // Re-enable form
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
+                    setTransactionInProgress(false); // Re-enable all transaction buttons
                 })
                 .withFailureHandler(function(error) {
                     showToast('Error logging transaction: ' + error, 'danger');
@@ -9012,6 +9107,7 @@
                     // Re-enable form
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
+                    setTransactionInProgress(false); // Re-enable all transaction buttons
                 })
                 .logVehicleAction(transactionData);
         }
