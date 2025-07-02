@@ -4227,7 +4227,7 @@
                             }
                             
                             // Skip header row
-                            if (gateName === "Gate Name") return;
+                            if (gateName === "Gate Name" || gateName === "GateName") return;
                             
                             // Check if this gate ID is selected (backward compatibility: also check gate name)
                             const isChecked = selectedArray.includes(gateId?.toString()) || selectedArray.includes(gateName);

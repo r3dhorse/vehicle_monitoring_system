@@ -20,6 +20,54 @@ function clearAllCaches() {
   }
 }
 
+// Test function to verify gate sheet structure and functionality
+function testGateSystemStructure() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const gateSheet = ss.getSheetByName(GATES_SHEET);
+    
+    if (!gateSheet) {
+      return "Gate sheet not found";
+    }
+    
+    const headers = gateSheet.getRange(1, 1, 1, gateSheet.getLastColumn()).getValues()[0];
+    const data = gateSheet.getDataRange().getValues();
+    
+    // Test gate functions
+    const simpleGateList = getSimpleGateList();
+    const fullGateList = getGateList();
+    const activeGates = getActiveGates();
+    
+    const result = {
+      sheetName: GATES_SHEET,
+      headers: headers,
+      expectedHeaders: ["Id", "GateName"],
+      headersCorrect: headers[0] === "Id" && headers[1] === "GateName",
+      totalGates: data.length - 1,
+      sampleGateData: data.length > 1 ? {
+        id: data[1][0],
+        gateName: data[1][1]
+      } : "No gates found",
+      functionTests: {
+        simpleGateList: simpleGateList.length,
+        fullGateList: fullGateList.length,
+        activeGates: activeGates.length
+      },
+      gateFunctionality: {
+        simpleListValid: simpleGateList.every(gate => gate.gateId !== undefined && gate.gateName !== undefined),
+        activeGatesValid: activeGates.every(gate => gate.id !== undefined && gate.name !== undefined)
+      }
+    };
+    
+    console.log("Gate System Test Result:", JSON.stringify(result, null, 2));
+    return result;
+    
+  } catch (error) {
+    console.error("Error testing gate system:", error);
+    return "Error: " + error.toString();
+  }
+}
+
 // Test function to verify allowed gates data structure
 function testAllowedGatesData() {
   try {
@@ -91,6 +139,38 @@ function migrateAddOneTimePassColumn() {
     return `Successfully added One Time Pass column. Updated ${
       lastRow - 1
     } vehicles.`;
+  } catch (error) {
+    console.error("Migration error:", error);
+    return "Error during migration: " + error.toString();
+  }
+}
+
+// Migration function to update gate sheet headers to Id/GateName format
+function migrateGateSheetHeaders() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const gateSheet = ss.getSheetByName(GATES_SHEET);
+
+    if (!gateSheet) {
+      return "Gate sheet not found";
+    }
+
+    // Get current headers
+    const headers = gateSheet.getRange(1, 1, 1, gateSheet.getLastColumn()).getValues()[0];
+    
+    // Check if migration is needed
+    if (headers[0] === "Id" && headers[1] === "GateName") {
+      return "Gate sheet headers already in correct format";
+    }
+
+    // Update headers to new format
+    if (headers.length >= 2) {
+      gateSheet.getRange(1, 1, 1, 2).setValues([["Id", "GateName"]]);
+      gateSheet.getRange(1, 1, 1, 2).setFontWeight("bold");
+      return "Successfully updated gate sheet headers to Id/GateName format";
+    } else {
+      return "Gate sheet structure is incomplete";
+    }
   } catch (error) {
     console.error("Migration error:", error);
     return "Error during migration: " + error.toString();
@@ -250,7 +330,33 @@ function migrateAddAllowedGatesColumn() {
   }
 }
 
-// Comprehensive migration function to ensure Vehicle Master has all required columns
+// Comprehensive migration function to ensure both Vehicle Master and Gates have correct schema
+function migrateToLatestSchema() {
+  try {
+    console.log("Starting comprehensive schema migration...");
+    
+    const results = [];
+    
+    // Migrate gate sheet headers
+    const gateResult = migrateGateSheetHeaders();
+    results.push(`Gate Headers: ${gateResult}`);
+    
+    // Migrate vehicle master columns
+    const vehicleResult = migrateVehicleMasterToLatestSchema();
+    results.push(`Vehicle Master: ${vehicleResult}`);
+    
+    // Migrate gate names to IDs in vehicle data
+    const gateDataResult = migrateGateNamesToIds();
+    results.push(`Gate Data Migration: ${gateDataResult}`);
+    
+    return results.join('\n');
+  } catch (error) {
+    console.error("Comprehensive migration error:", error);
+    return "Error during comprehensive migration: " + error.toString();
+  }
+}
+
+// Vehicle Master migration function to ensure all required columns
 function migrateVehicleMasterToLatestSchema() {
   try {
     const results = [];
@@ -2550,11 +2656,11 @@ function createInitialSheets() {
       roleRange.setDataValidation(roleRule);
     }
 
-    // Create Gates sheet (simple structure compatible with existing data)
+    // Create Gates sheet with Id/GateName structure
     let gatesSheet = ss.getSheetByName(GATES_SHEET);
     if (!gatesSheet) {
       gatesSheet = ss.insertSheet(GATES_SHEET);
-      gatesSheet.getRange(1, 1, 1, 2).setValues([["ID", "Gate Name"]]);
+      gatesSheet.getRange(1, 1, 1, 2).setValues([["Id", "GateName"]]);
       gatesSheet.getRange(1, 1, 1, 2).setFontWeight("bold");
       gatesSheet.setFrozenRows(1);
       gatesSheet.autoResizeColumns(1, 2);
@@ -3877,14 +3983,14 @@ function getGateList() {
     const data = sheet.getDataRange().getValues();
 
     if (data.length <= 1) {
-      // Return default gates if no data
-      return [["Gate Name"], ["Main Gate"], ["Back Gate"], ["Service Gate"]];
+      // Return default gates if no data with Id/GateName structure
+      return [["Id", "GateName"], [1, "Main Gate"], [2, "Service Gate"], [3, "Parking Gate"]];
     }
 
     return data;
   } catch (error) {
     console.error("Error getting gate list:", error);
-    return [["Gate Name"], ["Main Gate"], ["Back Gate"]];
+    return [["Id", "GateName"], [1, "Main Gate"], [2, "Service Gate"]];
   }
 }
 
