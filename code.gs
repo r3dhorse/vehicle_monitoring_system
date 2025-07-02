@@ -20,17 +20,19 @@ function clearAllCaches() {
   }
 }
 
-// Test function specifically for current issue - Active gate ID: 1, vehicle allowed gates: 1,2
+// Test function specifically for gate restriction bug - single gate selection
 function testCurrentGateIssue() {
-  console.log("=== TESTING CURRENT GATE ISSUE ===");
-  console.log("Expected: Active gate ID: 1, Vehicle allowed gates: 1,2");
+  console.log("=== TESTING GATE RESTRICTION BUG ===");
+  console.log("Testing single gate selection scenarios");
   
   // Test with different data types to simulate what might be happening
   const testScenarios = [
-    { gateId: "1", allowedGates: "1,2", description: "Both strings" },
-    { gateId: 1, allowedGates: "1,2", description: "Gate ID as number, allowed as string" },
-    { gateId: "1", allowedGates: "1,2", description: "Both strings with spaces" },
-    { gateId: " 1 ", allowedGates: " 1 , 2 ", description: "With extra spaces" }
+    { gateId: "1", allowedGates: "1", description: "Single gate allowed - both strings" },
+    { gateId: 1, allowedGates: "1", description: "Single gate - Gate ID as number" },
+    { gateId: "1", allowedGates: "1,2", description: "Multiple gates allowed - gate 1" },
+    { gateId: "2", allowedGates: "1,2", description: "Multiple gates allowed - gate 2" },
+    { gateId: "3", allowedGates: "1", description: "Single gate - access should be denied" },
+    { gateId: " 1 ", allowedGates: " 1 ", description: "Single gate with spaces" }
   ];
   
   testScenarios.forEach((scenario, index) => {
@@ -60,6 +62,111 @@ function testCurrentGateIssue() {
   });
   
   return "Test completed - check console logs";
+}
+
+// Test the fixed gate validation with single gate
+function testSingleGateValidation() {
+  console.log("=== TESTING SINGLE GATE VALIDATION FIX ===");
+  
+  // Test scenarios
+  const tests = [
+    { vehicleId: "000001", plateNumber: "TEST123", gateId: "1", expected: "Test with actual vehicle" }
+  ];
+  
+  tests.forEach(test => {
+    try {
+      const result = validateVehicleGateAccess(test.vehicleId, test.plateNumber, test.gateId);
+      console.log(`\nTest: ${test.expected}`);
+      console.log(`Result:`, result);
+    } catch (error) {
+      console.log(`Error in test: ${error}`);
+    }
+  });
+  
+  return "Single gate validation test completed - check console logs";
+}
+
+// Debug function to test the exact user scenario
+function debugUserGateTest() {
+  console.log("=== DEBUGGING USER GATE TEST ===");
+  console.log("Scenario: Vehicle with 'full acces' status, allowed gate: 1, active gate: 1");
+  
+  // First, let's check if we can find a vehicle with these characteristics
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+  const vehicleData = vehicleSheet.getDataRange().getValues();
+  
+  console.log("\nSearching for vehicles with gate restrictions...");
+  
+  for (let i = 1; i < vehicleData.length && i < 10; i++) {
+    const row = vehicleData[i];
+    const vehicleId = row[0];
+    const plateNumber = row[1];
+    const accessStatus = row[10];
+    const allowedGates = row[13];
+    
+    if (allowedGates && allowedGates.toString().trim() !== "") {
+      console.log(`\nVehicle ${i}:`);
+      console.log(`  ID: ${vehicleId}`);
+      console.log(`  Plate: ${plateNumber}`);
+      console.log(`  Access Status: "${accessStatus}"`);
+      console.log(`  Allowed Gates: "${allowedGates}"`);
+      
+      // Test this vehicle with gate 1
+      console.log(`  Testing with gate 1...`);
+      const result = validateVehicleGateAccess(vehicleId, plateNumber, "1");
+      console.log(`  Result:`, result);
+    }
+  }
+  
+  return "Debug test completed - check console logs";
+}
+
+// Function to fix non-standard access status values
+function fixNonStandardAccessStatus() {
+  console.log("=== FIXING NON-STANDARD ACCESS STATUS VALUES ===");
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    
+    let fixedCount = 0;
+    const standardStatuses = ["Access", "No Access", "Banned"];
+    
+    for (let i = 1; i < vehicleData.length; i++) {
+      const currentStatus = vehicleData[i][10]; // Access Status column (K)
+      
+      if (currentStatus && !standardStatuses.includes(currentStatus)) {
+        console.log(`Row ${i + 1}: Found non-standard status "${currentStatus}"`);
+        
+        // Normalize the status
+        const normalizedStatus = currentStatus.toString().trim().toLowerCase();
+        let newStatus = "Access"; // Default
+        
+        if (normalizedStatus.includes("ban")) {
+          newStatus = "Banned";
+        } else if (normalizedStatus.includes("no") && normalizedStatus.includes("access")) {
+          newStatus = "No Access";
+        } else if (normalizedStatus.includes("full") || normalizedStatus.includes("access")) {
+          newStatus = "Access";
+        }
+        
+        // Update the cell
+        vehicleSheet.getRange(i + 1, 11).setValue(newStatus); // Column K is column 11
+        console.log(`  Updated to: "${newStatus}"`);
+        fixedCount++;
+      }
+    }
+    
+    console.log(`\nFixed ${fixedCount} non-standard access status values`);
+    clearVehicleCache(); // Clear cache after updates
+    
+    return `Fixed ${fixedCount} non-standard access status values`;
+  } catch (error) {
+    console.error("Error fixing access status values:", error);
+    return "Error: " + error.toString();
+  }
 }
 
 // Simple test function for user issue - test with any vehicle that has allowed gates "1,2" and gate ID "1"
@@ -5198,7 +5305,12 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
 
     // Check vehicle access status first
     const accessStatus = vehicleRow[10]; // Access Status column (K)
-    if (accessStatus === "Banned") {
+    console.log(`Vehicle access status: "${accessStatus}" (type: ${typeof accessStatus})`);
+    
+    // Normalize access status for comparison (handle typos and case variations)
+    const normalizedStatus = accessStatus ? accessStatus.toString().trim().toLowerCase() : '';
+    
+    if (normalizedStatus === "banned") {
       return {
         allowed: false,
         reason: "Vehicle is banned from all gates",
@@ -5206,7 +5318,7 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
       };
     }
 
-    if (accessStatus === "No Access") {
+    if (normalizedStatus === "no access") {
       // Check for one-time pass
       const oneTimePass = vehicleRow[11]; // One Time Pass column (L)
       if (oneTimePass !== "Yes") {
@@ -5217,11 +5329,19 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
         };
       }
     }
+    
+    // For any other status (Access, Full Access, full acces, etc.), continue to gate checks
 
     // Check gate restrictions (column N, index 13) - now stores gate IDs
     const allowedGates = vehicleRow[13]; // Allowed Gates column (N)
     
-    if (!allowedGates || allowedGates.trim() === "") {
+    console.log(`Raw allowed gates value: "${allowedGates}" (type: ${typeof allowedGates})`);
+    console.log(`Vehicle row data:`, vehicleRow);
+    
+    // Handle various falsy values and convert to string for consistent handling
+    const allowedGatesStr = allowedGates ? allowedGates.toString().trim() : "";
+    
+    if (!allowedGatesStr || allowedGatesStr === "") {
       // No gate restrictions - allow access to all gates
       return {
         allowed: true,
@@ -5230,8 +5350,19 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
       };
     }
 
-    // Parse allowed gate IDs (comma-separated)
-    const allowedGateIds = allowedGates.split(',').map(gateId => gateId.trim());
+    // Parse allowed gate IDs (comma-separated or single value)
+    // Handle case where allowedGates might be a single value without commas
+    let allowedGateIds = [];
+    if (allowedGatesStr.includes(',')) {
+      // Multiple gates - split by comma
+      allowedGateIds = allowedGatesStr.split(',').map(gateId => gateId.trim());
+    } else {
+      // Single gate - create array with one element
+      allowedGateIds = [allowedGatesStr];
+    }
+    
+    // Filter out empty strings
+    allowedGateIds = allowedGateIds.filter(id => id !== '');
     
     // Debug logging for gate validation
     console.log(`=== GATE VALIDATION DEBUG ===`);
@@ -5254,7 +5385,7 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
       return exactMatch || caseInsensitiveMatch;
     });
     
-    const isGateAllowed = comparisonResults.some(result => result);
+    const isGateAllowed = allowedGateIds.length > 0 && comparisonResults.some(result => result);
     
     console.log(`Individual comparison results:`, comparisonResults);
     console.log(`Final gate validation result: ${isGateAllowed}`);

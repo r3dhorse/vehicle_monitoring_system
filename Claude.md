@@ -310,11 +310,14 @@ This is a Google Apps Script project - no build tools, npm commands, or testing 
 ## Current System Status
 
 ### File Statistics
-- **Code.gs**: 5,170+ lines (162KB) - Backend with enhanced audit trail and transaction protection
+- **Code.gs**: 5,300+ lines (165KB) - Backend with gate restriction fixes and access status normalization
 - **app.html**: 9,100+ lines (430KB) - Complete frontend with security role enhancements and transaction protection
 - **USER_MANUAL.md**: 509 lines (16KB) - Comprehensive user documentation
-- **Claude.md**: 450+ lines (22KB) - Technical documentation with security role enhancements
-- **Total Project Size**: ~630KB, 15,229+ lines of code across main files
+- **Claude.md**: 500+ lines (24KB) - Technical documentation with gate restriction bug fixes
+- **README.md**: 180+ lines (8KB) - Updated with Gate Restriction System documentation
+- **test_gate_validation.gs**: 140 lines (5KB) - Comprehensive gate validation test suite
+- **test_user_gate_bug.gs**: 110 lines (4KB) - Access status bug test scenarios
+- **Total Project Size**: ~651KB, 15,539+ lines of code across all files
 
 ### Repository Information
 - **Git Remote**: GitHub repository (r3dhorse/vehicle-monitoring-system)
@@ -322,12 +325,13 @@ This is a Google Apps Script project - no build tools, npm commands, or testing 
 - **Current Version**: Enhanced with security role interface improvements and comprehensive access control
 - **Recent Activity**: Security role interface enhancement and gate access control improvements
 - **Latest Changes**: 
-  - Enhanced security role interface with read-only gate access control
-  - Improved current driver modal experience with better visual cues and context
-  - Added role-based visual indicators and enhanced focus management
-  - Implemented comprehensive cleanup for role switching scenarios
-  - Enhanced vehicle audit trail with Action column (Create/Update differentiation)
-  - Added comprehensive transaction protection with mobile/tablet optimization
+  - Fixed critical gate restriction bugs (single gate access and non-standard access status values)
+  - Added access status normalization to handle typos and variations (e.g., "full acces", "Full Access")
+  - Created helper function `fixNonStandardAccessStatus()` for data cleanup
+  - Added comprehensive test suites for gate validation scenarios
+  - Enhanced debug logging for gate access troubleshooting
+  - Updated documentation with Gate Restriction System guide and troubleshooting
+  - Previous: Enhanced security role interface, audit trail, and transaction protection
 - **Project Structure**: Enhanced 6-file architecture (Code.gs, app.html, Claude.md, USER_MANUAL.md, README.md, USER_STORIES.md)
 
 ## Development Guidelines
@@ -393,13 +397,18 @@ The system implements a simplified driver management structure:
 ### Debug and Testing Functions
 
 - **Gate Validation Testing**: 
-  - `testCurrentGateIssue()` - Tests different gate ID scenarios with various data types
+  - `testCurrentGateIssue()` - Tests single gate restriction scenarios with various data types
+  - `testSingleGateValidation()` - Tests the fixed gate validation with single gate values
+  - `debugUserGateTest()` - Debug function for user-reported gate access issues
+  - `testUserGateBug()` - Tests non-standard access status scenarios (in test_user_gate_bug.gs)
   - `debugGateAccessValidation()` - Comprehensive gate access debugging with detailed logging
   - `testVehicleWithGates12()` - Tests specific vehicle with allowed gates "1,2"
   - `debugCurrentGateSystem()` - Analyzes complete gate system structure and data
-- **System Testing**: 
+  - `runGateValidationTests()` - Comprehensive test suite for gate validation (in test_gate_validation.gs)
+- **System Testing & Maintenance**: 
   - `clearAllCaches()` - Manual cache clearing for development
   - `testGateSystemStructure()` - Verifies gate sheet structure and functionality
+  - `fixNonStandardAccessStatus()` - Fixes non-standard access status values in spreadsheet
 
 ### Testing Approach
 
@@ -445,3 +454,44 @@ The system implements a simplified driver management structure:
   - Verify enhanced driver change warning shows comprehensive vehicle information
   - Test save button shows "Update Driver Assignment" text for security users
   - Confirm all visual enhancements are properly cleaned up for non-security roles
+
+#### Gate Restriction Bug Fixes (July 2025)
+
+##### Fix 1: Single Gate Restriction Issue
+- **Issue**: Vehicles with single gate restriction (e.g., only gate "1") were incorrectly denied access
+- **Root Cause**: The validation logic always used `split(',')` which works for comma-separated values but failed for single gate values without commas
+- **Solution Implemented** (Code.gs lines 5270-5279):
+  - Added logic to detect if allowed gates string contains a comma
+  - If comma exists: split by comma (multiple gates scenario)
+  - If no comma: treat as single gate value (single gate scenario)
+  - Added filtering to remove empty strings from the parsed array
+  - Enhanced validation to ensure at least one valid gate ID exists
+
+##### Fix 2: Non-Standard Access Status Values
+- **Issue**: Vehicles with non-standard access status (e.g., "full acces", "Full Access") were denied gate access
+- **Root Cause**: Access status validation used exact string matching for "Banned" and "No Access"
+- **Solution Implemented** (Code.gs lines 5225-5250):
+  - Added normalization of access status values (lowercase + trim)
+  - Enhanced validation to handle typos and variations gracefully
+  - Only "banned" and "no access" (case-insensitive) restrict access
+  - All other values (including typos) allow normal gate validation
+- **Helper Function Added**: `fixNonStandardAccessStatus()` (lines 126-170)
+  - Automatically fixes non-standard access status values in the spreadsheet
+  - Converts variations like "full acces" to standard "Access"
+  - Provides data cleanup utility for existing deployments
+
+##### Test Coverage
+- Created `test_gate_validation.gs` - comprehensive test suite for gate validation
+- Created `test_user_gate_bug.gs` - specific tests for access status bug scenarios
+- Added debug functions: `debugUserGateTest()`, `testUserGateBug()`
+- Test scenarios cover:
+  - Single/multiple gate configurations
+  - Non-standard access status values
+  - Edge cases and data type variations
+  - 11+ test scenarios with expected outcomes
+
+##### Documentation
+- Updated README.md with Gate Restriction System section
+- Added configuration tables and examples
+- Documented standard access status values: "Access", "No Access", "Banned"
+- Added troubleshooting guide for gate restrictions

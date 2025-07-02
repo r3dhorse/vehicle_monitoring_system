@@ -16,6 +16,7 @@ A web-based vehicle monitoring system built with Google Apps Script and Google S
 - **Role-based Access**: Admin and regular user roles
 - **Activity Tracking**: User login attempts and actions are logged
 - **Session Management**: Secure session handling
+- **Gate Restrictions**: Control which gates vehicles can access
 
 ### Admin Features
 - **Vehicle Management**: Edit vehicle and driver assignments
@@ -104,6 +105,48 @@ A web-based vehicle monitoring system built with Google Apps Script and Google S
 3. View detailed activity logs
 4. Export reports
 5. Manage users through Google Sheets
+
+## Gate Restriction System
+
+The gate restriction feature allows administrators to control which gates specific vehicles can access. This is particularly useful for facilities with multiple entry/exit points where certain vehicles should only use specific gates.
+
+### How Gate Restrictions Work
+
+| Scenario | Allowed Gates Configuration | Vehicle Access Result |
+|----------|---------------------------|----------------------|
+| Single Gate Access | "1" | Vehicle can ONLY access gate 1 |
+| Multiple Gate Access | "1,2,3" | Vehicle can access gates 1, 2, and 3 |
+| No Restrictions | "" (empty) | Vehicle can access ALL gates |
+| Mixed IDs | "1,3,5" | Vehicle can access gates 1, 3, and 5 only |
+
+### Gate Restriction Rules
+
+1. **Empty/No Value**: If the "Allowed Gates" field is empty, the vehicle has access to ALL gates
+2. **Single Gate**: Enter just the gate ID (e.g., "1") to restrict access to that gate only
+3. **Multiple Gates**: Enter comma-separated gate IDs (e.g., "1,2,3") for multiple gate access
+4. **Access Denied**: Vehicles attempting to use non-allowed gates will be denied with a clear error message
+5. **Override Option**: Security personnel can override gate restrictions if needed
+
+### Configuration Examples
+
+| Vehicle | Allowed Gates | Can Access Gate 1? | Can Access Gate 2? | Can Access Gate 3? |
+|---------|---------------|-------------------|-------------------|-------------------|
+| Vehicle A | "1" | ✅ Yes | ❌ No | ❌ No |
+| Vehicle B | "1,2" | ✅ Yes | ✅ Yes | ❌ No |
+| Vehicle C | "2,3" | ❌ No | ✅ Yes | ✅ Yes |
+| Vehicle D | "" (empty) | ✅ Yes | ✅ Yes | ✅ Yes |
+
+### Setting Up Gate Restrictions
+
+1. **For New Vehicles**: Select allowed gates during vehicle creation
+2. **For Existing Vehicles**: Edit the vehicle and update the "Allowed Gates" field
+3. **Security Role**: Security users can view but not modify gate restrictions
+
+### Bug Fix History
+
+- **Fixed**: Single gate restriction bug where vehicles with access to only one gate were incorrectly denied access
+- **Date**: July 2025
+- **Issue**: The validation logic now properly handles both single gate values and comma-separated multiple gate values
 
 ## Security Considerations
 
