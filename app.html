@@ -6694,30 +6694,52 @@
                 const driverField = document.getElementById('editDriver');
                 if (driverField) {
                     driverField.disabled = false;
-                    driverField.style.backgroundColor = '';
+                    driverField.style.backgroundColor = '#f8f9ff';
                     driverField.style.opacity = '';
                     driverField.style.borderColor = '#007bff';
-                    driverField.focus();
+                    driverField.style.borderWidth = '2px';
+                    driverField.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
+                    
+                    // Add a visual label for security users
+                    const driverFieldContainer = driverField.closest('.col-md-6');
+                    if (driverFieldContainer) {
+                        const existingLabel = driverFieldContainer.querySelector('.security-driver-label');
+                        if (!existingLabel) {
+                            const securityLabel = document.createElement('div');
+                            securityLabel.className = 'security-driver-label badge bg-primary-subtle text-primary mb-2';
+                            securityLabel.innerHTML = '<i class="bi bi-person-check me-1"></i>Editable Field';
+                            driverFieldContainer.insertBefore(securityLabel, driverField.parentElement);
+                        }
+                    }
+                    
+                    setTimeout(() => driverField.focus(), 100);
                 }
                 
                 // Update modal title for Security users
                 const modalTitle = document.querySelector('#editVehicleModal .modal-title');
                 if (modalTitle) {
-                    modalTitle.innerHTML = '<i class="bi bi-person-gear me-2"></i>Change Current Driver';
+                    modalTitle.innerHTML = '<i class="bi bi-person-gear me-2"></i>Change Current Driver - ' + vehicle[1];
                 }
                 
                 // Show driver change warning and update save button
                 const warningElement = document.getElementById('driverChangeWarning');
                 if (warningElement) {
-                    warningElement.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>The current driver will be logged in the vehicle ' + 
-                        (vehicle[7] === 'IN' ? 'OUT' : 'IN') + ' transaction record';
+                    const currentStatus = vehicle[7];
+                    const nextStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
+                    const currentDriver = vehicle[8] || 'Unassigned';
+                    
+                    warningElement.innerHTML = '<i class="bi bi-info-circle me-1"></i>' +
+                        '<strong>Driver Change for ' + vehicle[1] + '</strong><br>' +
+                        '<small class="text-muted">Current: ' + currentDriver + ' | Status: ' + currentStatus + '</small><br>' +
+                        '<small>This driver change will be recorded in the next ' + nextStatus + ' transaction.</small>';
                     warningElement.parentElement.style.display = 'block';
                 }
                 
                 // Update save button text
                 const saveBtn = document.getElementById('saveVehicleEditBtn');
                 if (saveBtn) {
-                    saveBtn.innerHTML = '<i class="bi bi-person-check me-2"></i>Change Driver & Log Transaction';
+                    saveBtn.innerHTML = '<i class="bi bi-person-check me-2"></i>Update Driver Assignment';
+                    saveBtn.className = 'btn btn-primary';
                 }
             } else {
                 // Reset all fields for admin, supervisor, and super-admin users
@@ -6733,6 +6755,8 @@
                         field.style.backgroundColor = '';
                         field.style.opacity = '';
                         field.style.borderColor = '';
+                        field.style.borderWidth = '';
+                        field.style.boxShadow = '';
                     }
                 });
                 
@@ -6742,12 +6766,40 @@
                     checkbox.parentElement.style.opacity = '';
                 });
                 
+                // Enable all gate checkboxes
+                const allowedGatesContainer = document.getElementById('editAllowedGatesContainer');
+                if (allowedGatesContainer) {
+                    const gateCheckboxes = allowedGatesContainer.querySelectorAll('input[type="checkbox"]');
+                    gateCheckboxes.forEach(checkbox => {
+                        checkbox.disabled = false;
+                        checkbox.style.cursor = '';
+                    });
+                    allowedGatesContainer.style.backgroundColor = '';
+                    allowedGatesContainer.style.border = '';
+                    allowedGatesContainer.title = '';
+                    
+                    // Reset section header
+                    const gateSection = allowedGatesContainer.closest('.form-section');
+                    if (gateSection) {
+                        const gateSectionHeader = gateSection.querySelector('h6');
+                        if (gateSectionHeader) {
+                            gateSectionHeader.innerHTML = '<i class="bi bi-door-open me-2"></i>Gate Access Control <small class="text-muted ms-2">(Admin/Super Admin Only)</small>';
+                        }
+                    }
+                }
+                
                 // Enable One Time Pass toggle for admin/super-admin roles
                 const oneTimePassToggle = document.getElementById('editOneTimePass');
                 if (oneTimePassToggle) {
                     oneTimePassToggle.disabled = false;
                     oneTimePassToggle.parentElement.style.opacity = '';
                     oneTimePassToggle.parentElement.title = '';
+                }
+                
+                // Remove security driver label if exists
+                const securityDriverLabel = document.querySelector('.security-driver-label');
+                if (securityDriverLabel) {
+                    securityDriverLabel.remove();
                 }
                 
                 // Reset modal title for privileged users
@@ -9426,6 +9478,31 @@
                 assignedDriversContainer.style.border = '1px solid #dee2e6';
                 assignedDriversContainer.title = '';
                 
+            }
+            
+            // Make Allowed Gates read-only for security users
+            const allowedGatesContainer = document.getElementById('editAllowedGatesContainer');
+            if (allowedGatesContainer) {
+                // Disable all checkboxes in the container
+                const gateCheckboxes = allowedGatesContainer.querySelectorAll('input[type="checkbox"]');
+                gateCheckboxes.forEach(checkbox => {
+                    checkbox.disabled = true;
+                    checkbox.style.cursor = 'not-allowed';
+                });
+                
+                // Add visual indication
+                allowedGatesContainer.style.backgroundColor = '#f8f9fa';
+                allowedGatesContainer.style.border = '1px solid #dee2e6';
+                allowedGatesContainer.title = 'Gate access control is read-only for security role';
+                
+                // Update section header to show read-only status
+                const gateSection = allowedGatesContainer.closest('.form-section');
+                if (gateSection) {
+                    const gateSectionHeader = gateSection.querySelector('h6');
+                    if (gateSectionHeader) {
+                        gateSectionHeader.innerHTML = '<i class="bi bi-door-open me-2"></i>Gate Access Control <small class="text-muted ms-2">(Read-Only for Security)</small>';
+                    }
+                }
             }
             
             // Current Driver remains editable for security users (no restrictions)
