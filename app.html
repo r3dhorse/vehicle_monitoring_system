@@ -7835,9 +7835,15 @@
             
             for (let i = 1; i < allGates.length; i++) {
                 const gate = allGates[i];
+                const gateId = gate[0];
+                const gateName = gate[1] || gate[0]; // Fallback to ID if name is missing
+                
                 gatesHtml += `
                     <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>${gate[0]}</span>
+                        <div>
+                            <span class="fw-bold">${gateName}</span>
+                            <small class="text-muted ms-2">(ID: ${gateId})</small>
+                        </div>
                         <div class="btn-group">
                             <button class="btn btn-sm btn-outline-primary" onclick="editGate(${i})" title="Edit">
                                 <i class="bi bi-pencil"></i>
@@ -7864,10 +7870,12 @@
 
         function editGate(index) {
             const gate = allGates[index];
+            const gateName = gate[1] || gate[0]; // Use gate name, fallback to ID if name missing
+            
             document.getElementById('gateForm').style.display = 'block';
             document.getElementById('gateFormTitle').textContent = 'Edit Gate';
             document.getElementById('editGateIndex').value = index;
-            document.getElementById('gateName').value = gate[0];
+            document.getElementById('gateName').value = gateName;
             document.getElementById('gateName').focus();
         }
 
@@ -7902,8 +7910,9 @@
 
         function deleteGate(index) {
             const gate = allGates[index];
+            const gateName = gate[1] || gate[0]; // Use gate name, fallback to ID
             
-            if (!confirm(`Are you sure you want to delete "${gate[0]}"?`)) {
+            if (!confirm(`Are you sure you want to delete "${gateName}"?`)) {
                 return;
             }
 
@@ -8324,10 +8333,13 @@
                     if (gates && gates.length > 1) { // Skip header row
                         for (let i = 1; i < gates.length; i++) {
                             const gate = gates[i];
-                            if (gate[0]) { // Gate name exists
+                            const gateId = gate[0];
+                            const gateName = gate[1] || gate[0]; // Fallback to ID if name missing
+                            
+                            if (gateId) {
                                 const option = document.createElement('option');
-                                option.value = gate[0];
-                                option.textContent = gate[1] ? `${gate[0]} - ${gate[1]}` : gate[0];
+                                option.value = gateId; // Still use ID as value for backend
+                                option.textContent = gateName; // Show name to user
                                 select.appendChild(option);
                             }
                         }
