@@ -4210,12 +4210,18 @@
                     let html = '';
                     
                     if (gates && gates.length > 0) {
-                        // Convert selectedGates string to array of IDs if needed
-                        const selectedArray = Array.isArray(selectedGates) ? 
-                            selectedGates : 
-                            (selectedGates ? selectedGates.split(',').map(g => g.trim()) : []);
+                        // Convert selectedGates to array of IDs with proper type checking
+                        let selectedArray = [];
+                        if (Array.isArray(selectedGates)) {
+                            selectedArray = selectedGates;
+                        } else if (selectedGates && typeof selectedGates === 'string' && selectedGates.trim() !== '') {
+                            selectedArray = selectedGates.split(',').map(g => g.trim());
+                        } else if (selectedGates && typeof selectedGates === 'number') {
+                            selectedArray = [selectedGates.toString()];
+                        }
                         
                         console.log('loadGatesForModal - selectedGates input:', selectedGates);
+                        console.log('loadGatesForModal - selectedGates type:', typeof selectedGates);
                         console.log('loadGatesForModal - selectedArray:', selectedArray);
 
                         // Handle both array format (from getGateList) and object format (from getSimpleGateList)
@@ -4284,7 +4290,7 @@
         }
 
         function setSelectedDriverIds(selectElement, driverIdsString) {
-            if (!driverIdsString) {
+            if (!driverIdsString || typeof driverIdsString !== 'string') {
                 return;
             }
             
@@ -4304,8 +4310,8 @@
         }
 
         function setSelectedDriverCheckboxes(driverIdsString) {
-            if (!driverIdsString) {
-                // Uncheck all checkboxes if no drivers assigned
+            if (!driverIdsString || typeof driverIdsString !== 'string') {
+                // Uncheck all checkboxes if no drivers assigned or invalid type
                 document.querySelectorAll('.edit-driver-checkbox').forEach(checkbox => {
                     checkbox.checked = false;
                 });
@@ -4833,7 +4839,7 @@
                     
                     if (!gateValidation.allowed) {
                         // Show detailed denial notification with reason
-                        let message = `🚫This vehicle is not authorized to enter through this gate`;
+                        let message = `🚫This Vehicle not authorized for this gate.`;
                         showToast(message, 'danger', 8000); // Show for 8 seconds
                         return;
                     }
@@ -6344,7 +6350,7 @@
             // Clear existing options
             currentDriverSelect.innerHTML = '<option value="">Select a driver...</option>';
             
-            if (authorizedDriversString) {
+            if (authorizedDriversString && typeof authorizedDriversString === 'string') {
                 const authorizedDriverIds = authorizedDriversString.split(',').map(id => id.trim()).filter(id => id);
                 console.log('updateCurrentDriverDropdown - authorizedDriverIds:', authorizedDriverIds);
                 
