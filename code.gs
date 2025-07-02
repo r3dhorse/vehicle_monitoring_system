@@ -20,6 +20,116 @@ function clearAllCaches() {
   }
 }
 
+// Test function specifically for current issue - Active gate ID: 1, vehicle allowed gates: 1,2
+function testCurrentGateIssue() {
+  console.log("=== TESTING CURRENT GATE ISSUE ===");
+  console.log("Expected: Active gate ID: 1, Vehicle allowed gates: 1,2");
+  
+  // Test with different data types to simulate what might be happening
+  const testScenarios = [
+    { gateId: "1", allowedGates: "1,2", description: "Both strings" },
+    { gateId: 1, allowedGates: "1,2", description: "Gate ID as number, allowed as string" },
+    { gateId: "1", allowedGates: "1,2", description: "Both strings with spaces" },
+    { gateId: " 1 ", allowedGates: " 1 , 2 ", description: "With extra spaces" }
+  ];
+  
+  testScenarios.forEach((scenario, index) => {
+    console.log(`\n--- Test Scenario ${index + 1}: ${scenario.description} ---`);
+    console.log(`Gate ID: "${scenario.gateId}" (type: ${typeof scenario.gateId})`);
+    console.log(`Allowed gates: "${scenario.allowedGates}"`);
+    
+    // Parse allowed gate IDs (comma-separated)
+    const allowedGateIds = scenario.allowedGates.split(',').map(gateId => gateId.trim());
+    console.log(`Parsed allowed gate IDs:`, allowedGateIds);
+    
+    // Convert both to strings for reliable comparison
+    const currentGateIdStr = scenario.gateId.toString().trim();
+    console.log(`Current gate ID converted to string: "${currentGateIdStr}"`);
+    
+    // Log each comparison
+    const comparisonResults = allowedGateIds.map(allowedGateId => {
+      const allowedGateIdStr = allowedGateId.toString().trim();
+      const exactMatch = allowedGateIdStr === currentGateIdStr;
+      const caseInsensitiveMatch = allowedGateIdStr.toLowerCase() === currentGateIdStr.toLowerCase();
+      console.log(`Comparing "${allowedGateIdStr}" with "${currentGateIdStr}": exact=${exactMatch}, caseInsensitive=${caseInsensitiveMatch}`);
+      return exactMatch || caseInsensitiveMatch;
+    });
+    
+    const isGateAllowed = comparisonResults.some(result => result);
+    console.log(`Result for scenario ${index + 1}: ${isGateAllowed}`);
+  });
+  
+  return "Test completed - check console logs";
+}
+
+// Simple test function for user issue - test with any vehicle that has allowed gates "1,2" and gate ID "1"
+function testVehicleWithGates12() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    
+    // Find a vehicle with allowed gates "1,2"
+    for (let i = 1; i < vehicleData.length; i++) {
+      const row = vehicleData[i];
+      const allowedGates = row[13]; // Column N
+      if (allowedGates && allowedGates.toString().includes("1,2")) {
+        console.log(`Found test vehicle: ${row[1]} (ID: ${row[0]})`);
+        console.log(`Allowed gates: "${allowedGates}"`);
+        
+        // Test validation with gate ID "1"
+        const result = validateVehicleGateAccess(row[0], row[1], "1");
+        console.log("Validation result:", result);
+        return result;
+      }
+    }
+    
+    console.log("No vehicle found with allowed gates containing '1,2'");
+    return "No test vehicle found";
+  } catch (error) {
+    console.error("Test error:", error);
+    return `Error: ${error.toString()}`;
+  }
+}
+
+// Debug current gate system - check what gates are available and their format
+function debugCurrentGateSystem() {
+  try {
+    console.log("=== DEBUG CURRENT GATE SYSTEM ===");
+    
+    // Check gate sheet data
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const gateSheet = ss.getSheetByName(GATES_SHEET);
+    const gateData = gateSheet.getDataRange().getValues();
+    
+    console.log("Gate sheet headers:", gateData[0]);
+    console.log("Gate sheet data:");
+    for (let i = 1; i < gateData.length; i++) {
+      const row = gateData[i];
+      console.log(`Row ${i}: ID="${row[0]}" (type: ${typeof row[0]}), Name="${row[1]}" (type: ${typeof row[1]})`);
+    }
+    
+    // Check what getActiveGates returns
+    const activeGates = getActiveGates();
+    console.log("getActiveGates() result:", activeGates);
+    
+    // Test a simple validation scenario
+    console.log("\n--- Testing simple validation ---");
+    const testResult = validateVehicleGateAccess("000001", "ABC123", "1");
+    console.log("Test validation result:", testResult);
+    
+    return {
+      gateSheetHeaders: gateData[0],
+      gateSheetData: gateData.slice(1),
+      activeGates: activeGates,
+      testValidation: testResult
+    };
+  } catch (error) {
+    console.error("Debug error:", error);
+    return `Error: ${error.toString()}`;
+  }
+}
+
 // Test function to debug gate access validation
 function debugGateAccessValidation(vehicleId, plateNumber, gateId) {
   try {
@@ -68,9 +178,13 @@ function debugGateAccessValidation(vehicleId, plateNumber, gateId) {
     
     console.log(`Comparison results:`, comparisons);
     
-    const isGateAllowed = allowedGateIds.some(allowedGateId => 
-      allowedGateId === gateId.toString() || allowedGateId.toLowerCase() === gateId.toLowerCase()
-    );
+    // Convert both to strings for reliable comparison
+    const currentGateIdStr = gateId.toString().trim();
+    const isGateAllowed = allowedGateIds.some(allowedGateId => {
+      const allowedGateIdStr = allowedGateId.toString().trim();
+      return allowedGateIdStr === currentGateIdStr || 
+             allowedGateIdStr.toLowerCase() === currentGateIdStr.toLowerCase();
+    });
     
     console.log(`Final result: isGateAllowed = ${isGateAllowed}`);
     
@@ -1473,12 +1587,12 @@ function generateNextGateId() {
     const sheet =
       SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(GATES_SHEET);
     if (!sheet) {
-      return 1; // First gate ID
+      return "1"; // First gate ID as string
     }
 
     const data = sheet.getDataRange().getValues();
     if (data.length <= 1) {
-      return 1; // First gate ID if only header exists
+      return "1"; // First gate ID if only header exists as string
     }
 
     let maxId = 0;
@@ -1489,10 +1603,10 @@ function generateNextGateId() {
       }
     }
 
-    return maxId + 1;
+    return (maxId + 1).toString(); // Return as string for consistency
   } catch (error) {
     console.error("Error generating gate ID:", error);
-    return 1;
+    return "1"; // Return as string for consistency
   }
 }
 
@@ -2284,7 +2398,7 @@ function logVehicleAction(data) {
     if (vehicleRow >= 0) {
       // Use vehicle-specific gate validation if vehicle found
       const vehicleId = vehicleData[vehicleRow][0];
-      console.log(`Using vehicle-specific gate validation for vehicle ID: ${vehicleId}, plate: ${actualPlateNumber}, gate: ${data.gate}`);
+      console.log(`Using vehicle-specific gate validation for vehicle ID: ${vehicleId}, plate: ${actualPlateNumber}, gate: ${data.gate} (type: ${typeof data.gate})`);
       gateValidation = validateVehicleGateAccess(vehicleId, actualPlateNumber, data.gate);
     } else {
       // Fallback to basic gate validation if vehicle not found
@@ -3165,6 +3279,35 @@ function getVehicleAccessStatusCounts() {
  * @param {number} limit - Number of records to fetch (default 50)
  * @returns {Array} Array of recent transaction objects
  */
+// Helper function to convert gate ID to gate name
+function getGateNameById(gateId) {
+  try {
+    if (!gateId) return gateId;
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const gateSheet = ss.getSheetByName(GATES_SHEET);
+    
+    if (!gateSheet) {
+      return gateId; // Return ID if gate sheet not found
+    }
+    
+    const gateData = gateSheet.getDataRange().getValues();
+    
+    // Find gate by ID
+    for (let i = 1; i < gateData.length; i++) {
+      const row = gateData[i];
+      if (row[0] && row[0].toString() === gateId.toString()) {
+        return row[1] || gateId; // Return gate name or fallback to ID
+      }
+    }
+    
+    return gateId; // Return ID if not found
+  } catch (error) {
+    console.error("Error getting gate name:", error);
+    return gateId; // Return ID on error
+  }
+}
+
 function getRecentTransactions(limit = 50) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -3202,7 +3345,7 @@ function getRecentTransactions(limit = 50) {
         plate: row[1] || "",
         driver: row[2] || "",
         action: row[3] || "",
-        gate: row[4] || "",
+        gate: getGateNameById(row[4]) || "", // Convert gate ID to gate name
         remarks: row[5] || "",
         loggedBy: row[6] || "",
         accessStatus: row[7] || "Access", // Default to 'Access' if not specified
@@ -4768,7 +4911,7 @@ function getActiveGates() {
     for (let i = 1; i < data.length; i++) {
       if (data[i] && data[i][0]) {
         gates.push({
-          id: data[i][0],  // Gate ID (column A)
+          id: data[i][0].toString(),  // Gate ID (column A) - ensure string
           name: data[i][1] || data[i][0],  // Gate Name (column B) with fallback to ID
         });
       }
@@ -5031,16 +5174,28 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
     // Debug logging for gate validation
     console.log(`=== GATE VALIDATION DEBUG ===`);
     console.log(`Vehicle: ${plateNumber} (ID: ${vehicleId})`);
-    console.log(`Raw allowed gates: "${allowedGates}"`);
+    console.log(`Raw allowed gates: "${allowedGates}" (type: ${typeof allowedGates})`);
     console.log(`Parsed allowed gate IDs:`, allowedGateIds);
     console.log(`Current gate ID: "${gateId}" (type: ${typeof gateId})`);
     
     // Check if current gate ID is in allowed list
-    const isGateAllowed = allowedGateIds.some(allowedGateId => 
-      allowedGateId === gateId.toString() || allowedGateId.toLowerCase() === gateId.toLowerCase()
-    );
+    // Convert both to strings for reliable comparison
+    const currentGateIdStr = gateId.toString().trim();
+    console.log(`Current gate ID converted to string: "${currentGateIdStr}"`);
     
-    console.log(`Gate validation result: ${isGateAllowed}`);
+    // Log each comparison
+    const comparisonResults = allowedGateIds.map(allowedGateId => {
+      const allowedGateIdStr = allowedGateId.toString().trim();
+      const exactMatch = allowedGateIdStr === currentGateIdStr;
+      const caseInsensitiveMatch = allowedGateIdStr.toLowerCase() === currentGateIdStr.toLowerCase();
+      console.log(`Comparing "${allowedGateIdStr}" with "${currentGateIdStr}": exact=${exactMatch}, caseInsensitive=${caseInsensitiveMatch}`);
+      return exactMatch || caseInsensitiveMatch;
+    });
+    
+    const isGateAllowed = comparisonResults.some(result => result);
+    
+    console.log(`Individual comparison results:`, comparisonResults);
+    console.log(`Final gate validation result: ${isGateAllowed}`);
 
     if (!isGateAllowed) {
       // Get gate names for user-friendly error message

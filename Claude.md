@@ -228,21 +228,45 @@ This is a Google Apps Script project - no build tools, npm commands, or testing 
   - Mobile/Tablet: Hidden search icon, visible clear button, optimized padding
   - Fullscreen modes: Maintained icon spacing for enhanced user experience
 
+#### Gate Restriction System Enhancement (Latest Updates)
+- **Gate ID Validation Fix**: Resolved critical gate validation issues
+  - Fixed TypeError when comparing gate IDs due to type mismatches
+  - Enhanced gate ID comparison logic with proper string conversion
+  - Added comprehensive debug logging for gate validation troubleshooting
+- **Transaction Log Enhancement**: Improved Recent Transaction display
+  - Gate IDs now display as human-readable gate names (e.g., "Main Gate" instead of "1")
+  - Added `getGateNameById()` helper function for ID-to-name conversion
+  - Maintains referential integrity while improving user experience
+- **Gate Management Improvements**: Enhanced gate selector behavior
+  - Active gate selection now persists when gate list is refreshed
+  - Gate selector automatically updates when gates are added/edited/deleted
+  - Added sessionStorage persistence with proper restoration logic
+  - Fixed timing issues with gate selection restoration using setTimeout
+- **Backend Consistency**: Ensured consistent gate ID handling
+  - `generateNextGateId()` now returns string IDs for consistency
+  - `getActiveGates()` converts all gate IDs to strings
+  - Fixed potential number vs string comparison issues in validation
+  - Updated frontend to use `saveGateSimple()` for proper Id/GateName structure
+
 ## Current System Status
 
 ### File Statistics
-- **Code.gs**: 4,870 lines (142KB) - Backend with enhanced OTP and access control functions  
-- **app.html**: 8,944 lines (408KB) - Complete frontend with search icon overlap fixes
+- **Code.gs**: 5,100+ lines (155KB) - Backend with enhanced gate validation and debug functions  
+- **app.html**: 8,950+ lines (410KB) - Complete frontend with gate selector persistence
 - **USER_MANUAL.md**: 509 lines (16KB) - Comprehensive user documentation
-- **Claude.md**: 310+ lines (15KB) - Technical documentation and development guide
-- **Total Project Size**: ~581KB, 14,633+ lines of code across main files
+- **Claude.md**: 370+ lines (18KB) - Technical documentation and development guide
+- **Total Project Size**: ~599KB, 14,929+ lines of code across main files
 
 ### Repository Information
 - **Git Remote**: Bitbucket repository (noc88/vehicle-monitoring-system)
-- **Main Branch**: Single branch development model, 4 commits ahead of origin
-- **Current Version**: 2 (as of latest commit 9449bc0)
-- **Recent Activity**: Search icon overlap fixes for mobile and fullscreen modes
-- **Pending Changes**: Modified app.html with search icon overlap fixes, updated Claude.md
+- **Main Branch**: Single branch development model
+- **Current Version**: Enhanced with gate validation fixes
+- **Recent Activity**: Gate restriction system improvements and validation fixes
+- **Latest Changes**: 
+  - Fixed gate ID validation TypeError and comparison logic
+  - Enhanced transaction logs to show gate names instead of IDs
+  - Improved gate selector persistence and auto-refresh functionality
+  - Ensured consistent string handling for gate IDs throughout system
 - **Project Structure**: Enhanced 6-file architecture (Code.gs, app.html, Claude.md, USER_MANUAL.md, README.md, USER_STORIES.md)
 
 ## Development Guidelines
@@ -300,7 +324,19 @@ The system implements a simplified driver management structure:
 - **Authentication**: `loginUser()`, `hasPermission()`, `enforcePermission()`
 - **Data Management**: `getVehicleList()`, `getDatabaseStatistics()`, `getRecentTransactions()`
 - **Driver Management**: `getDriverList()`, `generateNextDriverId()`, `getDriverNameById()`, `migrateDriverIdsToNames()`
+- **Gate Management**: `saveGateSimple()`, `getActiveGates()`, `getGateNameById()`, `validateVehicleGateAccess()`
 - **UI Functions**: `editVehicle()` (replaces `showVehicleDetails()`), `toggleVehicleStatus()` (with access validation)
+
+### Debug and Testing Functions
+
+- **Gate Validation Testing**: 
+  - `testCurrentGateIssue()` - Tests different gate ID scenarios with various data types
+  - `debugGateAccessValidation()` - Comprehensive gate access debugging with detailed logging
+  - `testVehicleWithGates12()` - Tests specific vehicle with allowed gates "1,2"
+  - `debugCurrentGateSystem()` - Analyzes complete gate system structure and data
+- **System Testing**: 
+  - `clearAllCaches()` - Manual cache clearing for development
+  - `testGateSystemStructure()` - Verifies gate sheet structure and functionality
 
 ### Testing Approach
 
@@ -312,9 +348,16 @@ The system implements a simplified driver management structure:
   - Verify "No Access" vehicles cannot check in without one-time pass
   - Confirm one-time pass is disabled after any transaction (IN)
   - Test "Banned" vehicles are completely blocked
+- **Gate Restriction Testing**:
+  - Test vehicle with allowed gates "1,2" can access gate ID "1" and "2"
+  - Verify gate validation works with both string and number gate IDs
+  - Confirm transaction logs show gate names instead of gate IDs
+  - Test gate selector persistence when managing gates (add/edit/delete)
+  - Verify gate selector auto-refreshes after gate management operations
 - **UI Testing**:
   - Verify Edit button opens Edit Vehicle modal directly
   - Ensure no errors from removed Vehicle Details Modal references
+  - Test gate selector maintains selection after refresh operations
 - **Driver Management Testing**:
   - Verify vehicle list shows driver names instead of IDs in Current Driver column
   - Test current driver dropdown displays only driver names (no license numbers)

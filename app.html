@@ -7742,31 +7742,42 @@
             });
 
             // Restore previously selected gate or select first gate
-            const savedGate = sessionStorage.getItem('selectedGate');
-            let gateSelected = false;
-            
-            if (savedGate) {
-                // Check if saved gate still exists
-                const gateExists = activeGates.find(gate => gate.id === savedGate);
-                if (gateExists) {
-                    gateSelector.value = savedGate;
-                    gateSelected = true;
+            // Use setTimeout to ensure DOM is fully updated
+            setTimeout(() => {
+                const savedGate = sessionStorage.getItem('selectedGate');
+                let gateSelected = false;
+                
+                console.log('Restoring gate selection:', savedGate);
+                console.log('Available gates:', activeGates.map(g => ({id: g.id, name: g.name})));
+                
+                if (savedGate) {
+                    // Check if saved gate still exists - compare as strings
+                    const gateExists = activeGates.find(gate => gate.id.toString() === savedGate.toString());
+                    if (gateExists) {
+                        gateSelector.value = savedGate;
+                        gateSelected = true;
+                        console.log('Restored gate selection:', savedGate);
+                    } else {
+                        console.log('Saved gate no longer exists:', savedGate);
+                    }
                 }
-            }
-            
-            // If no saved gate or saved gate doesn't exist, select first gate
-            if (!gateSelected && activeGates.length > 0) {
-                gateSelector.value = activeGates[0].id;
-                sessionStorage.setItem('selectedGate', activeGates[0].id);
-            }
+                
+                // If no saved gate or saved gate doesn't exist, select first gate
+                if (!gateSelected && activeGates.length > 0) {
+                    gateSelector.value = activeGates[0].id;
+                    sessionStorage.setItem('selectedGate', activeGates[0].id);
+                    console.log('Selected first available gate:', activeGates[0].id);
+                }
+            }, 100);
             
             // Add change event listener for persistence (only once)
             if (!gateSelector.hasAttribute('data-listener-added')) {
                 gateSelector.addEventListener('change', function() {
                     if (this.value) {
                         sessionStorage.setItem('selectedGate', this.value);
-                        const gateName = this.options[this.selectedIndex].text;
-                        showToast(`Switched to ${gateName}`, 'info');
+                        const gateName = this.options[this.selectedIndex].text.replace(/^[^\s]+\s/, ''); // Remove emoji
+                        console.log('Gate changed to:', this.value, '(' + gateName + ')');
+                        showToast(`Active Gate: ${gateName}`, 'info');
                     }
                 });
                 gateSelector.setAttribute('data-listener-added', 'true');
@@ -7905,6 +7916,7 @@
                     if (result.success) {
                         loadGates();
                         loadActiveGates(); // Refresh gate selector
+                        loadGatesForQRScanner(); // Refresh QR scanner gate selector
                         cancelGateForm();
                         showToast(`Gate ${result.action} successfully!`, 'success');
                     }
@@ -7912,7 +7924,7 @@
                 .withFailureHandler(function(error) {
                     showToast('Failed to save gate: ' + error, 'danger');
                 })
-                .saveGate(gateName, currentUser.role, editIndex);
+                .saveGateSimple(gateName, currentUser.role, editIndex);
         }
 
         function deleteGate(index) {
@@ -7928,6 +7940,7 @@
                     if (result.success) {
                         loadGates();
                         loadActiveGates(); // Refresh gate selector
+                        loadGatesForQRScanner(); // Refresh QR scanner gate selector
                         showToast('Gate deleted successfully!', 'success');
                     }
                 })
