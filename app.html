@@ -51,6 +51,14 @@
             width: 100%;
         }
         
+        /* Gate ID badge styling */
+        .gate-id-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-weight: bold;
+        }
+        
         /* Enhanced search input styling */
         .search-container {
             position: relative;
@@ -2605,6 +2613,43 @@
                             </div>
                         </div>
 
+                        <!-- Gate Access Control Section -->
+                        <div class="form-section border-top pt-3 mt-3">
+                            <h6 class="text-primary mb-3">
+                                <i class="bi bi-door-open me-2"></i>Gate Access Control
+                                <small class="text-muted ms-2">(Admin/Super Admin Only)</small>
+                            </h6>
+                            <div class="row">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Allowed Gates</label>
+                                    <div class="gate-checkbox-container border rounded p-3 bg-light" 
+                                         style="max-height: 150px; overflow-y: auto;" 
+                                         id="editAllowedGatesContainer">
+                                        <div class="text-center py-2">
+                                            <div style="color: #0d6efd;">
+                                                <div class="bouncing-dots size-sm">
+                                                    <span class="dot"></span>
+                                                    <span class="dot"></span>
+                                                    <span class="dot"></span>
+                                                </div>
+                                            </div>
+                                            <small class="text-muted">Loading gates...</small>
+                                        </div>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-info-circle text-primary me-2"></i>
+                                            <span>Leave empty to allow access to all gates. Select specific gates to restrict access.</span>
+                                        </div>
+                                        <div class="d-flex align-items-center mt-1">
+                                            <i class="bi bi-shield-check text-success me-2"></i>
+                                            <span>Changes take effect immediately upon saving.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </form>
                 </div>
                 <div class="modal-footer bg-light">
@@ -3166,6 +3211,31 @@
                                 </div>
                             </div>
                             <small class="text-muted"><i class="bi bi-check2-square me-1"></i>Select drivers authorized to operate this vehicle</small>
+                        </div>
+
+                        <!-- Gate Access Control -->
+                        <div class="mb-3">
+                            <label for="vehicleAllowedGates" class="form-label">
+                                <i class="bi bi-door-open me-2"></i>Allowed Gates
+                                <span class="badge bg-info ms-2">Optional</span>
+                            </label>
+                            <div class="gate-checkbox-container border rounded p-3 bg-light" 
+                                 style="max-height: 150px; overflow-y: auto;" 
+                                 id="vehicleAllowedGatesContainer">
+                                <div class="text-center py-2">
+                                    <div style="color: #0d6efd;">
+                                        <div class="bouncing-dots size-sm">
+                                            <span class="dot"></span>
+                                            <span class="dot"></span>
+                                            <span class="dot"></span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">Loading gates...</small>
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-shield-check me-1"></i>Leave empty to allow access to all gates, or select specific gates to restrict access
+                            </small>
                         </div>
                     </form>
                 </div>
@@ -4102,6 +4172,109 @@
             return Array.from(checkboxes).map(checkbox => checkbox.value);
         }
 
+        // Gate selection functions (similar to driver functions)
+        function getSelectedGateCheckboxIds() {
+            const checkboxes = document.querySelectorAll('.edit-gate-checkbox:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        function getSelectedAddGateCheckboxIds() {
+            const checkboxes = document.querySelectorAll('.add-gate-checkbox:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        // Load gates for vehicle modals - refactored to use IDs as identifiers
+        function loadGatesForModal(containerId, checkboxClass, selectedGates = []) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            // Show loading
+            container.innerHTML = `
+                <div class="text-center py-2">
+                    <div style="color: #0d6efd;">
+                        <div class="bouncing-dots size-sm">
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </div>
+                    </div>
+                    <small class="text-muted">Loading gates...</small>
+                </div>
+            `;
+
+            google.script.run
+                .withSuccessHandler(function(gates) {
+                    let html = '';
+                    
+                    if (gates && gates.length > 0) {
+                        // Convert selectedGates string to array of IDs if needed
+                        const selectedArray = Array.isArray(selectedGates) ? 
+                            selectedGates : 
+                            (selectedGates ? selectedGates.split(',').map(g => g.trim()) : []);
+
+                        // Handle both array format (from getGateList) and object format (from getSimpleGateList)
+                        gates.forEach(gate => {
+                            let gateName, gateId;
+                            
+                            if (Array.isArray(gate)) {
+                                // Array format: [ID, Gate Name]
+                                gateId = gate[0];
+                                gateName = gate[1];
+                            } else {
+                                // Object format: {gateId, gateName}
+                                gateId = gate.gateId;
+                                gateName = gate.gateName;
+                            }
+                            
+                            // Skip header row
+                            if (gateName === "Gate Name") return;
+                            
+                            // Check if this gate ID is selected (backward compatibility: also check gate name)
+                            const isChecked = selectedArray.includes(gateId?.toString()) || selectedArray.includes(gateName);
+                            const cleanId = (gateId || gateName).toString().replace(/[^a-zA-Z0-9]/g, '');
+                            
+                            html += `
+                                <div class="form-check">
+                                    <input class="form-check-input ${checkboxClass}" type="checkbox" 
+                                           value="${gateId}" data-gate-name="${gateName}" id="${checkboxClass}_${cleanId}" ${isChecked ? 'checked' : ''}>
+                                    <label class="form-check-label" for="${checkboxClass}_${cleanId}">
+                                        <i class="bi bi-door-${isChecked ? 'open' : 'closed'} me-2"></i>
+                                        <span class="gate-id-badge badge bg-secondary me-1">${gateId}</span>
+                                        ${gateName}
+                                    </label>
+                                </div>
+                            `;
+                        });
+
+                        if (html === '') {
+                            html = '<div class="text-muted text-center py-2"><i class="bi bi-door-closed me-2"></i>No gates available</div>';
+                        }
+                    } else {
+                        html = '<div class="text-muted text-center py-2"><i class="bi bi-door-closed me-2"></i>No gates configured</div>';
+                    }
+                    
+                    container.innerHTML = html;
+
+                    // Add event listeners to update icons
+                    container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const label = this.nextElementSibling;
+                            const icon = label.querySelector('i');
+                            if (this.checked) {
+                                icon.className = 'bi bi-door-open me-2';
+                            } else {
+                                icon.className = 'bi bi-door-closed me-2';
+                            }
+                        });
+                    });
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Error loading gates:', error);
+                    container.innerHTML = '<div class="text-danger text-center py-2"><i class="bi bi-exclamation-triangle me-2"></i>Error loading gates</div>';
+                })
+                .getSimpleGateList(); // Use getSimpleGateList for consistent object format
+        }
+
         function setSelectedDriverIds(selectElement, driverIdsString) {
             if (!driverIdsString) {
                 return;
@@ -4187,6 +4360,14 @@
                 console.log(`Vehicles loaded: ${vehicles.length} in ${loadTime.toFixed(2)}ms`);
                 
                 allVehicles = vehicles || [];
+                
+                // Debug: Check data structure
+                if (allVehicles.length > 1) {
+                    console.log('First vehicle column count:', allVehicles[1]?.length);
+                    console.log('First vehicle data:', allVehicles[1]);
+                    console.log('Sample allowed gates (index 13):', allVehicles[1]?.[13]);
+                }
+                
                 vehicleData = allVehicles;
                 
                 // Display vehicles and update pagination
@@ -4632,62 +4813,97 @@
             const accessStatus = vehicle[10] || 'Access'; // Access status is at index 10
             const oneTimePass = vehicle[11] || 'No'; // One-time pass is at index 11
             
-            // Check access permissions for check-in attempts
-            if (newStatus === 'IN' && accessStatus === 'No Access' && oneTimePass !== 'Yes') {
-                showToast('Vehicle access denied. No Access vehicles require an active one-time pass to check in.', 'warning');
-                return;
-            }
-            
-            if (accessStatus === 'Banned') {
-                showToast('Vehicle access denied. This vehicle is banned from entry.', 'danger');
-                return;
-            }
-            
             // Get the selected gate using our helper function
             const selectedGate = getCurrentGate();
             const gate = selectedGate.id;
 
-            const logData = {
-                plateNumber: vehicle[1], // Plate number is at index 1, not 0 (which is ID)
-                driverId: vehicle[8] || 'Unknown', // Current driver is at index 8
-                action: newStatus,
-                gate: gate,
-                remarks: '',
-                username: currentUser.username // Add the current user's username
-            };
-
+            // First, validate gate access restrictions for this vehicle
             showLoading(true);
             google.script.run
-                .withSuccessHandler(function(result) {
-                    if (result && result.success) {
-                        vehicleData[index][7] = newStatus;
-                        
-                        // Update one-time pass status if it was disabled
-                        if (result.oneTimePassUsed) {
-                            vehicleData[index][11] = 'No'; // Disable one-time pass in local data
-                        }
-                        
-                        displayVehicles();
-                        updateStatistics();
-                        
-                        // Show appropriate message based on whether one-time pass was used
-                        let message = `Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`;
-                        if (result.oneTimePassUsed) {
-                            message += ' One-time pass has been disabled.';
-                        }
-                        showToast(message, 'success');
-                        
-                        // Refresh statistics to get accurate count from database
-                        loadDatabaseStatistics();
-                        
-                    }
+                .withSuccessHandler(function(gateValidation) {
                     showLoading(false);
+                    
+                    if (!gateValidation.allowed) {
+                        // Show detailed denial notification with reason
+                        let message = `🚫 Access Denied: ${gateValidation.reason}`;
+                        
+                        if (gateValidation.allowedGates && gateValidation.allowedGates.length > 0) {
+                            message += `\n\n✅ This vehicle is authorized for: ${gateValidation.allowedGates.join(', ')}`;
+                        }
+                        
+                        if (gateValidation.requiresOverride) {
+                            message += '\n\n⚠️ Supervisor override may be available.';
+                        }
+                        
+                        showToast(message, 'danger', 8000); // Show for 8 seconds
+                        return;
+                    }
+                    
+                    // Gate validation passed, continue with standard access checks
+                    proceedWithStatusChange();
                 })
                 .withFailureHandler(function(error) {
-                    showToast('Failed to update vehicle status: ' + error, 'danger');
                     showLoading(false);
+                    console.error('Gate validation error:', error);
+                    showToast('Error validating gate access: ' + error.toString(), 'danger');
                 })
-                .logVehicleAction(logData);
+                .validateVehicleGateAccess(vehicle[0], vehicle[1], gate);
+            
+            // Move the rest of the logic to a separate function
+            function proceedWithStatusChange() {
+                // Check access permissions for check-in attempts
+                if (newStatus === 'IN' && accessStatus === 'No Access' && oneTimePass !== 'Yes') {
+                    showToast('Vehicle access denied. No Access vehicles require an active one-time pass to check in.', 'warning');
+                    return;
+                }
+                
+                if (accessStatus === 'Banned') {
+                    showToast('Vehicle access denied. This vehicle is banned from entry.', 'danger');
+                    return;
+                }
+
+                const logData = {
+                    plateNumber: vehicle[1], // Plate number is at index 1, not 0 (which is ID)
+                    driverId: vehicle[8] || 'Unknown', // Current driver is at index 8
+                    action: newStatus,
+                    gate: gate,
+                    remarks: '',
+                    username: currentUser.username // Add the current user's username
+                };
+
+                showLoading(true);
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        if (result && result.success) {
+                            vehicleData[index][7] = newStatus;
+                            
+                            // Update one-time pass status if it was disabled
+                            if (result.oneTimePassUsed) {
+                                vehicleData[index][11] = 'No'; // Disable one-time pass in local data
+                            }
+                            
+                            displayVehicles();
+                            updateStatistics();
+                            
+                            // Show appropriate message based on whether one-time pass was used
+                            let message = `Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`;
+                            if (result.oneTimePassUsed) {
+                                message += ' One-time pass has been disabled.';
+                            }
+                            showToast(message, 'success');
+                            
+                            // Refresh statistics to get accurate count from database
+                            loadDatabaseStatistics();
+                            
+                        }
+                        showLoading(false);
+                    })
+                    .withFailureHandler(function(error) {
+                        showToast('Failed to update vehicle status: ' + error, 'danger');
+                        showLoading(false);
+                    })
+                    .logVehicleAction(logData);
+            }
         }
 
         // Enhanced search functionality
@@ -6175,6 +6391,13 @@
             
             const vehicle = vehicleData[index];
             
+            // Debug: Log the vehicle data being edited
+            console.log('Editing vehicle at index:', index);
+            console.log('Vehicle data for edit:', vehicle);
+            console.log('Current driver (index 8):', vehicle[8]);
+            console.log('Assigned drivers (index 9):', vehicle[9]);
+            console.log('Allowed gates (index 13):', vehicle[13]);
+            
             // Populate edit form with correct indices
             document.getElementById('editVehicleIndex').value = index;
             document.getElementById('editPlateNumber').value = vehicle[1] || ''; // Plate number is at index 1
@@ -6186,7 +6409,6 @@
             document.getElementById('editStatus').value = vehicle[7] || 'OUT';  // Status is at index 7
             // Note: setSelectedDriverCheckboxes will be called after drivers are loaded
             document.getElementById('editAccessStatus').value = vehicle[10] || 'Access'; // Access status is at index 10
-            console.log('Vehicle data for edit:', vehicle);
             console.log('One Time Pass value (index 11):', vehicle[11]);
             document.getElementById('editOneTimePass').checked = vehicle[11] === 'Yes'; // One Time Pass is at index 11
             document.getElementById('editMVFile').value = vehicle[12] || '';    // MV File is at index 12
@@ -6194,9 +6416,14 @@
             // Apply role-based field restrictions for security users
             applySecurityRoleRestrictions();
             
+            // Store current vehicle data for reference during async operations
+            window.currentEditVehicle = vehicle;
+            
             // Load all drivers including inactive ones for edit modal
             google.script.run
                 .withSuccessHandler(function(allDrivers) {
+                    console.log('Loaded drivers for edit modal:', allDrivers?.length || 0);
+                    
                     // Store all drivers for current driver dropdown
                     const allDriversForEdit = allDrivers || [];
                     
@@ -6208,16 +6435,31 @@
                     
                     // Wait for checkboxes to be rendered before setting selected ones
                     setTimeout(() => {
-                        setSelectedDriverCheckboxes(vehicle[9] || ''); // Re-set the checkboxes
+                        const currentVehicle = window.currentEditVehicle;
+                        console.log('Setting driver checkboxes:', currentVehicle[9]);
+                        console.log('Setting current driver:', currentVehicle[8]);
+                        
+                        setSelectedDriverCheckboxes(currentVehicle[9] || ''); // Re-set the checkboxes
                         updateCurrentDriverDropdown();
-                        document.getElementById('editDriver').value = vehicle[8] || '';     // Current driver is at index 8
+                        document.getElementById('editDriver').value = currentVehicle[8] || '';     // Current driver is at index 8
+                        
+                        // Verify the values were set
+                        console.log('Current driver dropdown value after setting:', document.getElementById('editDriver').value);
                     }, 100);
                 })
                 .withFailureHandler(function(error) {
                     console.error('Failed to load all drivers for edit:', error);
                     showToast('Failed to load drivers', 'danger');
+                    
+                    // Still try to set current driver even if driver loading fails
+                    setTimeout(() => {
+                        document.getElementById('editDriver').value = vehicle[8] || '';
+                    }, 100);
                 })
                 .getAllDriversIncludingInactive();
+            
+            // Load gates for gate restriction modal
+            loadGatesForModal('editAllowedGatesContainer', 'edit-gate-checkbox', vehicle[13] || '');
             
             // Event listener for assigned drivers is already handled by initializeDriverDropdownListeners
             // using event delegation on the container
@@ -6489,6 +6731,9 @@
                 }
             }
             
+            const selectedEditGates = getSelectedGateCheckboxIds().join(',');
+            console.log('Selected gates for edit vehicle:', selectedEditGates);
+            
             const updatedVehicleData = [
                 vehicleId,           // Keep original ID at index 0
                 plateNumber,         // Plate number at index 1
@@ -6502,8 +6747,12 @@
                 getSelectedDriverCheckboxIds().join(','), // Assigned Drivers at index 9
                 document.getElementById('editAccessStatus').value || 'Access', // Access Status at index 10
                 document.getElementById('editOneTimePass').checked ? 'Yes' : 'No', // One Time Pass at index 11
-                document.getElementById('editMVFile').value || ''      // MV File at index 12
+                document.getElementById('editMVFile').value || '',     // MV File at index 12
+                selectedEditGates                                      // Allowed Gates at index 13
             ];
+            
+            console.log('Sending updated vehicle data:', updatedVehicleData);
+            console.log('Updated data length:', updatedVehicleData.length);
             
             showVehicleModalLoading(true, 'edit');
             google.script.run
@@ -7680,6 +7929,10 @@
             }
 
             document.getElementById('addVehicleForm').reset();
+            
+            // Load gates for gate restriction selection
+            loadGatesForModal('vehicleAllowedGatesContainer', 'add-gate-checkbox');
+            
             const modal = new bootstrap.Modal(document.getElementById('vehicleManagementModal'));
             modal.show();
             
@@ -7965,6 +8218,9 @@
                 return;
             }
 
+            const selectedGates = getSelectedAddGateCheckboxIds().join(',');
+            console.log('Selected gates for new vehicle:', selectedGates);
+            
             const vehicleData = {
                 plateNumber: plateNumber,
                 model: model,
@@ -7977,8 +8233,11 @@
                 assignedDrivers: getSelectedAddDriverCheckboxIds().join(','),
                 accessStatus: document.getElementById('vehicleAccessStatus').value,
                 oneTimePass: document.getElementById('vehicleOneTimePass').checked,
-                mvFile: document.getElementById('vehicleMVFile').value.trim()
+                mvFile: document.getElementById('vehicleMVFile').value.trim(),
+                allowedGates: selectedGates
             };
+            
+            console.log('Sending vehicle data:', vehicleData);
 
             // Show loading state
             showVehicleModalLoading(true, 'add');

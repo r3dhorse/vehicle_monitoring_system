@@ -97,6 +97,71 @@ function migrateAddOneTimePassColumn() {
   }
 }
 
+// One-time migration function to convert gate names to gate IDs in vehicle allowed gates
+function migrateGateNamesToIds() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    const gateSheet = ss.getSheetByName(GATES_SHEET);
+
+    if (!vehicleSheet || !gateSheet) {
+      return "Required sheets not found";
+    }
+
+    // Get gate mapping (name to ID)
+    const gateData = gateSheet.getDataRange().getValues();
+    const gateNameToId = {};
+    
+    for (let i = 1; i < gateData.length; i++) {
+      const gateId = gateData[i][0];
+      const gateName = gateData[i][1];
+      if (gateId && gateName) {
+        gateNameToId[gateName.toLowerCase()] = gateId.toString();
+      }
+    }
+
+    // Get vehicle data
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    let updateCount = 0;
+
+    for (let i = 1; i < vehicleData.length; i++) {
+      const allowedGates = vehicleData[i][13]; // Allowed Gates column (N)
+      
+      if (allowedGates && typeof allowedGates === 'string' && allowedGates.trim() !== '') {
+        // Split by comma and check if it contains gate names (not already IDs)
+        const gateList = allowedGates.split(',').map(g => g.trim());
+        const hasGateNames = gateList.some(gate => isNaN(gate) && gate.length > 1);
+        
+        if (hasGateNames) {
+          // Convert gate names to IDs
+          const convertedIds = gateList.map(gateName => {
+            const lowerGateName = gateName.toLowerCase();
+            if (gateNameToId[lowerGateName]) {
+              return gateNameToId[lowerGateName];
+            }
+            // If it's already a number, keep it
+            if (!isNaN(gateName)) {
+              return gateName;
+            }
+            // Unknown gate name, keep as is but log warning
+            console.warn(`Unknown gate name during migration: ${gateName}`);
+            return gateName;
+          });
+          
+          const convertedString = convertedIds.join(',');
+          vehicleSheet.getRange(i + 1, 14).setValue(convertedString); // Column N is index 14 (1-based)
+          updateCount++;
+        }
+      }
+    }
+
+    return `Successfully migrated ${updateCount} vehicles from gate names to gate IDs`;
+  } catch (error) {
+    console.error("Migration error:", error);
+    return "Error during migration: " + error.toString();
+  }
+}
+
 // One-time migration function to add Allowed Gates column for gate restrictions
 function migrateAddAllowedGatesColumn() {
   try {
@@ -4522,8 +4587,8 @@ function getActiveGates() {
     for (let i = 1; i < data.length; i++) {
       if (data[i] && data[i][0]) {
         gates.push({
-          id: data[i][0],
-          name: data[i][0],
+          id: data[i][0],  // Gate ID (column A)
+          name: data[i][1] || data[i][0],  // Gate Name (column B) with fallback to ID
         });
       }
     }
@@ -4531,14 +4596,14 @@ function getActiveGates() {
     return gates.length > 0
       ? gates
       : [
-          { id: "Main Gate", name: "Main Gate" },
-          { id: "Back Gate", name: "Back Gate" },
+          { id: "1", name: "Main Gate" },
+          { id: "2", name: "Back Gate" },
         ];
   } catch (error) {
     console.error("Error getting active gates:", error);
     return [
-      { id: "Main Gate", name: "Main Gate" },
-      { id: "Back Gate", name: "Back Gate" },
+      { id: "1", name: "Main Gate" },
+      { id: "2", name: "Back Gate" },
     ];
   }
 }
@@ -4767,7 +4832,7 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
       }
     }
 
-    // Check gate restrictions (new column N, index 13)
+    // Check gate restrictions (column N, index 13) - now stores gate IDs
     const allowedGates = vehicleRow[13]; // Allowed Gates column (N)
     
     if (!allowedGates || allowedGates.trim() === "") {
@@ -4779,21 +4844,40 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
       };
     }
 
-    // Parse allowed gates (comma-separated)
-    const allowedGatesList = allowedGates.split(',').map(gate => gate.trim());
+    // Parse allowed gate IDs (comma-separated)
+    const allowedGateIds = allowedGates.split(',').map(gateId => gateId.trim());
     
-    // Check if current gate is in allowed list
-    const isGateAllowed = allowedGatesList.some(allowedGate => 
-      allowedGate.toLowerCase() === gateId.toLowerCase() ||
-      allowedGate.toLowerCase() === gateId.toString().toLowerCase()
+    // Check if current gate ID is in allowed list
+    const isGateAllowed = allowedGateIds.some(allowedGateId => 
+      allowedGateId === gateId.toString() || allowedGateId.toLowerCase() === gateId.toLowerCase()
     );
 
     if (!isGateAllowed) {
+      // Get gate names for user-friendly error message
+      const gateSheet = ss.getSheetByName(GATES_SHEET);
+      let allowedGateNames = allowedGateIds;
+      
+      if (gateSheet) {
+        try {
+          const gateData = gateSheet.getDataRange().getValues();
+          allowedGateNames = allowedGateIds.map(allowedId => {
+            for (let i = 1; i < gateData.length; i++) {
+              if (gateData[i][0].toString() === allowedId) {
+                return `${allowedId}: ${gateData[i][1]}`;
+              }
+            }
+            return allowedId; // Fallback to ID if name not found
+          });
+        } catch (error) {
+          console.error("Error getting gate names for error message:", error);
+        }
+      }
+      
       return {
         allowed: false,
-        reason: `Vehicle not authorized for "${gateId}". Allowed gates: ${allowedGates}`,
+        reason: `Vehicle not authorized for gate ID "${gateId}". Allowed gates: ${allowedGateNames.join(', ')}`,
         requiresOverride: true,
-        allowedGates: allowedGatesList
+        allowedGates: allowedGateIds
       };
     }
 
@@ -5186,6 +5270,7 @@ function createSampleData() {
           "Access",
           "No",
           "MV-2022-001",
+          "1,2", // Allowed Gates: Main Gate and Service Gate
         ],
         [
           "000002",
@@ -5201,6 +5286,7 @@ function createSampleData() {
           "Access",
           "No",
           "MV-2021-456",
+          "", // No gate restrictions - can access all gates
         ],
         [
           "000003",
@@ -5216,6 +5302,7 @@ function createSampleData() {
           "No Access",
           "Yes",
           "MV-2020-789",
+          "2", // Restricted to Service Gate only
         ],
         [
           "000004",
@@ -5231,6 +5318,7 @@ function createSampleData() {
           "Banned",
           "No",
           "MV-2019-012",
+          "", // Banned vehicles have no gate access regardless
         ],
         [
           "000005",
@@ -5246,6 +5334,7 @@ function createSampleData() {
           "Access",
           "No",
           "MV-2023-345",
+          "1", // Executive vehicle restricted to Main Gate only
         ],
       ];
 
@@ -5370,13 +5459,11 @@ function createSampleData() {
       if (gateData.length <= 1) {
         console.log("Adding sample gates...");
         const sampleGates = [
-          ["Main Gate"],
-          ["Back Gate"],
-          ["Parking Gate"],
-          ["Service Gate"],
-          ["Emergency Gate"],
-          ["Visitor Gate"],
-          ["Security Gate"],
+          [1, "Main Gate"],
+          [2, "Service Gate"],
+          [3, "Parking Gate"],
+          [4, "Emergency Gate"],
+          [5, "Visitor Gate"],
         ];
 
         // Optimized: Use batch setValues instead of individual appendRow operations
