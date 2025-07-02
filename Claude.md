@@ -269,26 +269,47 @@ This is a Google Apps Script project - no build tools, npm commands, or testing 
   - Original button state restoration after completion/failure
   - Enhanced console logging with device type detection for debugging
 
+#### Vehicle Audit Trail Enhancement (Latest Updates)
+- **Action Column Addition**: Enhanced audit trail with operation type tracking
+  - New header structure: `Timestamp | Username | Action | Old Data | New Data`
+  - Clear differentiation between "Create" and "Update" operations
+  - Better accountability and compliance tracking for vehicle data changes
+- **Comprehensive Logging Coverage**: Expanded audit trail to cover all operations
+  - Vehicle creation now logged with "Create" action (previously not tracked)
+  - Vehicle updates continue with "Update" action and before/after data comparison
+  - All admin and super-admin vehicle modifications tracked with proper action type
+- **Automatic Migration System**: Seamless upgrade for existing deployments
+  - `migrateAuditTrailFormat()` function handles legacy format conversion
+  - Automatic detection and migration of existing 4-column audit trails
+  - Historical records preserved and marked as "Update" action by default
+  - Zero-downtime migration process with detailed console logging
+- **Enhanced Data Integrity**: Improved audit trail functionality
+  - Proper null handling for create operations ("No data" for Old Data)
+  - Enhanced `logVehicleAuditTrail()` function with action parameter
+  - Backward compatibility with existing audit trail implementations
+  - Complete coverage of vehicle lifecycle events (create, update, delete)
+
 ## Current System Status
 
 ### File Statistics
-- **Code.gs**: 5,100+ lines (155KB) - Backend with enhanced gate validation and debug functions  
+- **Code.gs**: 5,170+ lines (162KB) - Backend with enhanced audit trail and transaction protection
 - **app.html**: 9,070+ lines (425KB) - Complete frontend with transaction protection and mobile optimization
 - **USER_MANUAL.md**: 509 lines (16KB) - Comprehensive user documentation
-- **Claude.md**: 390+ lines (19KB) - Technical documentation and development guide
-- **Total Project Size**: ~615KB, 15,069+ lines of code across main files
+- **Claude.md**: 420+ lines (20KB) - Technical documentation with latest audit trail updates
+- **Total Project Size**: ~628KB, 15,169+ lines of code across main files
 
 ### Repository Information
 - **Git Remote**: GitHub repository (r3dhorse/vehicle-monitoring-system)
 - **Main Branch**: Single branch development model
-- **Current Version**: Enhanced with comprehensive transaction protection
-- **Recent Activity**: Transaction protection system and mobile/tablet optimization
+- **Current Version**: Enhanced with comprehensive audit trail and transaction protection
+- **Recent Activity**: Vehicle audit trail enhancement and transaction protection system
 - **Latest Changes**: 
-  - Implemented anti-double-click protection for all transaction buttons
-  - Added mobile/tablet-specific transaction UI enhancements
+  - Enhanced vehicle audit trail with Action column (Create/Update differentiation)
+  - Implemented automatic migration for existing audit trail data
+  - Added comprehensive transaction protection with mobile/tablet optimization
   - Enhanced gate validation system with proper error handling
   - Improved transaction logs to display gate names instead of IDs
-  - Added device-aware debouncing and haptic feedback for mobile devices
+  - Complete vehicle lifecycle tracking with proper audit coverage
 - **Project Structure**: Enhanced 6-file architecture (Code.gs, app.html, Claude.md, USER_MANUAL.md, README.md, USER_STORIES.md)
 
 ## Development Guidelines
@@ -349,6 +370,7 @@ The system implements a simplified driver management structure:
 - **Gate Management**: `saveGateSimple()`, `getActiveGates()`, `getGateNameById()`, `validateVehicleGateAccess()`
 - **UI Functions**: `editVehicle()` (replaces `showVehicleDetails()`), `toggleVehicleStatus()` (with access validation)
 - **Transaction Protection**: `setTransactionInProgress()`, mobile debouncing, haptic feedback integration
+- **Audit Trail**: `logVehicleAuditTrail()`, `migrateAuditTrailFormat()`, `getVehicleAuditTrail()`
 
 ### Debug and Testing Functions
 
