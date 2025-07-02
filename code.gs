@@ -989,7 +989,7 @@ function logUserActivity(
  * @param {Array} oldData - Previous vehicle data
  * @param {Array} newData - New vehicle data
  */
-function logVehicleAuditTrail(username, userRole, oldData, newData) {
+function logVehicleAuditTrail(username, userRole, oldData, newData, action = "Update") {
   // Only super-admin and admin can use audit trail
   if (userRole !== "super-admin" && userRole !== "admin") {
     return;
@@ -1006,10 +1006,17 @@ function logVehicleAuditTrail(username, userRole, oldData, newData) {
       const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
       auditSheet = spreadsheet.insertSheet("VehicleAuditTrail");
 
-      // Add headers
-      const headers = ["Timestamp", "Username", "Old Data", "New Data"];
+      // Add headers with Action column
+      const headers = ["Timestamp", "Username", "Action", "Old Data", "New Data"];
       auditSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       auditSheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+    } else {
+      // Check if we need to migrate existing audit trail to new format
+      const headers = auditSheet.getRange(1, 1, 1, auditSheet.getLastColumn()).getValues()[0];
+      if (headers.length === 4 && headers[2] === "Old Data") {
+        // Old format detected, migrate to new format
+        migrateAuditTrailFormat(auditSheet);
+      }
     }
 
     // Try to get current user from session or use passed username
@@ -1214,16 +1221,65 @@ function logVehicleAuditTrail(username, userRole, oldData, newData) {
     const auditEntry = [
       formattedTimestamp,
       actualUsername,
+      action,
       oldDataFormatted,
       newDataFormatted,
     ];
 
     auditSheet.appendRow(auditEntry);
     console.log(
-      `Vehicle audit trail logged: ${actualUsername} updated vehicle data`
+      `Vehicle audit trail logged: ${actualUsername} ${action.toLowerCase()}d vehicle data`
     );
   } catch (error) {
     console.error("Error logging vehicle audit trail:", error);
+  }
+}
+
+/**
+ * Migrate existing vehicle audit trail to new format with Action column
+ * @param {Sheet} auditSheet - The audit trail sheet to migrate
+ */
+function migrateAuditTrailFormat(auditSheet) {
+  try {
+    console.log("Migrating vehicle audit trail to new format with Action column...");
+    
+    // Get all existing data
+    const lastRow = auditSheet.getLastRow();
+    if (lastRow <= 1) {
+      // Only headers exist, just update them
+      const headers = ["Timestamp", "Username", "Action", "Old Data", "New Data"];
+      auditSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      auditSheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+      return;
+    }
+    
+    // Get existing data (skip header row)
+    const existingData = auditSheet.getRange(2, 1, lastRow - 1, 4).getValues();
+    
+    // Insert new Action column at position 3
+    auditSheet.insertColumnAfter(2);
+    
+    // Update headers
+    const headers = ["Timestamp", "Username", "Action", "Old Data", "New Data"];
+    auditSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    auditSheet.getRange(1, 1, 1, headers.length).setFontWeight("bold");
+    
+    // Migrate existing data - add "Update" as default action for historical records
+    for (let i = 0; i < existingData.length; i++) {
+      const row = existingData[i];
+      const migratedRow = [
+        row[0], // Timestamp
+        row[1], // Username
+        "Update", // Default action for historical records
+        row[2], // Old Data
+        row[3]  // New Data
+      ];
+      auditSheet.getRange(i + 2, 1, 1, 5).setValues([migratedRow]);
+    }
+    
+    console.log(`Vehicle audit trail migration completed. Migrated ${existingData.length} records.`);
+  } catch (error) {
+    console.error("Error migrating vehicle audit trail format:", error);
   }
 }
 
@@ -1854,7 +1910,7 @@ function saveVehicleRecord(
       console.log("Allowed gates in row (index 13):", vehicleRow[13]);
 
       // Log audit trail before updating (for super-admin and admin only)
-      logVehicleAuditTrail(username, userRole, oldVehicleData, vehicleRow);
+      logVehicleAuditTrail(username, userRole, oldVehicleData, vehicleRow, "Update");
 
       // Update existing vehicle
       const range = sheet.getRange(actualRowIndex + 1, 1, 1, vehicleRow.length);
@@ -1891,6 +1947,11 @@ function saveVehicleRecord(
       console.log("Allowed gates in new row (index 13):", vehicleRow[13]);
 
       sheet.appendRow(vehicleRow);
+      
+      // Log audit trail for new vehicle creation (for super-admin and admin only)
+      // For creates, oldData is empty/null, newData is the newly created vehicle
+      logVehicleAuditTrail(username, userRole, null, vehicleRow, "Create");
+      
       logUserActivity(
         "system",
         "vehicle_created",
@@ -2625,7 +2686,8 @@ function updateVehicleRecord(
           currentUsername,
           userRole,
           oldVehicleData,
-          updatedData
+          updatedData,
+          "Update"
         );
 
         // Debug: Log the updated data for admin users
