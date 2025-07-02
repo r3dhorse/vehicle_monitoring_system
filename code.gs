@@ -20,6 +20,75 @@ function clearAllCaches() {
   }
 }
 
+// Test function to debug gate access validation
+function debugGateAccessValidation(vehicleId, plateNumber, gateId) {
+  try {
+    console.log(`=== DEBUGGING GATE ACCESS ===`);
+    console.log(`Input: vehicleId=${vehicleId}, plateNumber=${plateNumber}, gateId=${gateId}`);
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    
+    // Find vehicle
+    let vehicleRow = null;
+    for (let i = 1; i < vehicleData.length; i++) {
+      const row = vehicleData[i];
+      if (row[0] == vehicleId || row[1] === plateNumber) {
+        vehicleRow = row;
+        console.log(`Found vehicle at row ${i}:`, row);
+        break;
+      }
+    }
+    
+    if (!vehicleRow) {
+      return "Vehicle not found";
+    }
+    
+    const allowedGates = vehicleRow[13];
+    console.log(`Raw allowed gates value: "${allowedGates}" (type: ${typeof allowedGates})`);
+    
+    if (!allowedGates || allowedGates.trim() === "") {
+      return "No gate restrictions - should allow all gates";
+    }
+    
+    const allowedGateIds = allowedGates.split(',').map(gateId => gateId.trim());
+    console.log(`Parsed allowed gate IDs:`, allowedGateIds);
+    console.log(`Current gate ID: "${gateId}" (type: ${typeof gateId})`);
+    
+    // Test comparison logic
+    const comparisons = allowedGateIds.map(allowedId => ({
+      allowedId: allowedId,
+      currentGateId: gateId,
+      strictEquals: allowedId === gateId.toString(),
+      lowerCaseEquals: allowedId.toLowerCase() === gateId.toLowerCase(),
+      typeAllowed: typeof allowedId,
+      typeCurrent: typeof gateId
+    }));
+    
+    console.log(`Comparison results:`, comparisons);
+    
+    const isGateAllowed = allowedGateIds.some(allowedGateId => 
+      allowedGateId === gateId.toString() || allowedGateId.toLowerCase() === gateId.toLowerCase()
+    );
+    
+    console.log(`Final result: isGateAllowed = ${isGateAllowed}`);
+    
+    return {
+      vehicleFound: true,
+      allowedGatesRaw: allowedGates,
+      allowedGateIds: allowedGateIds,
+      currentGateId: gateId,
+      comparisons: comparisons,
+      isAllowed: isGateAllowed
+    };
+    
+  } catch (error) {
+    console.error("Debug error:", error);
+    return `Error: ${error.toString()}`;
+  }
+}
+
 // Test function to verify gate sheet structure and functionality
 function testGateSystemStructure() {
   try {
@@ -2210,12 +2279,18 @@ function logVehicleAction(data) {
       );
     }
 
-    // Validate gate access and permissions
-    const gateValidation = validateGateAccess(
-      data.gate,
-      data.action,
-      actualPlateNumber
-    );
+    // Validate gate access and permissions using vehicle-specific gate restrictions
+    let gateValidation;
+    if (vehicleRow >= 0) {
+      // Use vehicle-specific gate validation if vehicle found
+      const vehicleId = vehicleData[vehicleRow][0];
+      console.log(`Using vehicle-specific gate validation for vehicle ID: ${vehicleId}, plate: ${actualPlateNumber}, gate: ${data.gate}`);
+      gateValidation = validateVehicleGateAccess(vehicleId, actualPlateNumber, data.gate);
+    } else {
+      // Fallback to basic gate validation if vehicle not found
+      console.log(`Vehicle not found, using basic gate validation`);
+      gateValidation = validateGateAccess(data.gate, data.action, actualPlateNumber);
+    }
     if (!gateValidation.allowed) {
       throw new Error(gateValidation.reason);
     }
@@ -4953,10 +5028,19 @@ function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
     // Parse allowed gate IDs (comma-separated)
     const allowedGateIds = allowedGates.split(',').map(gateId => gateId.trim());
     
+    // Debug logging for gate validation
+    console.log(`=== GATE VALIDATION DEBUG ===`);
+    console.log(`Vehicle: ${plateNumber} (ID: ${vehicleId})`);
+    console.log(`Raw allowed gates: "${allowedGates}"`);
+    console.log(`Parsed allowed gate IDs:`, allowedGateIds);
+    console.log(`Current gate ID: "${gateId}" (type: ${typeof gateId})`);
+    
     // Check if current gate ID is in allowed list
     const isGateAllowed = allowedGateIds.some(allowedGateId => 
       allowedGateId === gateId.toString() || allowedGateId.toLowerCase() === gateId.toLowerCase()
     );
+    
+    console.log(`Gate validation result: ${isGateAllowed}`);
 
     if (!isGateAllowed) {
       // Get gate names for user-friendly error message
