@@ -4145,7 +4145,7 @@
                     <input class="form-check-input edit-driver-checkbox" type="checkbox" 
                            value="${driver.id}" id="editDriver_${driver.id}">
                     <label class="form-check-label" for="editDriver_${driver.id}">
-                        ${driver.name} <small class="text-muted">(ID: ${driver.id}${driver.licenseNumber ? ' - ' + driver.licenseNumber : ''})</small>
+                        ${driver.name} <small class="text-muted">${driver.licenseNumber ? ' - ' + driver.licenseNumber : ''}</small>
                     </label>
                 `;
                 editDriverContainer.appendChild(editCheckboxDiv);
@@ -4833,16 +4833,7 @@
                     
                     if (!gateValidation.allowed) {
                         // Show detailed denial notification with reason
-                        let message = `🚫 Access Denied: ${gateValidation.reason}`;
-                        
-                        if (gateValidation.allowedGates && gateValidation.allowedGates.length > 0) {
-                            message += `\n\n✅ This vehicle is authorized for: ${gateValidation.allowedGates.join(', ')}`;
-                        }
-                        
-                        if (gateValidation.requiresOverride) {
-                            message += '\n\n⚠️ Supervisor override may be available.';
-                        }
-                        
+                        let message = `🚫This vehicle is not authorized to enter through this gate`;
                         showToast(message, 'danger', 8000); // Show for 8 seconds
                         return;
                     }

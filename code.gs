@@ -2217,7 +2217,7 @@ function logVehicleAction(data) {
       actualPlateNumber
     );
     if (!gateValidation.allowed) {
-      throw new Error(`Gate access denied: ${gateValidation.reason}`);
+      throw new Error(gateValidation.reason);
     }
 
     console.log("Final values for logging:", {
@@ -5034,7 +5034,7 @@ function validateGateAccess(gateId, action, plateNumber) {
     }
 
     if (!gateFound) {
-      return { allowed: false, reason: `Gate "${gateId}" not found in system` };
+      return { allowed: false, reason: "Vehicle not authorized for this gate." };
     }
 
     // For simplified gate system, all valid gates are considered active
