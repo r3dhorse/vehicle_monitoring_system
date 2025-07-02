@@ -294,6 +294,14 @@
                 height: 50px;
             }
             
+            .refresh-btn {
+                bottom: 80px; /* Stack above QR scanner button on mobile */
+                left: 20px;
+                width: 50px;
+                height: 50px;
+                right: auto; /* Override desktop positioning */
+            }
+            
             .login-card {
                 margin: 1rem;
             }
@@ -457,6 +465,13 @@
         
         .alert { border-radius: 10px; border: none; }
         .hidden { display: none !important; }
+        
+        /* Prevent loading overlap during refresh */
+        #loadingSpinner.hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
         
         .dashboard-page { min-height: 100vh; background: #f8f9fa; }
         .navbar-brand { font-weight: 600; }
@@ -878,11 +893,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 9999;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            z-index: 8000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
         .gate-selector {
@@ -951,9 +966,36 @@
             box-shadow: 0 6px 25px rgba(40, 167, 69, 0.6);
         }
         
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 170px; /* Position to the left of QR scanner button */
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(108, 117, 125, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: none; /* Hidden by default */
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            border: none;
+            color: white;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.1) rotate(180deg);
+            box-shadow: 0 6px 25px rgba(108, 117, 125, 0.6);
+            background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+        }
+        
+        .refresh-btn:active {
+            transform: scale(0.95) rotate(360deg);
+        }
+        
         /* Hide buttons when login page is active */
         #loginPage:not(.hidden) ~ * .add-vehicle-btn,
-        #loginPage:not(.hidden) ~ * .qr-scanner-btn {
+        #loginPage:not(.hidden) ~ * .qr-scanner-btn,
+        #loginPage:not(.hidden) ~ * .refresh-btn {
             display: none !important;
         }
         
@@ -1204,9 +1246,12 @@
             background: rgba(255, 255, 255, 0.9) !important;
         }
         
-        .enhanced-loading-overlay .spinner-border {
+        .enhanced-loading-overlay .pulse-loader {
             width: 3rem;
             height: 3rem;
+            background-color: #0d6efd;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
         }
         
         /* Form Validation Styling */
@@ -1772,7 +1817,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 10000;
             transition: opacity 0.5s ease-out;
         }
         
@@ -1792,13 +1837,12 @@
             animation: pulse 1.5s ease-in-out infinite;
         }
         
-        .loading-spinner {
+        .initial-loading-spinner {
             width: 60px;
             height: 60px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
+            background-color: rgba(255, 255, 255, 0.9);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: pulse 1.5s ease-in-out infinite;
             margin: 0 auto 2rem;
         }
         
@@ -1828,7 +1872,7 @@
     <div id="loadingScreen" class="loading-screen">
         <div class="loading-content">
             <i class="bi bi-truck loading-icon"></i>
-            <div class="loading-spinner"></div>
+            <div class="initial-loading-spinner"></div>
             <h2 class="loading-text">Vehicle Monitoring System</h2>
             <p class="loading-subtext">Initializing...</p>
         </div>
@@ -2208,7 +2252,7 @@
                                     <tbody id="vehiclesTableBody">
                                         <tr>
                                             <td colspan="10" class="text-center py-4">
-                                                <div class="spinner-border text-primary" role="status">
+                                                <div class="pulse-loader" style="width: 3rem; height: 3rem; background-color: #0d6efd; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; margin: 0 auto;">
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
                                                 <p class="mt-2 text-muted">Loading vehicles...</p>
@@ -2276,7 +2320,7 @@
 
     <!-- Loading Spinner -->
     <div id="loadingSpinner" class="loading-spinner hidden">
-        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+        <div class="pulse-loader" style="width: 4rem; height: 4rem; background-color: #0d6efd; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; box-shadow: 0 0 20px rgba(13, 110, 253, 0.5);">
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
@@ -2284,6 +2328,11 @@
     <!-- QR Scanner Button -->
     <button class="btn btn-success qr-scanner-btn" onclick="showQRScanner()" title="QR Code Scanner" id="qrScannerBtn">
         <i class="bi bi-qr-code fs-4"></i>
+    </button>
+    
+    <!-- Refresh Button -->
+    <button class="refresh-btn" onclick="refreshPage()" title="Refresh Page" id="refreshBtn">
+        <i class="bi bi-arrow-clockwise fs-4"></i>
     </button>
     
     <!-- Add Vehicle Button -->
@@ -2309,7 +2358,7 @@
                     <!-- Enhanced Loading Overlay -->
                     <div id="editVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-90 loading-overlay" style="z-index: 1050;">
                         <div class="text-center">
-                            <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;">
+                            <div class="pulse-loader" style="width: 3rem; height: 3rem; background-color: #ffc107; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <div class="mt-3 text-muted fw-medium">Saving changes...</div>
@@ -2772,7 +2821,7 @@
                     <!-- Loading/Empty State -->
                     <div id="userListContainer" class="d-none">
                         <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
+                            <div class="pulse-loader" style="width: 3rem; height: 3rem; background-color: #0d6efd; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; margin: 0 auto;">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="mt-3 text-muted">Loading users...</p>
@@ -3454,7 +3503,6 @@
         function clearSession() {
             sessionStorage.removeItem('currentUser');
             sessionStorage.removeItem('selectedGate');
-            sessionStorage.removeItem('todayActivity');
             console.log('Session cleared');
         }
         
@@ -3636,6 +3684,12 @@
                 qrScannerBtn.style.display = 'block';
             } else {
                 qrScannerBtn.style.display = 'none';
+            }
+            
+            // Show refresh button for all authenticated users
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.style.display = 'block';
             }
             
             // Show/hide user management dropdown (only super-admin)
@@ -4546,11 +4600,8 @@
                         }
                         showToast(message, 'success');
                         
-                        // Increment today's activity
-                        let todayActivity = parseInt(sessionStorage.getItem('todayActivity') || '0');
-                        todayActivity++;
-                        sessionStorage.setItem('todayActivity', todayActivity.toString());
-                        document.getElementById('recentActivity').textContent = todayActivity;
+                        // Refresh statistics to get accurate count from database
+                        loadDatabaseStatistics();
                         
                     }
                     showLoading(false);
@@ -5818,12 +5869,13 @@
             });
         }
 
-        // CSS for spin animation
+        // CSS for pulse animation
         const style = document.createElement('style');
         style.textContent = `
-            @keyframes spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.1); opacity: 0.8; }
+                100% { transform: scale(1); opacity: 1; }
             }
         `;
         document.head.appendChild(style);
@@ -8642,6 +8694,68 @@
                 })
                 .getRecentTransactions(50);
         }
+
+        // Refresh page function
+        function refreshPage() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            const icon = refreshBtn.querySelector('i');
+            
+            // Add spinning animation during refresh
+            icon.style.animation = 'spin 1s linear infinite';
+            refreshBtn.disabled = true;
+            
+            // Show toast to indicate refresh is happening
+            showToast('Refreshing data...', 'info');
+            
+            // Refresh all data instead of reloading the page
+            Promise.all([
+                new Promise(resolve => {
+                    // Reload vehicles
+                    loadVehicles();
+                    setTimeout(resolve, 500);
+                }),
+                new Promise(resolve => {
+                    // Reload drivers
+                    loadDrivers();
+                    setTimeout(resolve, 300);
+                }),
+                new Promise(resolve => {
+                    // Reload transaction logs
+                    loadTransactionLogs();
+                    setTimeout(resolve, 400);
+                }),
+                new Promise(resolve => {
+                    // Reload statistics
+                    loadDatabaseStatistics();
+                    setTimeout(resolve, 200);
+                }),
+                new Promise(resolve => {
+                    // Reload gates
+                    loadActiveGates();
+                    setTimeout(resolve, 100);
+                })
+            ]).then(() => {
+                // Reset button state
+                icon.style.animation = '';
+                refreshBtn.disabled = false;
+                showToast('Data refreshed successfully!', 'success');
+            }).catch((error) => {
+                console.error('Error during refresh:', error);
+                icon.style.animation = '';
+                refreshBtn.disabled = false;
+                showToast('Error refreshing data', 'danger');
+            });
+        }
+        
+        // Add spin animation for refresh button
+        const refreshStyle = document.createElement('style');
+        refreshStyle.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(refreshStyle);
     </script>
 </body>
 </html>
