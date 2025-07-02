@@ -4175,7 +4175,10 @@
         // Gate selection functions (similar to driver functions)
         function getSelectedGateCheckboxIds() {
             const checkboxes = document.querySelectorAll('.edit-gate-checkbox:checked');
-            return Array.from(checkboxes).map(checkbox => checkbox.value);
+            const selectedIds = Array.from(checkboxes).map(checkbox => checkbox.value);
+            console.log('getSelectedGateCheckboxIds - Found checkboxes:', checkboxes.length);
+            console.log('getSelectedGateCheckboxIds - Selected IDs:', selectedIds);
+            return selectedIds;
         }
 
         function getSelectedAddGateCheckboxIds() {
@@ -4211,6 +4214,9 @@
                         const selectedArray = Array.isArray(selectedGates) ? 
                             selectedGates : 
                             (selectedGates ? selectedGates.split(',').map(g => g.trim()) : []);
+                        
+                        console.log('loadGatesForModal - selectedGates input:', selectedGates);
+                        console.log('loadGatesForModal - selectedArray:', selectedArray);
 
                         // Handle both array format (from getGateList) and object format (from getSimpleGateList)
                         gates.forEach(gate => {
@@ -4232,6 +4238,8 @@
                             // Check if this gate ID is selected (backward compatibility: also check gate name)
                             const isChecked = selectedArray.includes(gateId?.toString()) || selectedArray.includes(gateName);
                             const cleanId = (gateId || gateName).toString().replace(/[^a-zA-Z0-9]/g, '');
+                            
+                            console.log(`loadGatesForModal - Gate ${gateId}(${gateName}): selected=${isChecked}, selectedArray contains ID=${selectedArray.includes(gateId?.toString())}, contains name=${selectedArray.includes(gateName)}`);
                             
                             html += `
                                 <div class="form-check">
@@ -6459,6 +6467,7 @@
                 .getAllDriversIncludingInactive();
             
             // Load gates for gate restriction modal
+            console.log('Loading gates for edit modal with selected gates:', vehicle[13] || '');
             loadGatesForModal('editAllowedGatesContainer', 'edit-gate-checkbox', vehicle[13] || '');
             
             // Event listener for assigned drivers is already handled by initializeDriverDropdownListeners
