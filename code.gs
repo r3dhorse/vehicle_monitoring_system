@@ -20,6 +20,41 @@ function clearAllCaches() {
   }
 }
 
+// Test function to verify allowed gates data structure
+function testAllowedGatesData() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    
+    if (!vehicleSheet) {
+      return "Vehicle sheet not found";
+    }
+    
+    const headers = vehicleSheet.getRange(1, 1, 1, vehicleSheet.getLastColumn()).getValues()[0];
+    const data = vehicleSheet.getDataRange().getValues();
+    
+    const result = {
+      sheetName: VEHICLE_SHEET,
+      totalColumns: headers.length,
+      totalRows: data.length - 1, // Excluding header
+      headers: headers,
+      allowedGatesColumnIndex: headers.indexOf("Allowed Gates"),
+      sampleVehicleData: data.length > 1 ? {
+        vehicleId: data[1][0],
+        plateNumber: data[1][1],
+        allowedGates: data[1][13] || "Not set"
+      } : "No vehicles found"
+    };
+    
+    console.log("Allowed Gates Test Result:", JSON.stringify(result, null, 2));
+    return result;
+    
+  } catch (error) {
+    console.error("Error testing allowed gates data:", error);
+    return "Error: " + error.toString();
+  }
+}
+
 // One-time migration function to add One Time Pass column
 function migrateAddOneTimePassColumn() {
   try {
@@ -59,6 +94,127 @@ function migrateAddOneTimePassColumn() {
   } catch (error) {
     console.error("Migration error:", error);
     return "Error during migration: " + error.toString();
+  }
+}
+
+// One-time migration function to add Allowed Gates column for gate restrictions
+function migrateAddAllowedGatesColumn() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+
+    if (!vehicleSheet) {
+      return "Vehicle sheet not found";
+    }
+
+    // Get current headers to check what columns exist
+    const lastColumn = vehicleSheet.getLastColumn();
+    const headers = vehicleSheet
+      .getRange(1, 1, 1, lastColumn)
+      .getValues()[0];
+    
+    console.log("Current headers:", headers);
+    console.log("Current number of columns:", lastColumn);
+
+    // Check if Allowed Gates column already exists
+    if (headers.includes("Allowed Gates")) {
+      return "Allowed Gates column already exists";
+    }
+
+    // Determine where to add the column
+    let targetColumn;
+    
+    if (lastColumn === 13 && headers[12] === "MV File") {
+      // Standard 13-column setup, add as 14th column
+      targetColumn = 14;
+    } else if (lastColumn === 12 && headers[11] === "One Time Pass") {
+      // 12-column setup without MV File, add MV File first, then Allowed Gates
+      vehicleSheet.getRange(1, 13).setValue("MV File");
+      vehicleSheet.getRange(1, 13).setFontWeight("bold");
+      targetColumn = 14;
+      
+      // Add empty MV File data for existing vehicles
+      const lastRow = vehicleSheet.getLastRow();
+      if (lastRow > 1) {
+        const mvFileDefaults = Array(lastRow - 1).fill([""]);
+        vehicleSheet.getRange(2, 13, lastRow - 1, 1).setValues(mvFileDefaults);
+      }
+    } else {
+      // Custom setup, add at next available column
+      targetColumn = lastColumn + 1;
+    }
+
+    // Add Allowed Gates header
+    vehicleSheet.getRange(1, targetColumn).setValue("Allowed Gates");
+    vehicleSheet.getRange(1, targetColumn).setFontWeight("bold");
+
+    // Get number of vehicles (rows - 1 for header)
+    const lastRow = vehicleSheet.getLastRow();
+    let updatedVehicles = 0;
+    
+    if (lastRow > 1) {
+      // Set default value "" (empty) for all existing vehicles
+      // Empty means "allow access to all gates"
+      const defaultValues = Array(lastRow - 1).fill([""]);
+      vehicleSheet.getRange(2, targetColumn, lastRow - 1, 1).setValues(defaultValues);
+      updatedVehicles = lastRow - 1;
+    }
+
+    // Auto-resize the new column
+    vehicleSheet.autoResizeColumn(targetColumn);
+    
+    // Also resize MV File column if we added it
+    if (targetColumn === 14 && lastColumn === 12) {
+      vehicleSheet.autoResizeColumn(13);
+    }
+
+    // Update the sheet to ensure proper formatting
+    vehicleSheet.setFrozenRows(1);
+    
+    const finalColumnCount = vehicleSheet.getLastColumn();
+    const message = targetColumn === 14 && lastColumn === 12 
+      ? `Successfully added MV File and Allowed Gates columns. Updated ${updatedVehicles} vehicles. Sheet now has ${finalColumnCount} columns.`
+      : `Successfully added Allowed Gates column in position ${targetColumn}. Updated ${updatedVehicles} vehicles. Sheet now has ${finalColumnCount} columns.`;
+
+    console.log(message);
+    return message;
+
+  } catch (error) {
+    console.error("Gate restriction migration error:", error);
+    return "Error during gate restriction migration: " + error.toString();
+  }
+}
+
+// Comprehensive migration function to ensure Vehicle Master has all required columns
+function migrateVehicleMasterToLatestSchema() {
+  try {
+    const results = [];
+    
+    // Run One Time Pass migration first
+    const otpResult = migrateAddOneTimePassColumn();
+    results.push("OTP Migration: " + otpResult);
+    
+    // Run Allowed Gates migration
+    const gatesResult = migrateAddAllowedGatesColumn();
+    results.push("Gates Migration: " + gatesResult);
+    
+    // Clear cache after migrations
+    clearAllCaches();
+    results.push("Cache cleared successfully");
+    
+    return {
+      success: true,
+      message: "Vehicle Master schema migration completed",
+      details: results
+    };
+    
+  } catch (error) {
+    console.error("Comprehensive migration error:", error);
+    return {
+      success: false,
+      message: "Error during comprehensive migration: " + error.toString(),
+      details: []
+    };
   }
 }
 
@@ -1256,6 +1412,10 @@ function saveVehicleRecord(
   try {
     validateRequired(vehicleData.plateNumber, "Plate Number");
     validateRequired(vehicleData.model, "Make/Model");
+    
+    // Debug: Log the incoming vehicle data to see allowed gates
+    console.log("Saving vehicle with data:", JSON.stringify(vehicleData));
+    console.log("Allowed gates value:", vehicleData.allowedGates);
 
     const sheet =
       SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(VEHICLE_SHEET);
@@ -1332,7 +1492,12 @@ function saveVehicleRecord(
         vehicleData.accessStatus || "Access",
         vehicleData.oneTimePass ? "Yes" : "No", // One Time Pass
         sanitizeInput(vehicleData.mvFile || ""), // MV File
+        sanitizeInput(vehicleData.allowedGates || ""), // Allowed Gates
       ];
+      
+      // Debug: Log the constructed vehicle row
+      console.log("Vehicle row length:", vehicleRow.length);
+      console.log("Allowed gates in row (index 13):", vehicleRow[13]);
 
       // Log audit trail before updating (for super-admin and admin only)
       logVehicleAuditTrail(username, userRole, oldVehicleData, vehicleRow);
@@ -1364,7 +1529,12 @@ function saveVehicleRecord(
         vehicleData.accessStatus || "Access",
         vehicleData.oneTimePass ? "Yes" : "No", // One Time Pass
         sanitizeInput(vehicleData.mvFile || ""), // MV File
+        sanitizeInput(vehicleData.allowedGates || ""), // Allowed Gates
       ];
+      
+      // Debug: Log the constructed vehicle row for new vehicle
+      console.log("New vehicle row length:", vehicleRow.length);
+      console.log("Allowed gates in new row (index 13):", vehicleRow[13]);
 
       sheet.appendRow(vehicleRow);
       logUserActivity(
@@ -1504,8 +1674,8 @@ function getVehicleList(searchCriteria = {}) {
     // For large datasets, use chunked reading
     let allData = [];
     const chunkSize = 1000; // Read 1000 rows at a time
-    const header = sheet.getRange(1, 1, 1, 13).getValues()[0];
-    // Keep all columns including ID
+    const header = sheet.getRange(1, 1, 1, 14).getValues()[0];
+    // Keep all columns including ID and Allowed Gates
     allData.push(header);
 
     // If no search criteria, return paginated results
@@ -1521,7 +1691,7 @@ function getVehicleList(searchCriteria = {}) {
 
       if (startRow <= lastRow) {
         const paginatedData = sheet
-          .getRange(startRow, 1, endRow - startRow + 1, 13)
+          .getRange(startRow, 1, endRow - startRow + 1, 14)
           .getValues(); // Keep all columns including ID
         allData = allData.concat(paginatedData);
       }
@@ -1541,12 +1711,12 @@ function getVehicleList(searchCriteria = {}) {
     for (let chunkStart = 2; chunkStart <= lastRow; chunkStart += chunkSize) {
       const chunkEnd = Math.min(chunkStart + chunkSize - 1, lastRow);
       const chunkData = sheet
-        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 13)
+        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 14)
         .getValues();
 
       // Filter chunk data based on search criteria and remove ID column
       const filteredChunk = chunkData.filter((row) => {
-        if (!row || row.length < 11) return false;
+        if (!row || row.length < 14) return false;
 
         // Search term matching (plate, model, driver, department)
         if (searchTerm) {
@@ -2098,6 +2268,10 @@ function updateVehicleRecord(
           updatedData
         );
 
+        // Debug: Log the updated data for admin users
+        console.log("Admin updating vehicle with data length:", updatedData.length);
+        console.log("Allowed gates in updated data (index 13):", updatedData[13]);
+        
         const range = sheet.getRange(rowIndex + 1, 1, 1, updatedData.length);
         range.setValues([updatedData]);
       }
@@ -2157,7 +2331,7 @@ function createInitialSheets() {
     if (!vehicleSheet) {
       vehicleSheet = ss.insertSheet(VEHICLE_SHEET);
       vehicleSheet
-        .getRange(1, 1, 1, 13)
+        .getRange(1, 1, 1, 14)
         .setValues([
           [
             "ID",
@@ -2173,13 +2347,14 @@ function createInitialSheets() {
             "Access Status",
             "One Time Pass",
             "MV File",
+            "Allowed Gates",
           ],
         ]);
-      vehicleSheet.getRange(1, 1, 1, 13).setFontWeight("bold");
+      vehicleSheet.getRange(1, 1, 1, 14).setFontWeight("bold");
 
       // Format the sheet
       vehicleSheet.setFrozenRows(1);
-      vehicleSheet.autoResizeColumns(1, 13);
+      vehicleSheet.autoResizeColumns(1, 14);
 
       // Add data validation for Access Status
       const accessStatusRange = vehicleSheet.getRange(2, 11, 1000, 1);
@@ -2310,7 +2485,7 @@ function createInitialSheets() {
       roleRange.setDataValidation(roleRule);
     }
 
-    // Create Gates sheet (simplified)
+    // Create Gates sheet (simple structure compatible with existing data)
     let gatesSheet = ss.getSheetByName(GATES_SHEET);
     if (!gatesSheet) {
       gatesSheet = ss.insertSheet(GATES_SHEET);
@@ -3588,7 +3763,42 @@ function changeUserPassword(
 
 // Gate Management Functions - Simplified
 
-// Get all gates (simple)
+// Get simple gate list compatible with existing structure
+function getSimpleGateList() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(GATES_SHEET);
+
+    if (!sheet) {
+      createInitialSheets();
+      sheet = ss.getSheetByName(GATES_SHEET);
+    }
+
+    const data = sheet.getDataRange().getValues();
+    
+    if (data.length <= 1) {
+      // Return empty array if no gates
+      return [];
+    }
+
+    // Convert raw data to simple objects
+    const gates = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      gates.push({
+        gateId: row[0],
+        gateName: row[1]
+      });
+    }
+
+    return gates;
+  } catch (error) {
+    console.error("Error getting simple gate list:", error);
+    return [];
+  }
+}
+
+// Get all gates (simple) - for backward compatibility
 function getGateList() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -3613,7 +3823,60 @@ function getGateList() {
   }
 }
 
-// Save gate (simple - just name)
+// Simple gate creation function compatible with existing structure
+function saveGateSimple(gateName, userRole, editIndex = -1) {
+  // Validate user permissions
+  const action = editIndex === -1 ? "create" : "update";
+  enforcePermission(
+    userRole,
+    "gates",
+    action,
+    `Access denied: Cannot ${action} gates`
+  );
+
+  try {
+    // Validate required fields
+    if (!gateName || gateName.trim() === "") {
+      throw new Error("Gate name is required");
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let gatesSheet = ss.getSheetByName(GATES_SHEET);
+    
+    // Ensure sheet exists with proper structure
+    if (!gatesSheet) {
+      createInitialSheets();
+      gatesSheet = ss.getSheetByName(GATES_SHEET);
+    }
+
+    const data = gatesSheet.getDataRange().getValues();
+    const cleanGateName = sanitizeInput(gateName.trim());
+    
+    // Check for duplicate gate names (excluding current edit)
+    for (let i = 1; i < data.length; i++) {
+      if (i !== editIndex && data[i][1] === cleanGateName) {
+        throw new Error("Gate name already exists");
+      }
+    }
+
+    if (editIndex > 0 && editIndex < data.length) {
+      // Update existing gate - keep existing ID
+      const gateId = data[editIndex][0];
+      gatesSheet.getRange(editIndex + 1, 1, 1, 2).setValues([[gateId, cleanGateName]]);
+      return { success: true, action: "updated", gateId: gateId };
+    } else {
+      // Create new gate with auto-generated ID
+      const gateId = generateNextGateId();
+      gatesSheet.appendRow([gateId, cleanGateName]);
+      return { success: true, action: "created", gateId: gateId };
+    }
+  } catch (error) {
+    console.error("Error saving gate:", error);
+    throw error;
+  }
+}
+
+// Legacy function for backward compatibility (simple - just name)
 function saveGate(gateName, userRole, editIndex = -1) {
   // Use new permission system
   const action = editIndex === -1 ? "create" : "update";
@@ -4280,7 +4543,277 @@ function getActiveGates() {
   }
 }
 
-// Validate gate access for vehicles (simplified)
+// Enhanced gate access validation with restrictions
+function validateGateAccessWithRestrictions(gateId, vehicleId, plateNumber, action = "ENTRY") {
+  try {
+    const gates = getEnhancedGateList();
+    
+    if (gates.length === 0) {
+      // No gates configured - allow access for backward compatibility
+      return {
+        allowed: true,
+        reason: "No gate restrictions configured",
+        requiresOverride: false
+      };
+    }
+
+    // Find the specific gate
+    const gate = gates.find(g => g.gateId == gateId || g.gateName === gateId);
+    
+    if (!gate) {
+      return {
+        allowed: false,
+        reason: "Gate not found",
+        requiresOverride: true
+      };
+    }
+
+    // Check if gate is active
+    if (gate.status !== "Active") {
+      return {
+        allowed: false,
+        reason: `Gate is ${gate.status}`,
+        requiresOverride: true
+      };
+    }
+
+    // Check restriction type
+    switch (gate.restrictionType) {
+      case "Open Access":
+        // Check time restrictions if any
+        if (Object.keys(gate.timeRestrictions).length > 0) {
+          const timeCheck = validateTimeRestrictions(gate.timeRestrictions);
+          if (!timeCheck.allowed) {
+            return {
+              allowed: false,
+              reason: timeCheck.reason,
+              requiresOverride: true
+            };
+          }
+        }
+        return {
+          allowed: true,
+          reason: "Open access gate",
+          requiresOverride: false
+        };
+
+      case "Restricted Access":
+        // Check if vehicle is in allowed list
+        const isVehicleAllowed = gate.allowedVehicles.includes(vehicleId) || 
+                                gate.allowedVehicles.includes(plateNumber);
+        
+        if (!isVehicleAllowed) {
+          return {
+            allowed: false,
+            reason: "Vehicle not authorized for this gate",
+            requiresOverride: true
+          };
+        }
+
+        // Check time restrictions
+        if (Object.keys(gate.timeRestrictions).length > 0) {
+          const timeCheck = validateTimeRestrictions(gate.timeRestrictions);
+          if (!timeCheck.allowed) {
+            return {
+              allowed: false,
+              reason: timeCheck.reason,
+              requiresOverride: true
+            };
+          }
+        }
+
+        return {
+          allowed: true,
+          reason: "Vehicle authorized for restricted gate",
+          requiresOverride: false
+        };
+
+      case "Invitation Only":
+        // Always requires manual approval
+        return {
+          allowed: false,
+          reason: "Invitation-only gate requires manual approval",
+          requiresOverride: true
+        };
+
+      default:
+        return {
+          allowed: false,
+          reason: "Unknown restriction type",
+          requiresOverride: true
+        };
+    }
+  } catch (error) {
+    console.error("Error validating gate access:", error);
+    return {
+      allowed: false,
+      reason: "Error during validation: " + error.message,
+      requiresOverride: true
+    };
+  }
+}
+
+// Helper function to validate time restrictions
+function validateTimeRestrictions(timeRestrictions) {
+  try {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const currentTime = now.getHours() * 60 + now.getMinutes(); // Minutes since midnight
+
+    // Check daily restrictions
+    if (timeRestrictions.dailyHours) {
+      const { startTime, endTime } = timeRestrictions.dailyHours;
+      const startMinutes = convertTimeToMinutes(startTime);
+      const endMinutes = convertTimeToMinutes(endTime);
+
+      if (currentTime < startMinutes || currentTime > endMinutes) {
+        return {
+          allowed: false,
+          reason: `Gate access restricted outside hours: ${startTime} - ${endTime}`
+        };
+      }
+    }
+
+    // Check day-specific restrictions
+    if (timeRestrictions.weeklySchedule && timeRestrictions.weeklySchedule[currentDay]) {
+      const daySchedule = timeRestrictions.weeklySchedule[currentDay];
+      if (!daySchedule.enabled) {
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        return {
+          allowed: false,
+          reason: `Gate access not allowed on ${dayNames[currentDay]}`
+        };
+      }
+
+      if (daySchedule.startTime && daySchedule.endTime) {
+        const startMinutes = convertTimeToMinutes(daySchedule.startTime);
+        const endMinutes = convertTimeToMinutes(daySchedule.endTime);
+
+        if (currentTime < startMinutes || currentTime > endMinutes) {
+          return {
+            allowed: false,
+            reason: `Gate access restricted on this day. Allowed: ${daySchedule.startTime} - ${daySchedule.endTime}`
+          };
+        }
+      }
+    }
+
+    return { allowed: true, reason: "Within allowed time restrictions" };
+  } catch (error) {
+    console.error("Error validating time restrictions:", error);
+    return { allowed: true, reason: "Time validation bypassed due to error" };
+  }
+}
+
+// Helper function to convert time string to minutes
+function convertTimeToMinutes(timeString) {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+// Validate if vehicle is allowed at specific gate
+function validateVehicleGateAccess(vehicleId, plateNumber, gateId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    
+    if (!vehicleSheet) {
+      return {
+        allowed: false,
+        reason: "Vehicle database not found",
+        requiresOverride: true
+      };
+    }
+
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    let vehicleRow = null;
+
+    // Find vehicle by ID or plate number
+    for (let i = 1; i < vehicleData.length; i++) {
+      const row = vehicleData[i];
+      if (row[0] == vehicleId || row[1] === plateNumber) {
+        vehicleRow = row;
+        break;
+      }
+    }
+
+    if (!vehicleRow) {
+      return {
+        allowed: false,
+        reason: "Vehicle not found in database",
+        requiresOverride: true
+      };
+    }
+
+    // Check vehicle access status first
+    const accessStatus = vehicleRow[10]; // Access Status column (K)
+    if (accessStatus === "Banned") {
+      return {
+        allowed: false,
+        reason: "Vehicle is banned from all gates",
+        requiresOverride: false // Cannot be overridden
+      };
+    }
+
+    if (accessStatus === "No Access") {
+      // Check for one-time pass
+      const oneTimePass = vehicleRow[11]; // One Time Pass column (L)
+      if (oneTimePass !== "Yes") {
+        return {
+          allowed: false,
+          reason: "Vehicle has no access. One-time pass required",
+          requiresOverride: true
+        };
+      }
+    }
+
+    // Check gate restrictions (new column N, index 13)
+    const allowedGates = vehicleRow[13]; // Allowed Gates column (N)
+    
+    if (!allowedGates || allowedGates.trim() === "") {
+      // No gate restrictions - allow access to all gates
+      return {
+        allowed: true,
+        reason: "No gate restrictions configured for this vehicle",
+        requiresOverride: false
+      };
+    }
+
+    // Parse allowed gates (comma-separated)
+    const allowedGatesList = allowedGates.split(',').map(gate => gate.trim());
+    
+    // Check if current gate is in allowed list
+    const isGateAllowed = allowedGatesList.some(allowedGate => 
+      allowedGate.toLowerCase() === gateId.toLowerCase() ||
+      allowedGate.toLowerCase() === gateId.toString().toLowerCase()
+    );
+
+    if (!isGateAllowed) {
+      return {
+        allowed: false,
+        reason: `Vehicle not authorized for "${gateId}". Allowed gates: ${allowedGates}`,
+        requiresOverride: true,
+        allowedGates: allowedGatesList
+      };
+    }
+
+    return {
+      allowed: true,
+      reason: `Vehicle authorized for gate: ${gateId}`,
+      requiresOverride: false
+    };
+
+  } catch (error) {
+    console.error("Error validating vehicle gate access:", error);
+    return {
+      allowed: false,
+      reason: "Error during gate validation: " + error.message,
+      requiresOverride: true
+    };
+  }
+}
+
+// Legacy function for backward compatibility (simplified)
 function validateGateAccess(gateId, action, plateNumber) {
   try {
     const gateSheet =
