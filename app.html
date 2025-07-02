@@ -334,15 +334,14 @@
             
             /* Enhanced search input for mobile */
             #searchInput {
-                padding-left: 3.5rem;
-                padding-right: 3.5rem;
+                padding-left: 1rem;
+                padding-right: 4rem;
                 min-height: 48px;
                 font-size: 16px; /* Prevents zoom on iOS */
             }
             
             .search-icon {
-                left: 1.25rem;
-                font-size: 1.1rem;
+                display: none; /* Hide search icon on mobile */
             }
             
             .search-clear {
@@ -1342,9 +1341,8 @@
                 margin-bottom: 10px;
             }
             
-            .enhanced-loading-overlay .spinner-border {
-                width: 2.5rem;
-                height: 2.5rem;
+            .enhanced-loading-overlay .bouncing-dots {
+                color: #0d6efd;
             }
         }
         
@@ -1724,6 +1722,12 @@
             font-size: 0.875rem !important; /* Slightly smaller font */
         }
         
+        /* Override for search input to maintain icon spacing in fullscreen */
+        .fullscreen-mode #searchInput {
+            padding-left: 3rem !important; /* Account for search icon */
+            padding-right: 3rem !important; /* Account for clear button */
+        }
+        
         .fullscreen-mode .btn {
             padding: 0.375rem 0.75rem !important; /* Compact buttons */
             font-size: 0.875rem !important;
@@ -1859,12 +1863,8 @@
         }
         
         .initial-loading-spinner {
-            width: 60px;
-            height: 60px;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 50%;
-            animation: pulse 1.5s ease-in-out infinite;
             margin: 0 auto 2rem;
+            color: rgba(255, 255, 255, 0.9);
         }
         
         .loading-text {
@@ -1893,7 +1893,13 @@
     <div id="loadingScreen" class="loading-screen">
         <div class="loading-content">
             <i class="bi bi-truck loading-icon"></i>
-            <div class="initial-loading-spinner"></div>
+            <div class="initial-loading-spinner">
+                <div class="bouncing-dots size-xl">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
             <h2 class="loading-text">Vehicle Monitoring System</h2>
             <p class="loading-subtext">Initializing...</p>
         </div>
@@ -2133,7 +2139,12 @@
                                autocomplete="off"
                                onkeyup="debounceFilter()">
                         <div class="search-loading">
-                            <div class="spinner-border spinner-border-sm" role="status">
+                            <div style="color: #0d6efd;">
+                                <div class="bouncing-dots size-sm">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </div>
                                 <span class="visually-hidden">Searching...</span>
                             </div>
                         </div>
@@ -2273,7 +2284,12 @@
                                     <tbody id="vehiclesTableBody">
                                         <tr>
                                             <td colspan="10" class="text-center py-4">
-                                                <div class="pulse-loader" style="width: 3rem; height: 3rem; background-color: #0d6efd; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; margin: 0 auto;">
+                                                <div style="color: #0d6efd;">
+                                                    <div class="bouncing-dots size-lg">
+                                                        <span class="dot"></span>
+                                                        <span class="dot"></span>
+                                                        <span class="dot"></span>
+                                                    </div>
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
                                                 <p class="mt-2 text-muted">Loading vehicles...</p>
@@ -2319,7 +2335,12 @@
                                     <tbody id="transactionLogsBody">
                                         <tr>
                                             <td colspan="5" class="text-center py-3">
-                                                <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                                                <div style="color: #6c757d;">
+                                                    <div class="bouncing-dots">
+                                                        <span class="dot"></span>
+                                                        <span class="dot"></span>
+                                                        <span class="dot"></span>
+                                                    </div>
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
                                                 <p class="mt-2 text-muted mb-0 small">Loading logs...</p>
@@ -2341,7 +2362,12 @@
 
     <!-- Loading Spinner -->
     <div id="loadingSpinner" class="loading-spinner hidden">
-        <div class="pulse-loader" style="width: 4rem; height: 4rem; background-color: #0d6efd; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; box-shadow: 0 0 20px rgba(13, 110, 253, 0.5);">
+        <div style="color: #0d6efd;">
+            <div class="bouncing-dots size-xl">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
@@ -2379,7 +2405,12 @@
                     <!-- Enhanced Loading Overlay -->
                     <div id="editVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-90 loading-overlay" style="z-index: 1050;">
                         <div class="text-center">
-                            <div class="pulse-loader" style="width: 3rem; height: 3rem; background-color: #ffc107; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite;">
+                            <div style="color: #ffc107;">
+                                <div class="bouncing-dots size-xl">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </div>
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <div class="mt-3 text-muted fw-medium">Saving changes...</div>
@@ -2836,7 +2867,12 @@
                     <!-- Loading/Empty State -->
                     <div id="userListContainer" class="d-none">
                         <div class="text-center py-5">
-                            <div class="pulse-loader" style="width: 3rem; height: 3rem; background-color: #0d6efd; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; margin: 0 auto;">
+                            <div style="color: #0d6efd;">
+                                <div class="bouncing-dots size-xl">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </div>
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="mt-3 text-muted">Loading users...</p>
@@ -2954,7 +2990,13 @@
                     <!-- Gate List -->
                     <div id="gateListContainer">
                         <div class="text-center py-3">
-                            <div class="spinner-border" role="status"></div>
+                            <div style="color: #0d6efd;">
+                                <div class="bouncing-dots size-lg">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </div>
+                            </div>
                             <p class="mt-2 text-muted">Loading gates...</p>
                         </div>
                     </div>
@@ -2977,7 +3019,12 @@
                     <!-- Loading Overlay -->
                     <div id="addVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 1050;">
                         <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
+                            <div style="color: #0d6efd;">
+                                <div class="bouncing-dots size-xl">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </div>
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <div class="mt-2 text-muted">Adding vehicle...</div>
@@ -3475,7 +3522,12 @@
                                     <tbody id="driverTableBody">
                                         <tr>
                                             <td colspan="6" class="text-center py-4">
-                                                <div class="spinner-border text-primary" role="status">
+                                                <div style="color: #0d6efd;">
+                                                    <div class="bouncing-dots size-lg">
+                                                        <span class="dot"></span>
+                                                        <span class="dot"></span>
+                                                        <span class="dot"></span>
+                                                    </div>
                                                     <span class="visually-hidden">Loading...</span>
                                                 </div>
                                                 <p class="mt-2 text-muted">Loading drivers...</p>
@@ -3861,7 +3913,7 @@
                 return;
             }
 
-            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
+            loginBtn.innerHTML = '<span class="me-2" style="color: white;"><span class="bouncing-dots size-sm"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>Signing in...';
             loginBtn.disabled = true;
 
             google.script.run
@@ -4385,7 +4437,12 @@
                         width: 16px;
                         height: 16px;
                     ">
-                        <div class="spinner-border" style="width: 16px; height: 16px;" role="status">
+                        <div style="color: #0d6efd;">
+                            <div class="bouncing-dots size-sm">
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                            </div>
                             <span class="visually-hidden">Processing...</span>
                         </div>
                     </div>
@@ -5902,13 +5959,52 @@
             });
         }
 
-        // CSS for pulse animation
+        // CSS for three bouncing dots animation
         const style = document.createElement('style');
         style.textContent = `
-            @keyframes pulse {
-                0% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.1); opacity: 0.8; }
-                100% { transform: scale(1); opacity: 1; }
+            @keyframes bounce {
+                0%, 80%, 100% { 
+                    transform: scale(0.8);
+                    opacity: 0.7;
+                }
+                40% { 
+                    transform: scale(1.2);
+                    opacity: 1;
+                }
+            }
+            
+            .bouncing-dots {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            .bouncing-dots .dot {
+                width: 8px;
+                height: 8px;
+                background-color: currentColor;
+                border-radius: 50%;
+                animation: bounce 1.4s ease-in-out infinite both;
+            }
+            
+            .bouncing-dots .dot:nth-child(1) { animation-delay: -0.32s; }
+            .bouncing-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+            .bouncing-dots .dot:nth-child(3) { animation-delay: 0s; }
+            
+            /* Size variations */
+            .bouncing-dots.size-sm .dot {
+                width: 6px;
+                height: 6px;
+            }
+            
+            .bouncing-dots.size-lg .dot {
+                width: 12px;
+                height: 12px;
+            }
+            
+            .bouncing-dots.size-xl .dot {
+                width: 16px;
+                height: 16px;
             }
         `;
         document.head.appendChild(style);
@@ -6580,7 +6676,12 @@
                     <tr>
                         <td colspan="6" class="text-center py-5">
                             <div class="d-flex flex-column align-items-center">
-                                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                                <div class="mb-3" style="color: #0d6efd;">
+                                    <div class="bouncing-dots size-xl">
+                                        <span class="dot"></span>
+                                        <span class="dot"></span>
+                                        <span class="dot"></span>
+                                    </div>
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
                                 <h6 class="text-muted mb-2">Loading User Directory</h6>
@@ -7128,7 +7229,7 @@
             const saveButton = event.target;
             const originalText = saveButton.innerHTML;
             saveButton.disabled = true;
-            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+            saveButton.innerHTML = '<span class="me-1" style="color: white;"><span class="bouncing-dots size-sm"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>Saving...';
 
             google.script.run
                 .withSuccessHandler(function(result) {
@@ -7188,7 +7289,7 @@
             const deleteButton = event.target.closest('button');
             const originalContent = deleteButton.innerHTML;
             deleteButton.disabled = true;
-            deleteButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+            deleteButton.innerHTML = '<span class="me-1" style="color: white;"><span class="bouncing-dots size-sm"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>';
 
             google.script.run
                 .withSuccessHandler(function(result) {
@@ -7281,7 +7382,7 @@
             const submitButton = document.getElementById('changePasswordBtn');
             const originalText = submitButton.innerHTML;
             submitButton.disabled = true;
-            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Changing Password...';
+            submitButton.innerHTML = '<span class="me-1" style="color: white;"><span class="bouncing-dots size-sm"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>Changing Password...';
             
             // Google Apps Script call
             google.script.run
@@ -7606,7 +7707,12 @@
             tableBody.innerHTML = `
                 <tr>
                     <td colspan="6" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
+                        <div style="color: #0d6efd;">
+                            <div class="bouncing-dots size-lg">
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                            </div>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <p class="mt-2 text-muted">Loading drivers...</p>
@@ -8570,7 +8676,7 @@
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Processing...';
+            submitBtn.innerHTML = '<span class="me-1" style="color: white;"><span class="bouncing-dots size-sm"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>Processing...';
 
             google.script.run
                 .withSuccessHandler(function(result) {
@@ -8626,7 +8732,12 @@
             logsBody.innerHTML = `
                 <tr>
                     <td colspan="5" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
+                        <div style="color: #0d6efd;">
+                            <div class="bouncing-dots size-lg">
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                                <span class="dot"></span>
+                            </div>
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <p class="mt-2 text-muted mb-0">Loading transaction logs...</p>
@@ -8709,7 +8820,7 @@
             const originalContent = refreshBtn.innerHTML;
             
             refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Refreshing...';
+            refreshBtn.innerHTML = '<span class="me-1" style="color: white;"><span class="bouncing-dots size-sm"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></span>Refreshing...';
             
             google.script.run
                 .withSuccessHandler(function(logs) {
