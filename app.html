@@ -938,6 +938,65 @@
             to { transform: rotate(360deg); }
         }
         
+        /* Mobile/Tablet specific transaction button styles */
+        @media (max-width: 991px) {
+            /* Enhanced transaction button feedback for mobile/tablet */
+            .vehicle-action-btn:disabled {
+                opacity: 0.5 !important;
+                cursor: not-allowed !important;
+                transform: none !important;
+            }
+            
+            .vehicle-action-btn:disabled .spin {
+                color: #6c757d !important;
+                font-size: 1rem !important;
+            }
+            
+            /* Larger touch targets for mobile */
+            .vehicle-action-btn {
+                min-width: 44px !important;
+                min-height: 44px !important;
+                padding: 8px 12px !important;
+            }
+            
+            /* QR scanner submit button mobile styles */
+            #qrTransactionForm button[type="submit"]:disabled {
+                opacity: 0.6 !important;
+                background-color: #6c757d !important;
+                border-color: #6c757d !important;
+                cursor: not-allowed !important;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            /* Mobile-specific transaction protection styles */
+            .vehicle-action-btn {
+                font-size: 0.75rem !important;
+                padding: 6px 10px !important;
+                min-width: 40px !important;
+                min-height: 40px !important;
+            }
+            
+            .vehicle-action-btn:disabled {
+                opacity: 0.4 !important;
+            }
+            
+            .vehicle-action-btn .spin {
+                font-size: 0.9rem !important;
+            }
+            
+            /* Enhanced visual feedback for touch devices */
+            .vehicle-action-btn:active:not(:disabled) {
+                transform: scale(0.95) !important;
+                background-color: rgba(13, 110, 253, 0.8) !important;
+            }
+            
+            /* Toast messages positioning for mobile during transactions */
+            .toast-container {
+                z-index: 9999 !important;
+            }
+        }
+        
         .gate-selector {
             border-left: 3px solid #667eea;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
@@ -3655,31 +3714,63 @@
             console.log('Session cleared');
         }
 
+        // Track last transaction time to prevent rapid double-taps on mobile
+        let lastTransactionTime = 0;
+        const MOBILE_DEBOUNCE_TIME = 300; // 300ms debounce for mobile
+        
         // Transaction management functions to prevent multiple clicks
         function setTransactionInProgress(inProgress, vehicleIndex = -1) {
             isTransactionInProgress = inProgress;
             currentTransactionIndex = inProgress ? vehicleIndex : -1;
+            
+            // Detect if we're on mobile/tablet for enhanced feedback
+            const isMobile = window.innerWidth <= 767;
+            const isTablet = window.innerWidth <= 991 && window.innerWidth > 767;
             
             // Disable/enable all transaction buttons (vehicle list buttons)
             const transactionButtons = document.querySelectorAll('.vehicle-action-btn, [onclick*="toggleVehicleStatus"]');
             transactionButtons.forEach(button => {
                 if (inProgress) {
                     button.disabled = true;
-                    button.style.opacity = '0.6';
+                    
+                    // Enhanced mobile/tablet styling
+                    if (isMobile) {
+                        button.style.opacity = '0.4';
+                        button.style.transform = 'none';
+                        button.style.backgroundColor = '#e9ecef';
+                        button.style.borderColor = '#dee2e6';
+                    } else if (isTablet) {
+                        button.style.opacity = '0.5';
+                        button.style.transform = 'none';
+                    } else {
+                        button.style.opacity = '0.6';
+                    }
+                    
                     button.style.cursor = 'not-allowed';
+                    button.style.pointerEvents = 'none'; // Prevent touch events on mobile
                     
                     // Add loading indicator to the specific button for current transaction
                     if (vehicleIndex >= 0 && button.getAttribute('onclick') && 
                         button.getAttribute('onclick').includes(`toggleVehicleStatus(${vehicleIndex})`)) {
                         const originalText = button.innerHTML;
-                        button.innerHTML = '<i class="bi bi-arrow-clockwise spin"></i>';
+                        const spinnerSize = isMobile ? '0.9rem' : '1rem';
+                        button.innerHTML = `<i class="bi bi-arrow-clockwise spin" style="font-size: ${spinnerSize}"></i>`;
                         button.setAttribute('data-original-text', originalText);
                         button.title = 'Processing transaction...';
+                        
+                        // Add haptic feedback for mobile devices
+                        if (isMobile && 'vibrate' in navigator) {
+                            navigator.vibrate(50); // Brief vibration
+                        }
                     }
                 } else {
                     button.disabled = false;
                     button.style.opacity = '1';
                     button.style.cursor = 'pointer';
+                    button.style.pointerEvents = 'auto';
+                    button.style.backgroundColor = '';
+                    button.style.borderColor = '';
+                    button.style.transform = '';
                     
                     // Restore original button text and title
                     const originalText = button.getAttribute('data-original-text');
@@ -3704,10 +3795,16 @@
             const qrSubmitBtn = document.querySelector('#qrTransactionForm button[type="submit"]');
             if (qrSubmitBtn) {
                 qrSubmitBtn.disabled = inProgress;
-                qrSubmitBtn.style.opacity = inProgress ? '0.6' : '1';
+                qrSubmitBtn.style.opacity = inProgress ? (isMobile ? '0.4' : '0.6') : '1';
+                qrSubmitBtn.style.pointerEvents = inProgress ? 'none' : 'auto';
             }
             
-            console.log('Transaction in progress:', inProgress, 'for vehicle index:', vehicleIndex);
+            // Show visual feedback for longer operations on mobile
+            if (inProgress && (isMobile || isTablet)) {
+                showToast('Processing transaction...', 'info', 2000);
+            }
+            
+            console.log('Transaction in progress:', inProgress, 'for vehicle index:', vehicleIndex, 'Device:', isMobile ? 'Mobile' : isTablet ? 'Tablet' : 'Desktop');
         }
         
         function restoreSession() {
@@ -4869,6 +4966,15 @@
                 console.log('Transaction already in progress, ignoring click');
                 return;
             }
+            
+            // Mobile debouncing to prevent double-taps
+            const currentTime = Date.now();
+            const isMobile = window.innerWidth <= 767;
+            if (isMobile && (currentTime - lastTransactionTime) < MOBILE_DEBOUNCE_TIME) {
+                console.log('Mobile double-tap detected, ignoring click');
+                return;
+            }
+            lastTransactionTime = currentTime;
 
             // Add error handling for vehicle data
             if (!vehicleData || vehicleData.length === 0) {
@@ -9010,6 +9116,15 @@
                 console.log('QR Transaction already in progress, ignoring submission');
                 return;
             }
+            
+            // Mobile debouncing to prevent double-taps
+            const currentTime = Date.now();
+            const isMobile = window.innerWidth <= 767;
+            if (isMobile && (currentTime - lastTransactionTime) < MOBILE_DEBOUNCE_TIME) {
+                console.log('QR Mobile double-tap detected, ignoring submission');
+                return;
+            }
+            lastTransactionTime = currentTime;
 
             const form = document.getElementById('qrTransactionForm');
             const plateNumber = document.getElementById('scannedPlate').textContent;
