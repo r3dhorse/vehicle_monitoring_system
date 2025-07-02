@@ -20,7 +20,7 @@
     <!-- QR Code Scanner Library -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     
-    <style>
+<style>
         /* CSS Reset and Performance Optimizations */
         * {
             box-sizing: border-box;
@@ -31,11 +31,36 @@
             will-change: transform;
         }
         
+        /* Driver checkbox container styling */
+        .driver-checkbox-container {
+            background-color: #f8f9fa;
+        }
+        
+        .driver-checkbox-container .form-check {
+            padding: 0.25rem 0.5rem;
+            margin-bottom: 0.25rem;
+            transition: background-color 0.2s ease;
+        }
+        
+        .driver-checkbox-container .form-check:hover {
+            background-color: #e9ecef;
+        }
+        
+        .driver-checkbox-container .form-check-label {
+            cursor: pointer;
+            width: 100%;
+        }
+        
         /* Enhanced search input styling */
+        .search-container {
+            position: relative;
+        }
+        
         #searchInput {
             border: 2px solid #e0e0e0;
             transition: all 0.3s ease;
-            padding-left: 1rem;
+            padding-left: 2.5rem;
+            padding-right: 2.5rem;
         }
         
         #searchInput:focus {
@@ -47,6 +72,187 @@
         #searchInput::placeholder {
             color: #6c757d;
             font-size: 0.9rem;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 3;
+            pointer-events: none;
+        }
+        
+        .search-clear {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            z-index: 3;
+            padding: 0.25rem;
+            border-radius: 3px;
+            transition: all 0.2s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .search-clear:hover {
+            background-color: #e9ecef;
+            color: #dc3545;
+        }
+        
+        .search-clear.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Search suggestions dropdown */
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 0.375rem 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1050;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .search-suggestions.show {
+            display: block;
+        }
+        
+        .suggestion-item {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .suggestion-item:hover,
+        .suggestion-item.highlighted {
+            background-color: #f8f9fa;
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .suggestion-text {
+            font-weight: 500;
+        }
+        
+        .suggestion-type {
+            font-size: 0.75rem;
+            color: #6c757d;
+            background: #e9ecef;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+        }
+        
+        .suggestion-match {
+            background-color: #fff3cd;
+            font-weight: bold;
+        }
+        
+        /* Search history */
+        .search-history {
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+        
+        .search-history-header {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6c757d;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .clear-history-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .clear-history-btn:hover {
+            text-decoration: underline;
+        }
+        
+        /* Search shortcuts */
+        .search-shortcuts {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 0.75rem;
+            z-index: 1001;
+            display: none;
+            min-width: 250px;
+        }
+        
+        .search-shortcuts.show {
+            display: block;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0;
+            font-size: 0.875rem;
+        }
+        
+        .shortcut-key {
+            background: #e9ecef;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+        
+        /* Loading indicator in search */
+        .search-loading {
+            position: absolute;
+            right: 2.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 3;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .search-loading.show {
+            opacity: 1;
+        }
+        
+        /* Search results counter */
+        .search-results-counter {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
         }
         
         /* Mobile-first responsive design */
@@ -196,12 +402,14 @@
                 -webkit-overflow-scrolling: touch;
             }
         }
+        
         .login-page {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
         }
+        
         .login-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -209,6 +417,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             border: 1px solid rgba(255,255,255,0.2);
         }
+        
         .login-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -216,6 +425,7 @@
             padding: 2rem 1.5rem 1.5rem;
             text-align: center;
         }
+        
         .form-control:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
@@ -239,15 +449,18 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
+        
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
         }
+        
         .alert { border-radius: 10px; border: none; }
         .hidden { display: none !important; }
         
         .dashboard-page { min-height: 100vh; background: #f8f9fa; }
         .navbar-brand { font-weight: 600; }
+        
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -256,14 +469,17 @@
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+        
         .stats-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         }
+        
         .stats-card .card-body {
             position: relative;
             z-index: 2;
         }
+        
         .stats-card::before {
             content: "";
             position: absolute;
@@ -275,10 +491,12 @@
             transform: rotate(45deg);
             transition: all 0.5s ease;
         }
+        
         .stats-card:hover::before {
             top: -60%;
             right: -60%;
         }
+        
         .stats-icon {
             position: absolute;
             right: 20px;
@@ -287,22 +505,26 @@
             font-size: 3rem;
             opacity: 0.3;
         }
+        
         .stats-number {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 0;
             transition: all 0.3s ease;
         }
+        
         .stats-label {
             font-size: 0.9rem;
             opacity: 0.9;
             margin-bottom: 0;
         }
+        
         .stats-percentage {
             font-size: 0.8rem;
             margin-top: 0.5rem;
             opacity: 0.8;
         }
+        
         .stats-progress {
             height: 4px;
             background: rgba(255,255,255,0.2);
@@ -310,6 +532,7 @@
             margin-top: 0.5rem;
             overflow: hidden;
         }
+        
         .stats-progress-bar {
             height: 100%;
             background: rgba(255,255,255,0.8);
@@ -380,6 +603,7 @@
                 gap: 0.5rem;
             }
         }
+        
         .vehicle-card {
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
@@ -389,10 +613,12 @@
             border-left: 4px solid transparent;
             -webkit-tap-highlight-color: transparent;
         }
+        
         .vehicle-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
+        
         @media (hover: none) {
             .vehicle-card:hover {
                 transform: none;
@@ -401,55 +627,69 @@
                 transform: scale(0.98);
             }
         }
+        
         .vehicle-card.status-in {
             border-left-color: #28a745;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         }
+        
         .vehicle-card.status-out {
             border-left-color: #dc3545;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         }
+        
         .vehicle-card.access-banned {
             border: 3px solid #dc3545 !important;
             border-left: 4px solid #dc3545 !important;
         }
+        
         .vehicle-card.access-no-access {
             border: 3px solid #fd7e14 !important;
             border-left: 4px solid #fd7e14 !important;
         }
+        
         .vehicle-status-columns .card {
             border: 1px solid #dee2e6;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
+        
         .vehicle-status-columns .card-header {
             font-weight: 600;
             border-bottom: none;
         }
+        
         .vehicle-list {
             max-height: 600px;
             overflow-y: auto;
         }
+        
         .vehicle-list::-webkit-scrollbar {
             width: 6px;
         }
+        
         .vehicle-list::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 3px;
         }
+        
         .vehicle-list::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 3px;
         }
+        
         .vehicle-list::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        
         .lazy-loading-indicator {
             padding: 20px;
             opacity: 0.7;
         }
+        
         .vehicle-card {
             animation: fadeIn 0.2s ease-out;
         }
+        
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -460,20 +700,24 @@
                 transform: translateY(0);
             }
         }
+        
         .vehicle-info {
             font-size: 0.9rem;
             color: #6c757d;
         }
+        
         .no-vehicles {
             text-align: center;
             padding: 40px 20px;
             color: #6c757d;
         }
+        
         .no-vehicles i {
             font-size: 3rem;
             margin-bottom: 15px;
             opacity: 0.5;
         }
+        
         .status-in { background-color: #28a745; color: white; }
         .status-out { background-color: #dc3545; color: white; }
         
@@ -481,23 +725,29 @@
         .transaction-logs-container {
             border-radius: 0 0 0.375rem 0.375rem;
         }
+        
         .transaction-logs-container::-webkit-scrollbar {
             width: 6px;
         }
+        
         .transaction-logs-container::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 3px;
         }
+        
         .transaction-logs-container::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 3px;
         }
+        
         .transaction-logs-container::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+        
         #transactionLogsTable {
             font-size: 0.8rem;
         }
+        
         #transactionLogsTable thead th {
             background-color: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
@@ -510,17 +760,21 @@
             top: 0;
             z-index: 10;
         }
+        
         #transactionLogsTable tbody tr {
             transition: all 0.2s ease;
         }
+        
         #transactionLogsTable tbody tr:hover {
             background-color: #f1f3f5 !important;
         }
+        
         #transactionLogsTable tbody td {
             padding: 6px 6px;
             vertical-align: middle;
             border-bottom: 1px solid #f1f1f1;
         }
+        
         .badge-sm {
             font-size: 0.65rem;
             padding: 2px 6px;
@@ -630,14 +884,17 @@
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
+        
         .gate-selector {
             border-left: 3px solid #667eea;
             background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         }
+        
         .gate-selector:focus {
             border-left-color: #764ba2;
             box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
         }
+        
         .plate-number {
             font-family: 'Courier New', monospace;
             font-weight: bold;
@@ -648,13 +905,16 @@
             border: 2px solid #dee2e6;
             display: inline-block;
         }
+        
         .vehicle-actions {
             display: flex;
             gap: 4px;
         }
+        
         .vehicle-plate {
             flex: 1;
         }
+        
         .add-vehicle-btn {
             position: fixed;
             bottom: 30px;
@@ -667,6 +927,7 @@
             transition: all 0.3s ease;
             display: none; /* Hidden by default */
         }
+        
         .add-vehicle-btn:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
@@ -695,42 +956,52 @@
         #loginPage:not(.hidden) ~ * .qr-scanner-btn {
             display: none !important;
         }
+        
         .role-badge {
             font-size: 0.8rem;
             padding: 4px 8px;
         }
+        
         .role-badge.super-admin {
             background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
         }
+        
         .role-badge.admin {
             background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
             color: white;
         }
+        
         .role-badge.security {
             background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             color: white;
         }
+        
         .user-management-modal .modal-dialog {
             max-width: min(95vw, 900px);
             margin: 1rem auto;
         }
+        
         .user-card {
             border-left: 4px solid transparent;
             transition: all 0.3s ease;
         }
+        
         .user-card.super-admin { border-left-color: #dc3545; }
         .user-card.admin { border-left-color: #28a745; }
         .user-card.security { border-left-color: #17a2b8; }
+        
         .user-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
+        
         .permissions-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
         }
+        
         .permission-item {
             padding: 10px;
             border: 1px solid #dee2e6;
@@ -862,6 +1133,155 @@
             transition: all 0.2s ease;
         }
         
+        /* ENHANCED VEHICLE EDIT MODAL STYLES */
+        
+        /* One Time Pass Section - Moved to Top */
+        .one-time-pass-section {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .one-time-pass-section .form-check-input:checked {
+            background-color: #ff6b35;
+            border-color: #ff6b35;
+        }
+        
+        .enhanced-tooltip {
+            cursor: help;
+        }
+        
+        .loading-overlay {
+            backdrop-filter: blur(2px);
+        }
+        
+        /* Form Section Styling */
+        .form-section {
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #6c757d;
+        }
+        
+        .form-section h6 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        /* Status Badge Enhancements */
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        /* Required Field Indicator */
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
+        
+        /* Driver Info Section */
+        .driver-info {
+            background-color: #e3f2fd;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        
+        /* Enhanced Modal Styling */
+        .modal-xl {
+            max-width: 1200px;
+        }
+        
+        /* Enhanced Loading Overlay */
+        .enhanced-loading-overlay {
+            backdrop-filter: blur(5px);
+            background: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .enhanced-loading-overlay .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        /* Form Validation Styling */
+        .was-validated .form-control:invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        
+        .was-validated .form-control:valid {
+            border-color: #28a745;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='m2.3 6.73.4.36 3.7-3.73L5.84 2.9l-3 3.06L2.1 5.4l-.36.36z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        
+        /* Input Group Enhancements */
+        .input-group-text {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+        }
+        
+        /* Enhanced Tooltips */
+        .tooltip {
+            font-size: 0.8rem;
+        }
+        
+        .tooltip-inner {
+            max-width: 250px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+        
+        /* Modal Footer Enhancements */
+        .modal-footer.bg-light {
+            background-color: #f8f9fa !important;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Responsive Enhancements for Vehicle Edit Modal */
+        @media (max-width: 1200px) {
+            .modal-xl {
+                max-width: 95vw;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .one-time-pass-section {
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+            
+            .form-section {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            
+            .form-section h6 {
+                font-size: 1rem;
+                margin-bottom: 10px;
+            }
+            
+            .enhanced-loading-overlay .spinner-border {
+                width: 2.5rem;
+                height: 2.5rem;
+            }
+        }
+        
         /* Fullscreen mode styles with immersive experience */
         .fullscreen-mode {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
@@ -981,7 +1401,7 @@
         
         .fullscreen-mode .fullscreen-toolbar {
             opacity: 1;
-            transform: translateY(-50%) translateX(0);
+            transform: translateY(-234%) translateX(0);
         }
         
         .fullscreen-toolbar .btn {
@@ -1339,10 +1759,83 @@
             }
         }
     </style>
+
+    <style>
+        /* Loading Screen Styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-icon {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+        
+        .loading-text {
+            font-size: 1.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+        
+        .loading-subtext {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+    </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <i class="bi bi-truck loading-icon"></i>
+            <div class="loading-spinner"></div>
+            <h2 class="loading-text">Vehicle Monitoring System</h2>
+            <p class="loading-subtext">Initializing...</p>
+        </div>
+    </div>
+
     <!-- Login Page -->
-    <div id="loginPage" class="login-page">
+    <div id="loginPage" class="login-page hidden">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-md-6 col-lg-5">
@@ -1414,6 +1907,9 @@
                     <div class="navbar-nav ms-auto">
                     <button class="btn btn-outline-light btn-sm me-3" id="vehicleManagementBtn" style="display: none;" onclick="showVehicleManagement()">
                         <i class="bi bi-truck me-1"></i>Manage Vehicles
+                    </button>
+                    <button class="btn btn-outline-light btn-sm me-3" id="driverManagementBtn" style="display: none;" onclick="showDriverManagement()">
+                        <i class="bi bi-person-badge me-1"></i>Manage Drivers
                     </button>
                     <button class="btn btn-outline-light btn-sm me-3" id="gateManagementBtn" style="display: none;" onclick="showGateManagement()">
                         <i class="bi bi-door-open me-1"></i>Manage Gates
@@ -1556,40 +2052,67 @@
                 <div class="col-12 col-md-3 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
                         <small>
-                            <i class="bi bi-search me-1"></i>Search by:
+                            <i class="bi bi-search me-1"></i>Smart Search:
                             <i class="bi bi-info-circle ms-1 text-primary" 
                                data-bs-toggle="tooltip" 
                                data-bs-placement="top" 
-                               title="Search across: Plate Number, Model/Make, Department, Current Driver, and Assigned Drivers"
+                               title="Enhanced search with auto-suggestions, history, and keyboard shortcuts (Ctrl+K to focus)"
                                style="cursor: help;"></i>
                         </small>
                     </label>
-                    <input type="text" class="form-control" id="searchInput" 
-                           placeholder="Search plate, model, department, driver..." 
-                           onkeyup="debounceFilter()"
-                           title="Search by plate number, model/make, department, or driver"
-                           autocomplete="off">
-                </div>
-                <div class="col-6 col-md-2 mb-2 mb-md-0">
-                    <label class="form-label mb-1 d-none d-md-block">
-                        <small><i class="bi bi-filter me-1"></i>Status:</small>
-                    </label>
-                    <select class="form-select" id="filterStatus" onchange="filterVehicles()">
-                        <option value="">All Status</option>
-                        <option value="IN">🟢 Checked IN</option>
-                        <option value="OUT">🔴 Checked OUT</option>
-                    </select>
-                </div>
-                <div class="col-6 col-md-2 mb-2 mb-md-0">
-                    <label class="form-label mb-1 d-none d-md-block">
-                        <small><i class="bi bi-shield me-1"></i>Access:</small>
-                    </label>
-                    <select class="form-select" id="filterAccessStatus" onchange="filterVehicles()">
-                        <option value="">All Access</option>
-                        <option value="Access">✅ Access</option>
-                        <option value="No Access">⚠️ No Access</option>
-                        <option value="Banned">🚫 Banned</option>
-                    </select>
+                    <div class="search-container">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="form-control" id="searchInput" 
+                               placeholder="Search plate, model, department, driver... (Ctrl+K)" 
+                               title="Search by plate number, model/make, department, or driver"
+                               autocomplete="off"
+                               onkeyup="debounceFilter()">
+                        <div class="search-loading">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Searching...</span>
+                            </div>
+                        </div>
+                        <button type="button" class="search-clear" onclick="clearSearchInput()" title="Clear search">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                        
+                        <!-- Search Suggestions Dropdown -->
+                        <div class="search-suggestions" id="searchSuggestions">
+                            <!-- Suggestions will be populated dynamically -->
+                        </div>
+                        
+                        <!-- Search Shortcuts Panel -->
+                        <div class="search-shortcuts" id="searchShortcuts">
+                            <div class="fw-bold mb-2 text-primary">
+                                <i class="bi bi-keyboard me-1"></i>Search Shortcuts
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Focus search</span>
+                                <span class="shortcut-key">Ctrl + K</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Clear search</span>
+                                <span class="shortcut-key">Escape</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Search by type</span>
+                                <span class="shortcut-key">type:car</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Search by status</span>
+                                <span class="shortcut-key">status:in</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Search by access</span>
+                                <span class="shortcut-key">access:banned</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <span>Exact match</span>
+                                <span class="shortcut-key">"plate ABC"</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-results-counter" id="searchResultsCounter"></div>
                 </div>
                 <div class="col-6 col-md-2 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
@@ -1603,14 +2126,6 @@
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>
                     </div>
-                </div>
-                <div class="col-12 col-md-3 text-center text-md-end mt-2 mt-md-0 d-flex align-items-end justify-content-center justify-content-md-end gap-2">
-                    <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()" title="Clear all filters">
-                        <i class="bi bi-x-circle me-1"></i><span class="d-none d-lg-inline">Clear</span>
-                    </button>
-                    <button class="btn btn-primary" onclick="refreshDashboard()">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                    </button>
                 </div>
             </div>
 
@@ -1720,7 +2235,7 @@
                                 Recent Transactions
                                 <span class="badge bg-light text-secondary ms-2" id="transactionCount">50</span>
                             </h6>
-                            <button class="btn btn-sm btn-light" onclick="refreshTransactionLogs()" title="Refresh logs">
+                            <button class="btn btn-sm btn-light" onclick="refreshTransactionLogs(); refreshDashboard()" title="Refresh logs">
                                 <i class="bi bi-arrow-clockwise"></i>
                             </button>
                         </div>
@@ -1779,156 +2294,310 @@
     
 
 
-    <!-- Vehicle Details Modal -->
-    <div class="modal fade" id="vehicleDetailsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+
+    <!-- Edit Vehicle Modal -->
+    <div class="modal fade" id="editVehicleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="detailsModalTitle">Vehicle Details</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Vehicle Information
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body" id="detailsModalBody">
-                    <!-- Details will be loaded here -->
+                <div class="modal-body">
+                    <!-- Enhanced Loading Overlay -->
+                    <div id="editVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-90 loading-overlay" style="z-index: 1050;">
+                        <div class="text-center">
+                            <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-3 text-muted fw-medium">Saving changes...</div>
+                            <div class="mt-1 text-muted small">Please wait while we update the vehicle information</div>
+                        </div>
+                    </div>
+
+                    <form id="editVehicleForm">
+                        <input type="hidden" id="editVehicleIndex">
+                        
+                        <!-- One Time Pass Section - Moved to Top -->
+                        <div class="one-time-pass-section">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check form-switch me-3">
+                                        <input class="form-check-input" type="checkbox" id="editOneTimePass" role="switch">
+                                        <label class="form-check-label fw-bold" for="editOneTimePass">
+                                            <i class="bi bi-key-fill text-warning me-2"></i>One Time Pass
+                                        </label>
+                                    </div>
+                                    <i class="bi bi-info-circle-fill text-muted enhanced-tooltip" data-bs-toggle="tooltip" 
+                                       data-bs-placement="right"
+                                       title="When enabled, allows a restricted vehicle one-time access. Will automatically disable after successful entry."></i>
+                                </div>
+                                <span class="badge bg-warning text-dark status-badge" id="oneTimePassStatus">Disabled</span>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    This setting provides temporary access and will reset automatically after use.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Basic Vehicle Information -->
+                        <div class="form-section">
+                            <h6><i class="bi bi-car-front me-2"></i>Basic Vehicle Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Plate Number</label>
+                                        <input type="text" class="form-control" id="editPlateNumber" required 
+                                               placeholder="Enter plate number">
+                                        <div class="invalid-feedback">
+                                            Please provide a valid plate number.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label required-field">Make/Model</label>
+                                        <input type="text" class="form-control" id="editModel" required 
+                                               placeholder="e.g., Toyota Camry">
+                                        <div class="invalid-feedback">
+                                            Please provide the vehicle make and model.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Color</label>
+                                        <input type="text" class="form-control" id="editColor" 
+                                               placeholder="e.g., Red, Blue">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Year</label>
+                                        <input type="number" class="form-control" id="editYear" 
+                                               min="1900" max="2030" placeholder="YYYY">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Vehicle Type</label>
+                                        <select class="form-select" id="editType">
+                                            <option value="">Select type...</option>
+                                            <option value="Car">Car</option>
+                                            <option value="Truck">Truck</option>
+                                            <option value="Van">Van</option>
+                                            <option value="Motorcycle">Motorcycle</option>
+                                            <option value="Bus">Bus</option>
+                                            <option value="SUV">SUV</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Organization Information -->
+                        <div class="form-section">
+                            <h6><i class="bi bi-building me-2"></i>Organization Information</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Department/Company</label>
+                                        <input type="text" class="form-control" id="editDepartment" 
+                                               placeholder="Enter department or company name">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">MV File Number</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-file-earmark-text"></i></span>
+                                            <input type="text" class="form-control" id="editMVFile" 
+                                                   placeholder="Motor Vehicle file number or reference">
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="bi bi-info-circle me-1"></i>Optional: Internal file reference number
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Driver Assignment -->
+                        <div class="form-section">
+                            <h6><i class="bi bi-person-check me-2"></i>Driver Assignment</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Current Driver</label>
+                                        <select class="form-select" id="editDriver">
+                                            <option value="">Select a driver...</option>
+                                            <!-- Options will be loaded dynamically -->
+                                        </select>
+                                        <div class="driver-info mt-2">
+                                            <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                                            <small class="text-warning fw-medium" id="driverChangeWarning">
+                                                Changing driver will automatically log a vehicle IN/OUT transaction
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Authorized Drivers</label>
+                                        <div class="driver-checkbox-container border rounded p-3" style="max-height: 150px; overflow-y: auto;" id="editAssignedDriversContainer">
+                                            <div class="text-muted text-center">
+                                                <i class="bi bi-hourglass-split"></i> Loading drivers...
+                                            </div>
+                                        </div>
+                                        <div class="form-text">
+                                            <i class="bi bi-check2-square me-1"></i>Select drivers authorized to operate this vehicle
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Access Control -->
+                        <div class="form-section">
+                            <h6><i class="bi bi-shield-check me-2"></i>Access Control & Status</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Access Status</label>
+                                        <select class="form-select" id="editAccessStatus">
+                                            <option value="Access">
+                                                <i class="bi bi-check-circle"></i> Full Access
+                                            </option>
+                                            <option value="No Access">
+                                                <i class="bi bi-x-circle"></i> No Access
+                                            </option>
+                                            <option value="Banned">
+                                                <i class="bi bi-ban"></i> Banned
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Current Status</label>
+                                        <select class="form-select" id="editStatus">
+                                            <option value="OUT">
+                                                <i class="bi bi-arrow-right-circle"></i> Checked Out
+                                            </option>
+                                            <option value="IN">
+                                                <i class="bi bi-arrow-left-circle"></i> Checked In
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Last Updated</label>
+                                        <input type="text" class="form-control" id="editLastUpdated" readonly 
+                                               placeholder="System will update automatically">
+                                        <div class="form-text">
+                                            <i class="bi bi-clock me-1"></i>Automatically updated on save
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </form>
                 </div>
-                <div class="modal-footer" id="detailsModalFooter">
-                    <!-- Action buttons will be loaded here -->
+                <div class="modal-footer bg-light">
+                    <div class="d-flex justify-content-between w-100 align-items-center">
+                        <div class="text-muted small">
+                            <i class="bi bi-info-circle me-1"></i>
+                            All changes will be logged for audit purposes
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+                                <i class="bi bi-x-lg me-2"></i>Cancel
+                            </button>
+                            <button type="button" class="btn btn-warning" id="saveVehicleEditBtn" onclick="saveVehicleEdit()">
+                                <i class="bi bi-check-lg me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Edit Vehicle Modal -->
-    <div class="modal fade" id="editVehicleModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">
-                        <i class="bi bi-pencil-square me-2"></i>Edit Vehicle
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- Loading Overlay -->
-                    <div id="editVehicleLoading" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 1050;">
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <div class="mt-2 text-muted">Saving changes...</div>
-                        </div>
-                    </div>
-                    <form id="editVehicleForm">
-                        <input type="hidden" id="editVehicleIndex">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Plate Number <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editPlateNumber" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Make/Model <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="editModel" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Color</label>
-                                    <input type="text" class="form-control" id="editColor">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Year</label>
-                                    <input type="number" class="form-control" id="editYear" min="1900" max="2030">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Type</label>
-                                    <select class="form-select" id="editType">
-                                        <option value="Car">Car</option>
-                                        <option value="Truck">Truck</option>
-                                        <option value="Van">Van</option>
-                                        <option value="Motorcycle">Motorcycle</option>
-                                        <option value="Bus">Bus</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Department/Company</label>
-                                    <input type="text" class="form-control" id="editDepartment">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Current Driver</label>
-                                    <select class="form-select" id="editDriver">
-                                        <option value="">Select a driver...</option>
-                                        <!-- Options will be loaded dynamically -->
-                                    </select>
-                                    <div class="form-text text-warning">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        <span id="driverChangeWarning">Changing driver will log a vehicle IN/OUT transaction</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Assigned Drivers</label>
-                                    <input type="text" class="form-control" id="editAssignedDrivers" placeholder="Comma separated IDs">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Access Status</label>
-                                    <select class="form-select" id="editAccessStatus">
-                                        <option value="Access">Access</option>
-                                        <option value="No Access">No Access</option>
-                                        <option value="Banned">Banned</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="editOneTimePass" role="switch">
-                                        <label class="form-check-label" for="editOneTimePass">
-                                            One Time Pass
-                                            <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" 
-                                               title="When enabled, allows a restricted vehicle one-time access. Will automatically disable after successful entry."></i>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Status</label>
-                                    <select class="form-select" id="editStatus">
-                                        <option value="OUT">Checked Out</option>
-                                        <option value="IN">Checked In</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-warning" id="saveVehicleEditBtn" onclick="saveVehicleEdit()">
-                        <i class="bi bi-check-lg me-2"></i>Save Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+   
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Enhanced functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // One Time Pass status update
+            const oneTimePassCheckbox = document.getElementById('editOneTimePass');
+            const oneTimePassStatus = document.getElementById('oneTimePassStatus');
+            
+            if (oneTimePassCheckbox && oneTimePassStatus) {
+                oneTimePassCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        oneTimePassStatus.textContent = 'Enabled';
+                        oneTimePassStatus.className = 'badge bg-success status-badge';
+                    } else {
+                        oneTimePassStatus.textContent = 'Disabled';
+                        oneTimePassStatus.className = 'badge bg-warning text-dark status-badge';
+                    }
+                });
+            }
+
+            // Form validation
+            const form = document.getElementById('editVehicleForm');
+            if (form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                });
+            }
+
+            // Auto-update last updated field
+            const lastUpdatedField = document.getElementById('editLastUpdated');
+            if (lastUpdatedField) {
+                const now = new Date();
+                lastUpdatedField.value = now.toLocaleString();
+            }
+        });
+
+        // Placeholder for saveVehicleEdit function
+        function saveVehicleEdit() {
+            // Show loading overlay
+            const loadingOverlay = document.getElementById('editVehicleLoading');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('d-none');
+            }
+
+            // Simulate save operation
+            setTimeout(function() {
+                loadingOverlay.classList.add('d-none');
+                alert('Vehicle information saved successfully!');
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editVehicleModal'));
+                modal.hide();
+            }, 2000);
+        }
+    </script>
 
 
     <!-- Enhanced User Management Modal -->
@@ -2250,10 +2919,31 @@
                             <div class="mt-2 text-muted">Adding vehicle...</div>
                         </div>
                     </div>
+                    
                     <h6 class="mb-3">Add New Vehicle</h6>
+                    
+                    <!-- One Time Pass Toggle - Moved to Top -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-warning">
+                                <div class="card-body py-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="vehicleOneTimePass" role="switch">
+                                        <label class="form-check-label fw-semibold" for="vehicleOneTimePass">
+                                            <i class="bi bi-clock-history text-warning me-2"></i>One Time Pass
+                                            <i class="bi bi-info-circle-fill text-muted ms-2" data-bs-toggle="tooltip" 
+                                               title="When enabled, allows a restricted vehicle one-time access. Will automatically disable after successful entry."></i>
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">Enable for temporary vehicle access that expires after one entry</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Add Vehicle Form -->
                     <form id="addVehicleForm">
+                        <!-- Basic Information -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -2270,6 +2960,7 @@
                                 </div>
                             </div>
                         </div>
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -2286,6 +2977,8 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Vehicle Details -->
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="mb-3">
@@ -2297,7 +2990,7 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="vehicleType" class="form-label">Type</label>
-                                    <select class="form-select" id="vehicleType">
+                                    <select class="form-select" id="vehicleType" onchange="toggleMVFileField()">
                                         <option value="Car">Car</option>
                                         <option value="Truck">Truck</option>
                                         <option value="Van">Van</option>
@@ -2317,6 +3010,23 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- MV File Field - Only for Motorcycles -->
+                        <div class="row" id="mvFileRow" style="display: none;">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="vehicleMVFile" class="form-label">
+                                        <i class="bi bi-file-earmark-text me-1"></i>MV File
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control" id="vehicleMVFile" 
+                                           placeholder="Motor Vehicle file number or reference">
+                                    <small class="text-muted">Required for motorcycle registration</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Driver and Access Information -->
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -2329,32 +3039,22 @@
                                 <div class="mb-3">
                                     <label for="vehicleAccessStatus" class="form-label">Access Status</label>
                                     <select class="form-select" id="vehicleAccessStatus">
-                                        <option value="Access">Access</option>
+                                        <option value="Access">Full Access</option>
                                         <option value="No Access">No Access</option>
                                         <option value="Banned">Banned</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="vehicleOneTimePass" role="switch">
-                                        <label class="form-check-label" for="vehicleOneTimePass">
-                                            One Time Pass
-                                            <i class="bi bi-info-circle-fill text-muted ms-1" data-bs-toggle="tooltip" 
-                                               title="When enabled, allows a restricted vehicle one-time access. Will automatically disable after successful entry."></i>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        
                         <div class="mb-3">
                             <label for="vehicleAssignedDrivers" class="form-label">Assigned Drivers</label>
-                            <input type="text" class="form-control" id="vehicleAssignedDrivers" 
-                                   placeholder="Comma-separated driver names or IDs">
-                            <small class="text-muted">Enter multiple drivers separated by commas</small>
+                            <div class="driver-checkbox-container border rounded p-3" style="max-height: 150px; overflow-y: auto;" id="vehicleAssignedDriversContainer">
+                                <div class="text-muted text-center">
+                                    <i class="bi bi-hourglass-split"></i> Loading drivers...
+                                </div>
+                            </div>
+                            <small class="text-muted"><i class="bi bi-check2-square me-1"></i>Select drivers authorized to operate this vehicle</small>
                         </div>
                     </form>
                 </div>
@@ -2367,6 +3067,62 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Function to toggle MV File field based on vehicle type
+        function toggleMVFileField() {
+            const vehicleType = document.getElementById('vehicleType').value;
+            const mvFileRow = document.getElementById('mvFileRow');
+            const mvFileInput = document.getElementById('vehicleMVFile');
+            
+            if (vehicleType === 'Motorcycle') {
+                mvFileRow.style.display = 'block';
+                mvFileInput.required = true;
+            } else {
+                mvFileRow.style.display = 'none';
+                mvFileInput.required = false;
+                mvFileInput.value = ''; // Clear the field when hidden
+            }
+        }
+        
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+        
+        // Sample save function
+        function saveVehicle() {
+            const form = document.getElementById('addVehicleForm');
+            const loading = document.getElementById('addVehicleLoading');
+            
+            if (form.checkValidity()) {
+                // Show loading
+                loading.classList.remove('d-none');
+                
+                // Simulate save operation
+                setTimeout(() => {
+                    loading.classList.add('d-none');
+                    alert('Vehicle saved successfully!');
+                    // Close modal and reset form
+                    bootstrap.Modal.getInstance(document.getElementById('vehicleManagementModal')).hide();
+                    form.reset();
+                    toggleMVFileField(); // Reset MV file field visibility
+                }, 2000);
+            } else {
+                form.reportValidity();
+            }
+        }
+        
+        // Reset form when modal is closed
+        document.getElementById('vehicleManagementModal').addEventListener('hidden.bs.modal', function () {
+            document.getElementById('addVehicleForm').reset();
+            toggleMVFileField();
+        });
+    </script>
 
     <!-- QR Scanner Modal -->
     <div class="modal fade" id="qrScannerModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -2424,7 +3180,7 @@
                                 </div>
                             </div>
                              <div class="mt-3 text-center">
-                                  <button type="button" class="btn btn-success" onclick="initQRScanner()" id="restartScannerBtn">
+                                  <button type="button" class="btn btn-success" onclick="initQRScanner(); loadVehicles();" id="restartScannerBtn">
                                      Start Scanning <i class="bi bi-qr-code-scan"></i>
                                   </button>
                               </div>
@@ -2568,6 +3324,114 @@
         </div>
     </div>
 
+    <!-- Driver Management Modal -->
+    <div class="modal fade" id="driverManagementModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-badge me-2"></i>Driver Management
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="mb-0">Manage Drivers</h6>
+                        <button class="btn btn-primary" id="addNewDriverBtn" onclick="showAddDriverForm()">
+                            <i class="bi bi-plus-circle me-2"></i>Add New Driver
+                        </button>
+                    </div>
+                    
+                    <!-- Add/Edit Driver Form -->
+                    <div id="driverForm" class="mb-4" style="display: none;">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0" id="driverFormTitle">Add New Driver</h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="addEditDriverForm">
+                                    <input type="hidden" id="editDriverId" value="">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="driverName" class="form-label">Name *</label>
+                                                <input type="text" class="form-control" id="driverName" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="driverLicenseNumber" class="form-label">License Number *</label>
+                                                <input type="text" class="form-control" id="driverLicenseNumber" required>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="driverPhone" class="form-label">Phone</label>
+                                                <input type="tel" class="form-control" id="driverPhone">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="driverStatus" class="form-label">Status *</label>
+                                                <select class="form-select" id="driverStatus" required>
+                                                    <option value="Active">Active</option>
+                                                    <option value="Inactive">Inactive</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="saveDriver()">
+                                            <i class="bi bi-check-lg me-2"></i>Save Driver
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="cancelDriverForm()">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Driver List -->
+                    <div class="card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>License Number</th>
+                                            <th>Phone</th>
+                                            <th>Status</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="driverTableBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2 text-muted">Loading drivers...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-2"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
 
@@ -2612,6 +3476,13 @@
         // Table optimization configuration
         const DISPLAY_BATCH_SIZE = 100; // Load vehicles in batches for large datasets
         let filterTimeout = null;
+        
+        // Enhanced search configuration
+        let searchHistory = JSON.parse(localStorage.getItem('vms_search_history') || '[]');
+        let searchSuggestions = [];
+        let currentSearchQuery = '';
+        let searchCache = new Map();
+        let highlightedSuggestionIndex = -1;
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -2629,25 +3500,49 @@
         });
         
         function checkExistingSession() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const loadingSubtext = loadingScreen.querySelector('.loading-subtext');
+            
             // Try to restore session using the new function
             if (restoreSession()) {
                 console.log('User session restored, fetching permissions and showing dashboard');
+                loadingSubtext.textContent = 'Restoring session...';
                 
                 // Fetch permissions for the restored session
                 fetchUserPermissions()
                     .then(() => {
-                        showDashboard();
+                        loadingSubtext.textContent = 'Loading dashboard...';
+                        setTimeout(() => {
+                            hideLoadingScreen();
+                            showDashboard();
+                        }, 500);
                     })
                     .catch((error) => {
                         console.error('Failed to load permissions for restored session:', error);
                         // Still show dashboard but warn user
-                        showMessage('Session restored but failed to load permissions. Please refresh the page.', 'warning');
-                        showDashboard();
+                        loadingSubtext.textContent = 'Loading dashboard...';
+                        setTimeout(() => {
+                            hideLoadingScreen();
+                            showMessage('Session restored but failed to load permissions. Please refresh the page.', 'warning');
+                            showDashboard();
+                        }, 500);
                     });
             } else {
                 console.log('No valid session found, showing login page');
-                showLoginPage();
+                loadingSubtext.textContent = 'Please sign in...';
+                setTimeout(() => {
+                    hideLoadingScreen();
+                    showLoginPage();
+                }, 1000);
             }
+        }
+        
+        function hideLoadingScreen() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            loadingScreen.classList.add('fade-out');
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 500);
         }
 
         // Duplicate functions removed - using the ones defined earlier
@@ -2701,6 +3596,8 @@
             }
             
             loadVehicles();
+            loadDrivers(); // Load drivers for vehicle assignment dropdowns
+            initializeDriverDropdownListeners(); // Add event listeners for driver dropdowns
             loadActiveGates();
             loadTransactionLogs();
             loadDatabaseStatistics(); // Load database statistics separately
@@ -2711,6 +3608,9 @@
             
             // Initialize filter UI
             initializeFilterUI();
+            
+            // Initialize enhanced search functionality
+            initializeSearch();
         }
 
         function updateUIBasedOnRole() {
@@ -2752,6 +3652,14 @@
                 vehicleManagementBtn.style.display = 'inline-block';
             } else {
                 vehicleManagementBtn.style.display = 'none';
+            }
+            
+            // Show/hide driver management button (admin and super-admin only)
+            const driverManagementBtn = document.getElementById('driverManagementBtn');
+            if ((role === 'admin' || role === 'super-admin')) {
+                driverManagementBtn.style.display = 'inline-block';
+            } else {
+                driverManagementBtn.style.display = 'none';
             }
             
             // Show/hide gate management button (only super-admin)
@@ -2894,10 +3802,18 @@
                         saveSession(); // Save session to prevent logout on refresh
                         showMessage('Login successful!', 'success');
                         
+                        // Show loading screen for smooth transition
+                        const loadingScreen = document.getElementById('loadingScreen');
+                        const loadingSubtext = loadingScreen.querySelector('.loading-subtext');
+                        loadingScreen.style.display = 'flex';
+                        loadingScreen.classList.remove('fade-out');
+                        loadingSubtext.textContent = 'Loading your dashboard...';
+                        
                         // Fetch user permissions after successful login
                         fetchUserPermissions()
                             .then(() => {
                                 setTimeout(() => {
+                                    hideLoadingScreen();
                                     showDashboard();
                                 }, 1000);
                             })
@@ -2905,6 +3821,7 @@
                                 console.error('Failed to load permissions:', error);
                                 showMessage('Login successful but failed to load permissions. Some features may not work correctly.', 'warning');
                                 setTimeout(() => {
+                                    hideLoadingScreen();
                                     showDashboard();
                                 }, 1000);
                             });
@@ -2983,6 +3900,131 @@
             showToast('Dashboard refreshed', 'success');
         }
 
+        // Driver management functions
+        let availableDrivers = [];
+
+        function loadDrivers() {
+            google.script.run
+                .withSuccessHandler(function(drivers) {
+                    availableDrivers = drivers || [];
+                    populateDriverDropdowns();
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Failed to load drivers:', error);
+                    availableDrivers = [];
+                    populateDriverDropdowns();
+                })
+                .getDriverList();
+        }
+
+        function populateDriverDropdowns() {
+            const addDriverContainer = document.getElementById('vehicleAssignedDriversContainer');
+            const editDriverContainer = document.getElementById('editAssignedDriversContainer');
+            
+            // Clear existing content
+            addDriverContainer.innerHTML = '';
+            editDriverContainer.innerHTML = '';
+            
+            if (availableDrivers.length === 0) {
+                const noDriversMessage = '<div class="text-muted">No active drivers found</div>';
+                addDriverContainer.innerHTML = noDriversMessage;
+                editDriverContainer.innerHTML = noDriversMessage;
+                return;
+            }
+            
+            // Populate add vehicle checkboxes
+            availableDrivers.forEach(driver => {
+                const addCheckboxDiv = document.createElement('div');
+                addCheckboxDiv.className = 'form-check';
+                addCheckboxDiv.innerHTML = `
+                    <input class="form-check-input add-driver-checkbox" type="checkbox" 
+                           value="${driver.id}" id="addDriver_${driver.id}">
+                    <label class="form-check-label" for="addDriver_${driver.id}">
+                        ${driver.name} <small class="text-muted">(ID: ${driver.id}${driver.licenseNumber ? ' - ' + driver.licenseNumber : ''})</small>
+                    </label>
+                `;
+                addDriverContainer.appendChild(addCheckboxDiv);
+            });
+            
+            // Populate edit vehicle checkboxes
+            availableDrivers.forEach(driver => {
+                const editCheckboxDiv = document.createElement('div');
+                editCheckboxDiv.className = 'form-check';
+                editCheckboxDiv.innerHTML = `
+                    <input class="form-check-input edit-driver-checkbox" type="checkbox" 
+                           value="${driver.id}" id="editDriver_${driver.id}">
+                    <label class="form-check-label" for="editDriver_${driver.id}">
+                        ${driver.name} <small class="text-muted">(ID: ${driver.id}${driver.licenseNumber ? ' - ' + driver.licenseNumber : ''})</small>
+                    </label>
+                `;
+                editDriverContainer.appendChild(editCheckboxDiv);
+            });
+        }
+
+        function getSelectedDriverIds(selectElement) {
+            const selectedOptions = Array.from(selectElement.selectedOptions);
+            return selectedOptions.map(option => option.value).filter(value => value !== '');
+        }
+
+        function getSelectedDriverCheckboxIds() {
+            const checkboxes = document.querySelectorAll('.edit-driver-checkbox:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        function getSelectedAddDriverCheckboxIds() {
+            const checkboxes = document.querySelectorAll('.add-driver-checkbox:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value);
+        }
+
+        function setSelectedDriverIds(selectElement, driverIdsString) {
+            if (!driverIdsString) {
+                return;
+            }
+            
+            const driverIds = driverIdsString.split(',').map(id => id.trim()).filter(id => id);
+            Array.from(selectElement.options).forEach(option => {
+                option.selected = driverIds.includes(option.value);
+            });
+        }
+
+        function getDriverNameById(driverId) {
+            if (!driverId || driverId === 'Unassigned') {
+                return 'Unassigned';
+            }
+            
+            const driver = availableDrivers.find(d => String(d.id) === String(driverId));
+            return driver ? driver.name : `${driverId}`;
+        }
+
+        function setSelectedDriverCheckboxes(driverIdsString) {
+            if (!driverIdsString) {
+                // Uncheck all checkboxes if no drivers assigned
+                document.querySelectorAll('.edit-driver-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                return;
+            }
+            
+            const driverIds = driverIdsString.split(',').map(id => id.trim()).filter(id => id);
+            document.querySelectorAll('.edit-driver-checkbox').forEach(checkbox => {
+                const shouldBeChecked = driverIds.includes(String(checkbox.value));
+                checkbox.checked = shouldBeChecked;
+            });
+        }
+
+        // Add event listeners for driver dropdowns after DOM content loaded
+        function initializeDriverDropdownListeners() {
+            // Add event listener to edit driver checkboxes container using event delegation
+            const editDriverContainer = document.getElementById('editAssignedDriversContainer');
+            if (editDriverContainer) {
+                editDriverContainer.addEventListener('change', function(e) {
+                    if (e.target.classList.contains('edit-driver-checkbox')) {
+                        updateCurrentDriverDropdown();
+                    }
+                });
+            }
+        }
+
         function loadVehicles(searchCriteria = {}) {
             showLoading(true);
             const startTime = performance.now();
@@ -3001,7 +4043,7 @@
             console.log('Loading vehicles with criteria:', defaultCriteria);
             
             // Load vehicles and get total count for pagination
-            Promise.all([
+            return Promise.all([
                 new Promise((resolve, reject) => {
                     google.script.run
                         .withSuccessHandler(resolve)
@@ -3025,13 +4067,16 @@
                 displayVehicles();
                 updateStatistics();
                 updatePaginationControls(vehicles.length - 1, totalCount); // Subtract header row
+                
+                // Update search suggestions with new data
+                updateSearchSuggestions();
+                
                 showLoading(false);
                 
                 // Enhanced performance monitoring with actionable insights
-                if (loadTime > 3000) {
+                if (loadTime > 5000) {
                     console.warn('%c⚠️ Performance Alert', 'color: #ffc107; font-weight: bold;',
                         `\n📈 Load Time: ${(loadTime / 1000).toFixed(2)}s (Target: <3s)`
-                        + `\n📊 Vehicle Count: ${vehicles.length} records loaded`
                         + '\n🔧 Recommendations:'
                         + '\n   • Search terms help reduce dataset size'
                         + '\n   • Use filters to narrow results'
@@ -3149,18 +4194,49 @@
             if (accessStatus === 'No Access') accessTextClass = 'text-warning';
             if (accessStatus === 'Banned') accessTextClass = 'text-danger';
             
+            // Display 'Full Access' instead of 'Access' for better clarity
+            const displayAccessStatus = accessStatus === 'Access' ? 'Full Access' : accessStatus;
+            
             // Determine status text
             const statusText = status === 'IN' 
                 ? '<small class="text-success">IN</small>'
                 : '<small class="text-danger">OUT</small>';
             
+            // Check if edit button should be enabled for security role
+            const canEditVehicle = () => {
+                // Super admin and admin can always edit
+                if (hasPermission('vehicles', 'update')) {
+                    return true;
+                }
+                // Security role can only edit if Access status is 'Access' OR one-time pass is active
+                if (hasPermission('vehicles', 'updateDriver')) {
+                    return accessStatus === 'Access' || oneTimePass === 'Yes';
+                }
+                return false;
+            };
+            
+            const editButtonEnabled = canEditVehicle();
+            
+            // Determine button text and icon based on user role
+            const getButtonConfig = () => {
+                if (hasPermission('vehicles', 'update')) {
+                    return { text: 'Edit', icon: 'bi-pencil-square' }; // Super admin and admin see 'Edit'
+                } else if (hasPermission('vehicles', 'updateDriver')) {
+                    return { text: 'Change Driver', icon: 'bi-person-gear' }; // Security role sees 'Change Driver'
+                }
+                return { text: 'Edit', icon: 'bi-pencil-square' }; // Fallback
+            };
+            
+            const buttonConfig = getButtonConfig();
+            
             // Create modern action buttons following UI/UX best practices
             const detailsButton = `
                 <button class="btn btn-outline-primary btn-sm vehicle-action-btn" 
-                        onclick="showVehicleDetails(${index})" 
-                        title="View vehicle details and information"
-                        aria-label="View details for vehicle ${plateNumber}"
+                        onclick="editVehicle(${index})" 
+                        title="${editButtonEnabled ? (buttonConfig.text + ' vehicle information and details') : 'Edit disabled - Full Access required or one-time pass needed'}"
+                        aria-label="${buttonConfig.text} vehicle ${plateNumber}"
                         data-bs-toggle="tooltip"
+                        ${!editButtonEnabled ? 'disabled aria-disabled="true"' : ''}
                         style="
                             padding: 8px 12px; 
                             font-size: 0.9rem; 
@@ -3178,23 +4254,27 @@
                             position: relative;
                             overflow: hidden;
                             width: 100%;
+                            ${!editButtonEnabled ? 'opacity: 0.5; cursor: not-allowed; filter: grayscale(1);' : ''}
                         "
-                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0, 123, 255, 0.25)'; this.style.background='#007bff'; this.style.color='white';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 123, 255, 0.1)'; this.style.background='white'; this.style.color='#007bff';"
-                        onfocus="this.style.boxShadow='0 0 0 3px rgba(0, 123, 255, 0.25)';"
-                        onblur="this.style.boxShadow='0 1px 3px rgba(0, 123, 255, 0.1)';">
-                    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
-                    <span>Details</span>
+                        ${editButtonEnabled ? `
+                            onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(0, 123, 255, 0.25)'; this.style.background='#007bff'; this.style.color='white';"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 123, 255, 0.1)'; this.style.background='white'; this.style.color='#007bff';"
+                            onfocus="this.style.boxShadow='0 0 0 3px rgba(0, 123, 255, 0.25)';"
+                            onblur="this.style.boxShadow='0 1px 3px rgba(0, 123, 255, 0.1)';"` : ''}>
+                    <i class="bi ${buttonConfig.icon} me-1" aria-hidden="true"></i>
+                    <span>${buttonConfig.text}</span>
                 </button>
             `;
 
             const transactionButton = `
                 <button class="btn ${status === 'IN' ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm vehicle-action-btn" 
                         onclick="toggleVehicleStatus(${index})" 
-                        title="${status === 'IN' ? 'Check out this vehicle' : 'Check in this vehicle'}"
+                        title="${(accessStatus === 'Banned') ? 'Vehicle is banned - check-in disabled' : 
+                               (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT') ? 'No Access - requires active one-time pass' : 
+                               (status === 'IN' ? 'Check out this vehicle' : 'Check in this vehicle')}"
                         aria-label="${status === 'IN' ? 'Check out' : 'Check in'} vehicle ${plateNumber}"
                         data-bs-toggle="tooltip"
-                        ${accessStatus === 'Banned' ? 'disabled aria-disabled="true"' : ''}
+                        ${(accessStatus === 'Banned' || (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT')) ? 'disabled aria-disabled="true"' : ''}
                         style="
                             padding: 8px 12px; 
                             font-size: 0.9rem; 
@@ -3213,9 +4293,9 @@
                             position: relative;
                             overflow: hidden;
                             width: 100%;
-                            ${accessStatus === 'Banned' ? 'opacity: 0.5; cursor: not-allowed; filter: grayscale(1);' : ''}
+                            ${(accessStatus === 'Banned' || (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT')) ? 'opacity: 0.5; cursor: not-allowed; filter: grayscale(1);' : ''}
                         "
-                        ${accessStatus !== 'Banned' ? `
+                        ${!(accessStatus === 'Banned' || (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT')) ? `
                             onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px ${status === 'IN' ? 'rgba(220, 53, 69, 0.25)' : 'rgba(40, 167, 69, 0.25)'}'; this.style.background='${status === 'IN' ? '#dc3545' : '#28a745'}'; this.style.color='white';"
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px ${status === 'IN' ? 'rgba(220, 53, 69, 0.1)' : 'rgba(40, 167, 69, 0.1)'}'; this.style.background='white'; this.style.color='${status === 'IN' ? '#dc3545' : '#28a745'}';"
                             onfocus="this.style.boxShadow='0 0 0 3px ${status === 'IN' ? 'rgba(220, 53, 69, 0.25)' : 'rgba(40, 167, 69, 0.25)'}';"
@@ -3249,11 +4329,11 @@
                     <small>${department}</small>
                 </td>
                 <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-lg-table-cell">
-                    <small>${currentDriver}</small>
+                    <small>${getDriverNameById(currentDriver)}</small>
                 </td>
                 <td style="padding: 8px 8px; font-size: 0.85rem;" class="text-center">${statusText}</td>
                 <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-xl-table-cell">
-                    <small class="${accessTextClass}">${accessStatus}</small>
+                    <small class="${accessTextClass}">${displayAccessStatus}</small>
                 </td>
                 <td style="padding: 8px 8px; font-size: 0.85rem;" class="d-none d-xl-table-cell text-center">
                     ${oneTimePass === 'Yes' ? 
@@ -3351,7 +4431,10 @@
                                 <i class="bi bi-info-circle"></i>
                             </button>
                             <button class="btn btn-sm ${status === 'IN' ? 'btn-outline-danger' : 'btn-outline-success'}" 
-                                    onclick="toggleVehicleStatus(${index})" title="${status === 'IN' ? 'Check Out' : 'Check In'}">
+                                    onclick="toggleVehicleStatus(${index})" title="${(accessStatus === 'Banned') ? 'Vehicle is banned - check-in disabled' : 
+                                           (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT') ? 'No Access - requires active one-time pass' : 
+                                           (status === 'IN' ? 'Check Out' : 'Check In')}"
+                                    ${(accessStatus === 'Banned' || (accessStatus === 'No Access' && oneTimePass !== 'Yes' && status === 'OUT')) ? 'disabled' : ''}>
                                 <i class="bi ${status === 'IN' ? 'bi-box-arrow-right' : 'bi-box-arrow-in-left'}"></i>
                             </button>
                         </div>
@@ -3415,6 +4498,19 @@
             
             const currentStatus = vehicle[7] || 'OUT'; // Status is at index 7
             const newStatus = currentStatus === 'IN' ? 'OUT' : 'IN';
+            const accessStatus = vehicle[10] || 'Access'; // Access status is at index 10
+            const oneTimePass = vehicle[11] || 'No'; // One-time pass is at index 11
+            
+            // Check access permissions for check-in attempts
+            if (newStatus === 'IN' && accessStatus === 'No Access' && oneTimePass !== 'Yes') {
+                showToast('Vehicle access denied. No Access vehicles require an active one-time pass to check in.', 'warning');
+                return;
+            }
+            
+            if (accessStatus === 'Banned') {
+                showToast('Vehicle access denied. This vehicle is banned from entry.', 'danger');
+                return;
+            }
             
             // Get the selected gate using our helper function
             const selectedGate = getCurrentGate();
@@ -3434,9 +4530,21 @@
                 .withSuccessHandler(function(result) {
                     if (result && result.success) {
                         vehicleData[index][7] = newStatus;
+                        
+                        // Update one-time pass status if it was disabled
+                        if (result.oneTimePassUsed) {
+                            vehicleData[index][11] = 'No'; // Disable one-time pass in local data
+                        }
+                        
                         displayVehicles();
                         updateStatistics();
-                        showToast(`Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`, 'success');
+                        
+                        // Show appropriate message based on whether one-time pass was used
+                        let message = `Vehicle ${newStatus === 'IN' ? 'checked in' : 'checked out'} at ${selectedGate.name}!`;
+                        if (result.oneTimePassUsed) {
+                            message += ' One-time pass has been disabled.';
+                        }
+                        showToast(message, 'success');
                         
                         // Increment today's activity
                         let todayActivity = parseInt(sessionStorage.getItem('todayActivity') || '0');
@@ -3454,33 +4562,534 @@
                 .logVehicleAction(logData);
         }
 
-        function debounceFilter() {
+        // Enhanced search functionality
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
+            
+            // Add event listeners for enhanced search
+            searchInput.addEventListener('input', handleSearchInput);
+            searchInput.addEventListener('keydown', handleSearchKeydown);
+            searchInput.addEventListener('focus', handleSearchFocus);
+            searchInput.addEventListener('blur', handleSearchBlur);
+            
+            // Initialize search suggestions from loaded vehicle data
+            updateSearchSuggestions();
+            
+            // Set up keyboard shortcuts
+            setupSearchKeyboardShortcuts();
+        }
+        
+        function handleSearchInput(event) {
+            const searchTerm = event.target.value.trim();
+            currentSearchQuery = searchTerm;
+            
+            // Show/hide clear button
+            const clearButton = document.querySelector('.search-clear');
+            if (searchTerm.length > 0) {
+                clearButton.classList.add('show');
+            } else {
+                clearButton.classList.remove('show');
+            }
+            
+            // Show loading indicator
+            showSearchLoading(true);
+            
+            // Update suggestions if search term is long enough
+            if (searchTerm.length >= 1) {
+                showSearchSuggestions(searchTerm);
+            } else {
+                hideSearchSuggestions();
+            }
+            
+            // Debounced search
             clearTimeout(filterTimeout);
             filterTimeout = setTimeout(() => {
-                filterVehicles();
-            }, 300);
+                performEnhancedSearch(searchTerm);
+            }, 200); // Reduced from 300ms for better responsiveness
         }
-
-        function filterVehicles() {
+        
+        function handleSearchKeydown(event) {
+            const suggestions = document.querySelectorAll('.suggestion-item:not(.search-history .suggestion-item)');
+            
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    highlightedSuggestionIndex = Math.min(highlightedSuggestionIndex + 1, suggestions.length - 1);
+                    updateSuggestionHighlight(suggestions);
+                    break;
+                    
+                case 'ArrowUp':
+                    event.preventDefault();
+                    highlightedSuggestionIndex = Math.max(highlightedSuggestionIndex - 1, -1);
+                    updateSuggestionHighlight(suggestions);
+                    break;
+                    
+                case 'Enter':
+                    event.preventDefault();
+                    if (highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
+                        selectSuggestion(suggestions[highlightedSuggestionIndex]);
+                    } else {
+                        performEnhancedSearch(event.target.value.trim());
+                        hideSearchSuggestions();
+                    }
+                    break;
+                    
+                case 'Escape':
+                    event.target.value = '';
+                    clearSearchInput();
+                    event.target.blur();
+                    break;
+                    
+                case 'Tab':
+                    if (highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
+                        event.preventDefault();
+                        selectSuggestion(suggestions[highlightedSuggestionIndex]);
+                    }
+                    break;
+            }
+        }
+        
+        function handleSearchFocus() {
             const searchTerm = document.getElementById('searchInput').value.trim();
-            const filterStatus = document.getElementById('filterStatus').value;
-            const filterAccessStatus = document.getElementById('filterAccessStatus').value;
-
-            // Show filter feedback
-            showFilterFeedback(searchTerm, filterStatus, filterAccessStatus);
-
-            // Build search criteria for server-side filtering
+            if (searchTerm.length >= 1) {
+                showSearchSuggestions(searchTerm);
+            } else if (searchHistory.length > 0) {
+                showSearchHistory();
+            }
+        }
+        
+        function handleSearchBlur(event) {
+            // Delay hiding suggestions to allow for clicking
+            setTimeout(() => {
+                if (!event.relatedTarget || !event.relatedTarget.closest('.search-suggestions')) {
+                    hideSearchSuggestions();
+                    hideSearchShortcuts();
+                }
+            }, 150);
+        }
+        
+        function performEnhancedSearch(searchTerm) {
+            // Parse advanced search syntax
+            const parsedQuery = parseAdvancedSearchQuery(searchTerm);
+            
+            // Show loading
+            showSearchLoading(true);
+            
+            // Build enhanced search criteria
             const searchCriteria = {
-                searchTerm: searchTerm,
-                statusFilter: filterStatus,
-                accessStatusFilter: filterAccessStatus,
-                departmentFilter: '',
+                searchTerm: parsedQuery.mainQuery,
+                statusFilter: parsedQuery.status || document.getElementById('filterStatus').value,
+                accessStatusFilter: parsedQuery.access || document.getElementById('filterAccessStatus').value,
+                vehicleTypeFilter: parsedQuery.type || '',
+                exactMatch: parsedQuery.exactMatch || false,
+                departmentFilter: parsedQuery.department || '',
                 pageSize: 50,
                 pageOffset: 0
             };
+            
+            // Add to search history if it's a meaningful search
+            if (searchTerm.length > 2) {
+                addToSearchHistory(searchTerm);
+            }
+            
+            // Check cache first for faster response
+            const cacheKey = JSON.stringify(searchCriteria);
+            if (searchCache.has(cacheKey)) {
+                const cachedResult = searchCache.get(cacheKey);
+                displaySearchResults(cachedResult, searchTerm);
+                showSearchLoading(false);
+                return;
+            }
+            
+            // Show filter feedback
+            showFilterFeedback(parsedQuery.mainQuery, searchCriteria.statusFilter, searchCriteria.accessStatusFilter);
+            
+            // Perform server-side search
+            loadVehicles(searchCriteria).then(() => {
+                showSearchLoading(false);
+                updateSearchResultsCounter(searchTerm);
+                hideSearchSuggestions();
+            }).catch(() => {
+                showSearchLoading(false);
+                showToast('Search failed. Please try again.', 'danger');
+            });
+        }
+        
+        function parseAdvancedSearchQuery(query) {
+            const result = {
+                mainQuery: query,
+                status: null,
+                access: null,
+                type: null,
+                department: null,
+                exactMatch: false
+            };
+            
+            // Check for exact match (quoted strings)
+            const exactMatchRegex = /"([^"]+)"/g;
+            const exactMatches = [];
+            let match;
+            while ((match = exactMatchRegex.exec(query)) !== null) {
+                exactMatches.push(match[1]);
+                result.exactMatch = true;
+            }
+            
+            if (exactMatches.length > 0) {
+                result.mainQuery = exactMatches.join(' ');
+                return result;
+            }
+            
+            // Parse special syntax: type:car, status:in, access:banned, dept:IT
+            const typeMatch = query.match(/type:(\w+)/i);
+            if (typeMatch) {
+                result.type = typeMatch[1];
+                result.mainQuery = query.replace(/type:\w+/i, '').trim();
+            }
+            
+            const statusMatch = query.match(/status:(in|out)/i);
+            if (statusMatch) {
+                result.status = statusMatch[1].toUpperCase();
+                result.mainQuery = query.replace(/status:(in|out)/i, '').trim();
+            }
+            
+            const accessMatch = query.match(/access:(access|no\s*access|banned)/i);
+            if (accessMatch) {
+                const accessValue = accessMatch[1].toLowerCase().replace(/\s+/g, ' ');
+                result.access = accessValue === 'access' ? 'Access' : 
+                               accessValue === 'no access' ? 'No Access' : 'Banned';
+                result.mainQuery = query.replace(/access:(access|no\s*access|banned)/i, '').trim();
+            }
+            
+            const deptMatch = query.match(/dept?:(\w+)/i);
+            if (deptMatch) {
+                result.department = deptMatch[1];
+                result.mainQuery = query.replace(/dept?:\w+/i, '').trim();
+            }
+            
+            return result;
+        }
+        
+        function showSearchSuggestions(searchTerm) {
+            const suggestions = generateSearchSuggestions(searchTerm);
+            const container = document.getElementById('searchSuggestions');
+            
+            if (suggestions.length === 0) {
+                hideSearchSuggestions();
+                return;
+            }
+            
+            let html = '';
+            
+            // Add main suggestions
+            suggestions.forEach((suggestion, index) => {
+                const highlightedText = highlightSearchMatch(suggestion.text, searchTerm);
+                html += `
+                    <div class="suggestion-item" data-suggestion="${suggestion.text}" data-type="${suggestion.type}">
+                        <span class="suggestion-text">${highlightedText}</span>
+                        <span class="suggestion-type">${suggestion.type}</span>
+                    </div>
+                `;
+            });
+            
+            // Add search history if query is empty or short
+            if (searchTerm.length <= 2 && searchHistory.length > 0) {
+                html += `
+                    <div class="search-history">
+                        <div class="search-history-header">
+                            <span>Recent Searches</span>
+                            <button type="button" class="clear-history-btn" onclick="clearSearchHistory()">Clear</button>
+                        </div>
+                `;
+                
+                searchHistory.slice(0, 5).forEach(historyItem => {
+                    html += `
+                        <div class="suggestion-item" data-suggestion="${historyItem}">
+                            <span class="suggestion-text">
+                                <i class="bi bi-clock-history me-2 text-muted"></i>${historyItem}
+                            </span>
+                            <span class="suggestion-type">history</span>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+            container.classList.add('show');
+            
+            // Add click listeners to suggestions
+            container.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => selectSuggestion(item));
+            });
+            
+            highlightedSuggestionIndex = -1;
+        }
+        
+        function generateSearchSuggestions(searchTerm) {
+            if (!vehicleData || vehicleData.length <= 1) return [];
+            
+            const suggestions = new Set();
+            const term = searchTerm.toLowerCase();
+            const maxSuggestions = 8;
+            
+            // Generate suggestions from loaded vehicle data
+            for (let i = 1; i < vehicleData.length && suggestions.size < maxSuggestions; i++) {
+                const vehicle = vehicleData[i];
+                if (!vehicle) continue;
+                
+                const plateNumber = vehicle[1] || '';
+                const makeModel = vehicle[2] || '';
+                const department = vehicle[4] || '';
+                const currentDriver = vehicle[8] || '';
+                const vehicleType = vehicle[6] || '';
+                
+                // Plate number suggestions
+                if (plateNumber.toLowerCase().includes(term)) {
+                    suggestions.add({ text: plateNumber, type: 'plate' });
+                }
+                
+                // Make/Model suggestions
+                if (makeModel.toLowerCase().includes(term)) {
+                    suggestions.add({ text: makeModel, type: 'model' });
+                }
+                
+                // Department suggestions
+                if (department.toLowerCase().includes(term)) {
+                    suggestions.add({ text: department, type: 'department' });
+                }
+                
+                // Driver suggestions
+                if (currentDriver.toLowerCase().includes(term)) {
+                    suggestions.add({ text: currentDriver, type: 'driver' });
+                }
+                
+                // Vehicle type suggestions
+                if (vehicleType.toLowerCase().includes(term)) {
+                    suggestions.add({ text: vehicleType, type: 'type' });
+                }
+            }
+            
+            return Array.from(suggestions).slice(0, maxSuggestions);
+        }
+        
+        function highlightSearchMatch(text, searchTerm) {
+            if (!searchTerm) return text;
+            
+            const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<span class="suggestion-match">$1</span>');
+        }
+        
+        function selectSuggestion(suggestionElement) {
+            const suggestionText = suggestionElement.getAttribute('data-suggestion');
+            const suggestionType = suggestionElement.getAttribute('data-type');
+            
+            document.getElementById('searchInput').value = suggestionText;
+            
+            // Add special syntax for type suggestions
+            if (suggestionType === 'type') {
+                document.getElementById('searchInput').value = `type:${suggestionText}`;
+            }
+            
+            performEnhancedSearch(suggestionText);
+            hideSearchSuggestions();
+            
+            // Add to search history
+            addToSearchHistory(suggestionText);
+        }
+        
+        function updateSuggestionHighlight(suggestions) {
+            suggestions.forEach((suggestion, index) => {
+                if (index === highlightedSuggestionIndex) {
+                    suggestion.classList.add('highlighted');
+                } else {
+                    suggestion.classList.remove('highlighted');
+                }
+            });
+        }
+        
+        function hideSearchSuggestions() {
+            const container = document.getElementById('searchSuggestions');
+            container.classList.remove('show');
+            highlightedSuggestionIndex = -1;
+        }
+        
+        function showSearchHistory() {
+            if (searchHistory.length === 0) return;
+            
+            const container = document.getElementById('searchSuggestions');
+            let html = `
+                <div class="search-history">
+                    <div class="search-history-header">
+                        <span>Recent Searches</span>
+                        <button type="button" class="clear-history-btn" onclick="clearSearchHistory()">Clear</button>
+                    </div>
+            `;
+            
+            searchHistory.slice(0, 8).forEach(historyItem => {
+                html += `
+                    <div class="suggestion-item" data-suggestion="${historyItem}">
+                        <span class="suggestion-text">
+                            <i class="bi bi-clock-history me-2 text-muted"></i>${historyItem}
+                        </span>
+                        <span class="suggestion-type">recent</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            container.classList.add('show');
+            
+            // Add click listeners
+            container.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => selectSuggestion(item));
+            });
+        }
+        
+        function addToSearchHistory(searchTerm) {
+            if (!searchTerm || searchTerm.length < 2) return;
+            
+            // Remove if already exists
+            searchHistory = searchHistory.filter(item => item !== searchTerm);
+            
+            // Add to beginning
+            searchHistory.unshift(searchTerm);
+            
+            // Keep only last 20 items
+            searchHistory = searchHistory.slice(0, 20);
+            
+            // Save to localStorage
+            localStorage.setItem('vms_search_history', JSON.stringify(searchHistory));
+        }
+        
+        function clearSearchHistory() {
+            searchHistory = [];
+            localStorage.removeItem('vms_search_history');
+            hideSearchSuggestions();
+            showToast('Search history cleared', 'info');
+        }
+        
+        function clearSearchInput() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.value = '';
+            searchInput.focus();
+            
+            const clearButton = document.querySelector('.search-clear');
+            clearButton.classList.remove('show');
+            
+            hideSearchSuggestions();
+            updateSearchResultsCounter('');
+            
+            // Reset to show all vehicles
+            loadVehicles();
+            
+            // Show feedback
+            showFilterFeedback('', '', '');
+        }
+        
+        function showSearchLoading(show) {
+            const loadingElement = document.querySelector('.search-loading');
+            if (show) {
+                loadingElement.classList.add('show');
+            } else {
+                loadingElement.classList.remove('show');
+            }
+        }
+        
+        function updateSearchResultsCounter(searchTerm) {
+            const counter = document.getElementById('searchResultsCounter');
+            const totalVehicles = document.getElementById('totalVehiclesBadge').textContent || '0';
+            
+            if (searchTerm) {
+                counter.textContent = `Showing ${totalVehicles} results for "${searchTerm}"`;
+                counter.style.color = '#0d6efd';
+            } else {
+                counter.textContent = `Showing all ${totalVehicles} vehicles`;
+                counter.style.color = '#6c757d';
+            }
+        }
+        
+        function setupSearchKeyboardShortcuts() {
+            document.addEventListener('keydown', (event) => {
+                // Ctrl+K or Cmd+K to focus search
+                if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+                    event.preventDefault();
+                    const searchInput = document.getElementById('searchInput');
+                    searchInput.focus();
+                    searchInput.select();
+                }
+                
+                // Alt+C to clear search
+                if (event.altKey && event.key === 'c') {
+                    event.preventDefault();
+                    clearSearchInput();
+                }
+            });
+        }
+        
+        function toggleSearchShortcuts() {
+            const shortcuts = document.getElementById('searchShortcuts');
+            shortcuts.classList.toggle('show');
+            
+            // Hide suggestions when showing shortcuts
+            if (shortcuts.classList.contains('show')) {
+                hideSearchSuggestions();
+            }
+        }
+        
+        function hideSearchShortcuts() {
+            const shortcuts = document.getElementById('searchShortcuts');
+            shortcuts.classList.remove('show');
+        }
+        
+        function updateSearchSuggestions() {
+            // Update suggestions cache when vehicle data changes
+            if (vehicleData && vehicleData.length > 1) {
+                searchSuggestions = [];
+                
+                // Extract unique values for suggestions
+                const plateNumbers = new Set();
+                const makeModels = new Set();
+                const departments = new Set();
+                const drivers = new Set();
+                const vehicleTypes = new Set();
+                
+                for (let i = 1; i < vehicleData.length; i++) {
+                    const vehicle = vehicleData[i];
+                    if (!vehicle) continue;
+                    
+                    if (vehicle[1]) plateNumbers.add(vehicle[1]);
+                    if (vehicle[2]) makeModels.add(vehicle[2]);
+                    if (vehicle[4]) departments.add(vehicle[4]);
+                    if (vehicle[8]) drivers.add(vehicle[8]);
+                    if (vehicle[6]) vehicleTypes.add(vehicle[6]);
+                }
+                
+                // Store for fast access
+                searchSuggestions = {
+                    plates: Array.from(plateNumbers),
+                    models: Array.from(makeModels),
+                    departments: Array.from(departments),
+                    drivers: Array.from(drivers),
+                    types: Array.from(vehicleTypes)
+                };
+            }
+        }
+        
+        // Legacy function for compatibility - now calls enhanced search
+        function debounceFilter() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                handleSearchInput({ target: searchInput });
+            }
+        }
 
-            // Use server-side search for better performance with large datasets
-            loadVehicles(searchCriteria);
+        // Legacy function for compatibility - now calls enhanced search
+        function filterVehicles() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            performEnhancedSearch(searchTerm);
         }
 
         function clearFilters() {
@@ -4320,119 +5929,60 @@
         }
 
 
-        function showVehicleDetails(index) {
-            // Add error handling
-            if (!vehicleData || vehicleData.length === 0) {
-                showToast('No vehicle data available', 'warning');
-                return;
-            }
-            
-            if (index < 0 || index >= vehicleData.length) {
-                showToast('Invalid vehicle index', 'danger');
-                return;
-            }
-            
-            const vehicle = vehicleData[index];
-            if (!vehicle) {
-                showToast('Vehicle data not found', 'danger');
-                return;
-            }
-            
-            const modal = new bootstrap.Modal(document.getElementById('vehicleDetailsModal'));
-            
-            document.getElementById('detailsModalTitle').textContent = 'Vehicle Details - ' + vehicle[1]; // Show plate number, not ID
-            
-            const accessStatus = vehicle[10] || 'Access'; // Access status is at index 10
-            const accessClass = accessStatus === 'Access' ? 'bg-success' : 
-                               accessStatus === 'No Access' ? 'bg-warning' : 'bg-danger';
-            const accessTextClass = accessStatus === 'No Access' ? 'text-dark' : 'text-white';
-            
-            document.getElementById('detailsModalBody').innerHTML = `
-                <div class="row">
-                    <div class="col-12 mb-3">
-                        <div class="text-center">
-                            <small class="text-muted">Vehicle ID: ${vehicle[0]}</small>
-                        </div>
-                        <div class="plate-number text-center fs-4">${vehicle[1]}</div>
-                    </div>
-                </div>
-                <table class="table table-striped">
-                    <tr><th width="40%">Make/Model</th><td>${vehicle[2] || ''}</td></tr>
-                    <tr><th>Color</th><td>${vehicle[3] || ''}</td></tr>
-                    <tr><th>Department</th><td>${vehicle[4] || ''}</td></tr>
-                    <tr><th>Year</th><td>${vehicle[5] || ''}</td></tr>
-                    <tr><th>Type</th><td>${vehicle[6] || ''}</td></tr>
-                    <tr><th>Status</th><td><span class="badge ${vehicle[7] === 'IN' ? 'status-in' : 'status-out'}">${vehicle[7] || 'OUT'}</span></td></tr>
-                    <tr><th>Current Driver</th><td>${vehicle[8] || 'Unassigned'}</td></tr>
-                    <tr><th>Assigned Drivers</th><td>${vehicle[9] || 'None'}</td></tr>
-                    <tr><th>Access Status</th><td><span class="badge ${accessClass} ${accessTextClass}">${accessStatus}</span></td></tr>
-                    <tr><th>One Time Pass</th><td>
-                        ${vehicle[11] === 'Yes' ? 
-                            '<span class="badge bg-info text-white"><i class="bi bi-key-fill me-1"></i>Enabled</span>' : 
-                            '<span class="badge bg-secondary">Disabled</span>'}
-                    </td></tr>
-                </table>
-            `;
-            
-            // Add action buttons based on user permissions
-            const footer = document.getElementById('detailsModalFooter');
-            if (hasPermission('vehicles', 'update')) {
-                // Super Admin, Admin - full edit and delete capability
-                footer.innerHTML = `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
-                        <i class="bi bi-pencil-square me-2"></i>Edit
-                    </button>
-                    ${hasPermission('vehicles', 'delete') ? `
-                    <button type="button" class="btn btn-danger" onclick="deleteVehicle(${index})">
-                        <i class="bi bi-trash me-2"></i>Delete
-                    </button>
-                    ` : ''}
-                `;
-            } else if (hasPermission('vehicles', 'updateDriver')) {
-                // Security - limited edit capability (driver only)
-                footer.innerHTML = `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-warning" onclick="editVehicle(${index})">
-                        <i class="bi bi-person-gear me-2"></i>Change Driver
-                    </button>
-                `;
-            } else {
-                // No edit permissions - view only
-                footer.innerHTML = `
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                `;
-            }
-            
-            modal.show();
-        }
 
         function updateCurrentDriverDropdown() {
-            const assignedDriversValue = document.getElementById('editAssignedDrivers').value.trim();
             const currentDriverSelect = document.getElementById('editDriver');
             const currentValue = currentDriverSelect.value; // Save current selection
+            
+            // Get the authorized drivers from the vehicle data directly
+            const vehicleIndex = parseInt(document.getElementById('editVehicleIndex').value);
+            const vehicle = vehicleData[vehicleIndex];
+            const authorizedDriversString = vehicle[9] || ''; // Authorized drivers at index 9
+            
+            // Use all drivers including inactive ones if available
+            const driversToUse = window.tempAllDriversForEdit || availableDrivers;
+            
+            console.log('updateCurrentDriverDropdown - authorizedDriversString:', authorizedDriversString);
+            console.log('updateCurrentDriverDropdown - driversToUse:', driversToUse);
             
             // Clear existing options
             currentDriverSelect.innerHTML = '<option value="">Select a driver...</option>';
             
-            if (assignedDriversValue) {
-                // Split the assigned drivers by comma and trim whitespace
-                const assignedDrivers = assignedDriversValue.split(',')
-                    .map(driver => driver.trim())
-                    .filter(driver => driver.length > 0);
+            if (authorizedDriversString) {
+                const authorizedDriverIds = authorizedDriversString.split(',').map(id => id.trim()).filter(id => id);
+                console.log('updateCurrentDriverDropdown - authorizedDriverIds:', authorizedDriverIds);
                 
-                // Add each assigned driver as an option
-                assignedDrivers.forEach(driver => {
-                    const option = document.createElement('option');
-                    option.value = driver;
-                    option.textContent = driver;
-                    currentDriverSelect.appendChild(option);
+                // Add each authorized driver as an option
+                authorizedDriverIds.forEach(driverId => {
+                    const driver = driversToUse.find(d => String(d.id) === String(driverId));
+                    if (driver) {
+                        const option = document.createElement('option');
+                        option.value = driver.id;
+                        // Show driver status if inactive
+                        const statusText = driver.status && driver.status !== 'Active' ? ` [${driver.status}]` : '';
+                        option.textContent = `${driver.name}${statusText}`;
+                        if (driver.status && driver.status !== 'Active') {
+                            option.style.color = '#6c757d'; // Gray color for inactive
+                        }
+                        currentDriverSelect.appendChild(option);
+                    } else {
+                        // Add the driver ID even if not found in available drivers
+                        // This handles cases where driver might be deleted
+                        console.warn('Driver not found in driver list, adding ID only:', driverId);
+                        const option = document.createElement('option');
+                        option.value = driverId;
+                        option.textContent = `${driverId} (Not Found)`;
+                        option.style.color = '#dc3545'; // Red color for not found
+                        currentDriverSelect.appendChild(option);
+                    }
                 });
                 
                 // Restore previous selection if it's still in the list
-                if (currentValue && assignedDrivers.includes(currentValue)) {
+                if (currentValue && authorizedDriverIds.includes(currentValue)) {
                     currentDriverSelect.value = currentValue;
                 }
+            } else {
+                console.log('No authorized drivers for this vehicle');
             }
         }
 
@@ -4444,9 +5994,6 @@
             
             const vehicle = vehicleData[index];
             
-            // Hide details modal and show edit modal
-            bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
-            
             // Populate edit form with correct indices
             document.getElementById('editVehicleIndex').value = index;
             document.getElementById('editPlateNumber').value = vehicle[1] || ''; // Plate number is at index 1
@@ -4456,29 +6003,47 @@
             document.getElementById('editYear').value = vehicle[5] || '';       // Year is at index 5
             document.getElementById('editType').value = vehicle[6] || 'Car';    // Type is at index 6
             document.getElementById('editStatus').value = vehicle[7] || 'OUT';  // Status is at index 7
-            document.getElementById('editAssignedDrivers').value = vehicle[9] || ''; // Assigned drivers is at index 9
+            // Note: setSelectedDriverCheckboxes will be called after drivers are loaded
             document.getElementById('editAccessStatus').value = vehicle[10] || 'Access'; // Access status is at index 10
             console.log('Vehicle data for edit:', vehicle);
             console.log('One Time Pass value (index 11):', vehicle[11]);
             document.getElementById('editOneTimePass').checked = vehicle[11] === 'Yes'; // One Time Pass is at index 11
+            document.getElementById('editMVFile').value = vehicle[12] || '';    // MV File is at index 12
             
-            // Populate current driver dropdown from assigned drivers
-            updateCurrentDriverDropdown();
-            document.getElementById('editDriver').value = vehicle[8] || '';     // Current driver is at index 8
+            // Load all drivers including inactive ones for edit modal
+            google.script.run
+                .withSuccessHandler(function(allDrivers) {
+                    // Store all drivers for current driver dropdown
+                    const allDriversForEdit = allDrivers || [];
+                    
+                    // Update the updateCurrentDriverDropdown to use allDriversForEdit
+                    window.tempAllDriversForEdit = allDriversForEdit;
+                    
+                    // Still populate checkboxes with only active drivers
+                    populateDriverDropdowns(); // This uses availableDrivers (active only)
+                    
+                    // Wait for checkboxes to be rendered before setting selected ones
+                    setTimeout(() => {
+                        setSelectedDriverCheckboxes(vehicle[9] || ''); // Re-set the checkboxes
+                        updateCurrentDriverDropdown();
+                        document.getElementById('editDriver').value = vehicle[8] || '';     // Current driver is at index 8
+                    }, 100);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Failed to load all drivers for edit:', error);
+                    showToast('Failed to load drivers', 'danger');
+                })
+                .getAllDriversIncludingInactive();
             
-            // Add event listener to assigned drivers field to update current driver options
-            const assignedDriversField = document.getElementById('editAssignedDrivers');
-            if (!assignedDriversField.hasAttribute('data-listener-added')) {
-                assignedDriversField.addEventListener('input', updateCurrentDriverDropdown);
-                assignedDriversField.setAttribute('data-listener-added', 'true');
-            }
+            // Event listener for assigned drivers is already handled by initializeDriverDropdownListeners
+            // using event delegation on the container
             
             // Restrict users who can only update driver to current driver field only
             if (hasPermission('vehicles', 'updateDriver') && !hasPermission('vehicles', 'update')) {
                 // Disable all fields except current driver
                 const fieldsToDisable = [
                     'editPlateNumber', 'editModel', 'editColor', 'editDepartment', 
-                    'editYear', 'editType', 'editStatus', 'editAssignedDrivers', 'editAccessStatus'
+                    'editYear', 'editType', 'editStatus', 'editAccessStatus'
                 ];
                 
                 fieldsToDisable.forEach(fieldId => {
@@ -4489,6 +6054,20 @@
                         field.style.opacity = '0.6';
                     }
                 });
+                
+                // Disable all driver checkboxes
+                document.querySelectorAll('.edit-driver-checkbox').forEach(checkbox => {
+                    checkbox.disabled = true;
+                    checkbox.parentElement.style.opacity = '0.6';
+                });
+                
+                // Disable One Time Pass toggle for security role
+                const oneTimePassToggle = document.getElementById('editOneTimePass');
+                if (oneTimePassToggle) {
+                    oneTimePassToggle.disabled = true;
+                    oneTimePassToggle.parentElement.style.opacity = '0.6';
+                    oneTimePassToggle.parentElement.title = 'One Time Pass control is read-only for security role';
+                }
                 
                 // Ensure current driver field is enabled and highlighted
                 const driverField = document.getElementById('editDriver');
@@ -4523,7 +6102,7 @@
                 // Reset all fields for admin, supervisor, and super-admin users
                 const allFields = [
                     'editPlateNumber', 'editModel', 'editColor', 'editDepartment', 
-                    'editYear', 'editType', 'editStatus', 'editAssignedDrivers', 'editAccessStatus', 'editDriver'
+                    'editYear', 'editType', 'editStatus', 'editAccessStatus', 'editDriver'
                 ];
                 
                 allFields.forEach(fieldId => {
@@ -4535,6 +6114,20 @@
                         field.style.borderColor = '';
                     }
                 });
+                
+                // Enable all driver checkboxes
+                document.querySelectorAll('.edit-driver-checkbox').forEach(checkbox => {
+                    checkbox.disabled = false;
+                    checkbox.parentElement.style.opacity = '';
+                });
+                
+                // Enable One Time Pass toggle for admin/super-admin roles
+                const oneTimePassToggle = document.getElementById('editOneTimePass');
+                if (oneTimePassToggle) {
+                    oneTimePassToggle.disabled = false;
+                    oneTimePassToggle.parentElement.style.opacity = '';
+                    oneTimePassToggle.parentElement.title = '';
+                }
                 
                 // Reset modal title for privileged users
                 const modalTitle = document.querySelector('#editVehicleModal .modal-title');
@@ -4565,11 +6158,13 @@
             
             // Handle users with driver-only permissions - only update current driver
             if (hasPermission('vehicles', 'updateDriver') && !hasPermission('vehicles', 'update')) {
-                const newDriverValue = document.getElementById('editDriver').value || '';
+                const newDriverId = document.getElementById('editDriver').value || '';
+                const newDriverValue = getDriverNameById(newDriverId);
                 
                 // Create updated vehicle data with only driver field changed
                 const currentVehicle = vehicleData[index]; // Use vehicleData instead of allVehicles
-                const oldDriverValue = currentVehicle[8] || ''; // Get current driver
+                const oldDriverId = currentVehicle[8] || ''; // Get current driver ID
+                const oldDriverValue = getDriverNameById(oldDriverId); // Convert ID to name
                 const updatedVehicleData = [...currentVehicle]; // Copy existing data
                 updatedVehicleData[8] = newDriverValue; // Update only current driver field
                 
@@ -4719,10 +6314,11 @@
                 document.getElementById('editYear').value || '',       // Year at index 5
                 document.getElementById('editType').value || 'Car',    // Type at index 6
                 document.getElementById('editStatus').value || 'OUT',  // Status at index 7
-                document.getElementById('editDriver').value || '',     // Current Driver at index 8
-                document.getElementById('editAssignedDrivers').value || '', // Assigned Drivers at index 9
+                getDriverNameById(document.getElementById('editDriver').value) || '', // Current Driver at index 8
+                getSelectedDriverCheckboxIds().join(','), // Assigned Drivers at index 9
                 document.getElementById('editAccessStatus').value || 'Access', // Access Status at index 10
-                document.getElementById('editOneTimePass').checked ? 'Yes' : 'No' // One Time Pass at index 11
+                document.getElementById('editOneTimePass').checked ? 'Yes' : 'No', // One Time Pass at index 11
+                document.getElementById('editMVFile').value || ''      // MV File at index 12
             ];
             
             showVehicleModalLoading(true, 'edit');
@@ -4791,9 +6387,6 @@
                         // Update display
                         displayVehicles();
                         updateStatistics();
-                        
-                        // Hide modal
-                        bootstrap.Modal.getInstance(document.getElementById('vehicleDetailsModal')).hide();
                         
                         showToast('Vehicle deleted successfully!', 'success');
                     }
@@ -5907,8 +7500,203 @@
             }, 300);
         }
 
+        // Driver Management Functions
+        function showDriverManagement() {
+            const role = currentUser.role;
+            if (role !== 'admin' && role !== 'super-admin') {
+                showToast('Access denied: Only Admin and Super Admin can manage drivers', 'danger');
+                return;
+            }
 
+            loadDriversForManagement();
+            const modal = new bootstrap.Modal(document.getElementById('driverManagementModal'));
+            modal.show();
+        }
 
+        function loadDriversForManagement() {
+            const tableBody = document.getElementById('driverTableBody');
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading drivers...</p>
+                    </td>
+                </tr>
+            `;
+
+            google.script.run
+                .withSuccessHandler(function(drivers) {
+                    displayDriverList(drivers);
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Error loading drivers:', error);
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-danger">
+                                Failed to load drivers. Please try again.
+                            </td>
+                        </tr>
+                    `;
+                })
+                .getDriverListForManagement();
+        }
+
+        function displayDriverList(drivers) {
+            const tableBody = document.getElementById('driverTableBody');
+            
+            if (drivers.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No drivers found. Click "Add New Driver" to get started.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = drivers.map(driver => {
+                // Escape single quotes in driver data
+                const escapedName = (driver.name || '').replace(/'/g, "\\'");
+                const escapedLicense = (driver.licenseNumber || '').replace(/'/g, "\\'");
+                const escapedPhone = (driver.phone || '').replace(/'/g, "\\'");
+                
+                return `
+                    <tr>
+                        <td>${driver.id}</td>
+                        <td>${driver.name}</td>
+                        <td>${driver.licenseNumber}</td>
+                        <td>${driver.phone || '-'}</td>
+                        <td>
+                            <span class="badge ${driver.status === 'Active' ? 'bg-success' : 'bg-secondary'}">
+                                ${driver.status}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editDriver(${driver.id}, '${escapedName}', '${escapedLicense}', '${escapedPhone}', '${driver.status}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDriver(${driver.id}, '${escapedName}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showAddDriverForm() {
+            document.getElementById('driverFormTitle').textContent = 'Add New Driver';
+            document.getElementById('addEditDriverForm').reset();
+            document.getElementById('editDriverId').value = '';
+            document.getElementById('driverForm').style.display = 'block';
+        }
+
+        function editDriver(id, name, licenseNumber, phone, status) {
+            document.getElementById('driverFormTitle').textContent = 'Edit Driver';
+            document.getElementById('editDriverId').value = id;
+            document.getElementById('driverName').value = name;
+            document.getElementById('driverLicenseNumber').value = licenseNumber;
+            document.getElementById('driverPhone').value = phone;
+            document.getElementById('driverStatus').value = status;
+            document.getElementById('driverForm').style.display = 'block';
+        }
+
+        function cancelDriverForm() {
+            document.getElementById('driverForm').style.display = 'none';
+            document.getElementById('addEditDriverForm').reset();
+        }
+
+        function saveDriver() {
+            const form = document.getElementById('addEditDriverForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            // Get the save button and disable it
+            const saveButton = document.querySelector('#driverForm button[onclick="saveDriver()"]');
+            const originalButtonHTML = saveButton.innerHTML;
+            saveButton.disabled = true;
+            saveButton.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
+
+            const driverId = document.getElementById('editDriverId').value;
+            const driverData = {
+                name: document.getElementById('driverName').value.trim(),
+                licenseNumber: document.getElementById('driverLicenseNumber').value.trim(),
+                phone: document.getElementById('driverPhone').value.trim(),
+                status: document.getElementById('driverStatus').value
+            };
+
+            // Re-enable button after operation
+            const enableButton = function() {
+                saveButton.disabled = false;
+                saveButton.innerHTML = originalButtonHTML;
+            };
+
+            if (driverId) {
+                // Update existing driver
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        if (result.success) {
+                            showToast(result.message, 'success');
+                            cancelDriverForm();
+                            loadDriversForManagement();
+                            loadDrivers(); // Refresh driver dropdowns
+                        } else {
+                            showToast(result.error || 'Failed to update driver', 'danger');
+                            enableButton(); // Re-enable on error
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        showToast('Error updating driver: ' + error, 'danger');
+                        enableButton(); // Re-enable on error
+                    })
+                    .updateDriverRecord(parseInt(driverId), driverData);
+            } else {
+                // Add new driver
+                google.script.run
+                    .withSuccessHandler(function(result) {
+                        if (result.success) {
+                            showToast(result.message, 'success');
+                            cancelDriverForm();
+                            loadDriversForManagement();
+                            loadDrivers(); // Refresh driver dropdowns
+                        } else {
+                            showToast(result.error || 'Failed to add driver', 'danger');
+                            enableButton(); // Re-enable on error
+                        }
+                    })
+                    .withFailureHandler(function(error) {
+                        showToast('Error adding driver: ' + error, 'danger');
+                        enableButton(); // Re-enable on error
+                    })
+                    .saveDriverRecord(driverData);
+            }
+        }
+
+        function deleteDriver(id, name) {
+            if (!confirm(`Are you sure you want to delete driver "${name}"?`)) {
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        loadDriversForManagement();
+                        loadDrivers(); // Refresh driver dropdowns
+                    } else {
+                        showToast(result.error || 'Failed to delete driver', 'danger');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showToast('Error deleting driver: ' + error, 'danger');
+                })
+                .deleteDriverRecord(id);
+        }
 
         // Table optimization functions for large datasets
         function optimizeTablePerformance() {
@@ -5992,9 +7780,10 @@
                 type: document.getElementById('vehicleType').value,
                 status: document.getElementById('vehicleStatus').value,
                 driver: document.getElementById('vehicleDriver').value.trim(),
-                assignedDrivers: document.getElementById('vehicleAssignedDrivers').value.trim(),
+                assignedDrivers: getSelectedAddDriverCheckboxIds().join(','),
                 accessStatus: document.getElementById('vehicleAccessStatus').value,
-                oneTimePass: document.getElementById('vehicleOneTimePass').checked
+                oneTimePass: document.getElementById('vehicleOneTimePass').checked,
+                mvFile: document.getElementById('vehicleMVFile').value.trim()
             };
 
             // Show loading state
@@ -6205,11 +7994,15 @@
         function processQRCodeData(qrData) {
             console.log('QR Code scanned:', qrData);
             
-            // Assume QR code contains the plate number
-            const plateNumber = qrData.trim().toUpperCase();
+            const scannedData = qrData.trim();
+            
+            // Detect if scanned data is a vehicle ID (numeric) or plate number
+            const isVehicleId = /^\d+$/.test(scannedData);
             
             // First, try to find vehicle in already loaded data for faster processing
-            const vehicleInfo = findVehicleInLoadedData(plateNumber);
+            const vehicleInfo = isVehicleId ? 
+                findVehicleByIdInLoadedData(scannedData) : 
+                findVehicleInLoadedData(scannedData.toUpperCase());
             
             if (vehicleInfo) {
                 displayVehicleInfo(vehicleInfo);
@@ -6217,19 +8010,37 @@
                 autoProcessTransaction(vehicleInfo);
             } else {
                 // Fallback to server lookup if not found in loaded data
-                google.script.run
-                    .withSuccessHandler(function(serverVehicleInfo) {
-                        if (serverVehicleInfo.found) {
-                            displayVehicleInfo(serverVehicleInfo);
-                            autoProcessTransaction(serverVehicleInfo);
-                        } else {
-                            showQRScanError('Vehicle not found: ' + plateNumber);
-                        }
-                    })
-                    .withFailureHandler(function(error) {
-                        showQRScanError('Error verifying vehicle: ' + error);
-                    })
-                    .getVehicleByPlate(plateNumber);
+                if (isVehicleId) {
+                    // Lookup by vehicle ID
+                    google.script.run
+                        .withSuccessHandler(function(serverVehicleInfo) {
+                            if (serverVehicleInfo.found) {
+                                displayVehicleInfo(serverVehicleInfo);
+                                autoProcessTransaction(serverVehicleInfo);
+                            } else {
+                                showQRScanError('Vehicle not found: ' + scannedData);
+                            }
+                        })
+                        .withFailureHandler(function(error) {
+                            showQRScanError('Error verifying vehicle: ' + error);
+                        })
+                        .getVehicleById(scannedData);
+                } else {
+                    // Lookup by plate number
+                    google.script.run
+                        .withSuccessHandler(function(serverVehicleInfo) {
+                            if (serverVehicleInfo.found) {
+                                displayVehicleInfo(serverVehicleInfo);
+                                autoProcessTransaction(serverVehicleInfo);
+                            } else {
+                                showQRScanError('Vehicle not found: ' + scannedData);
+                            }
+                        })
+                        .withFailureHandler(function(error) {
+                            showQRScanError('Error verifying vehicle: ' + error);
+                        })
+                        .getVehicleByPlate(scannedData.toUpperCase());
+                }
             }
         }
 
@@ -6243,6 +8054,7 @@
                     // Return vehicle info in the same format as server response
                     return {
                         found: true,
+                        vehicleId: vehicle[0] || '',
                         plateNumber: vehicle[1] || '',
                         makeModel: vehicle[2] || '',
                         color: vehicle[3] || '',
@@ -6254,6 +8066,41 @@
                         assignedDrivers: vehicle[9] || '',
                         accessStatus: vehicle[10] || 'Access'
                     };
+                }
+            }
+            
+            return null;
+        }
+
+        function findVehicleByIdInLoadedData(vehicleId) {
+            // Search in the already loaded vehicle data by vehicle ID for faster processing
+            if (!vehicleData || vehicleData.length <= 1) return null;
+            
+            const searchId = vehicleId.toString().trim();
+            const paddedSearchId = searchId.padStart(6, '0');
+            
+            for (let i = 1; i < vehicleData.length; i++) {
+                const vehicle = vehicleData[i];
+                if (vehicle && vehicle[0]) {
+                    const vehicleIdInData = vehicle[0].toString().trim();
+                    // Match both padded and unpadded IDs
+                    if (vehicleIdInData === searchId || vehicleIdInData === paddedSearchId) {
+                        // Return vehicle info in the same format as server response
+                        return {
+                            found: true,
+                            vehicleId: vehicle[0] || '',
+                            plateNumber: vehicle[1] || '',
+                            makeModel: vehicle[2] || '',
+                            color: vehicle[3] || '',
+                            department: vehicle[4] || '',
+                            year: vehicle[5] || '',
+                            type: vehicle[6] || '',
+                            currentStatus: vehicle[7] || 'OUT',
+                            currentDriver: vehicle[8] || '',
+                            assignedDrivers: vehicle[9] || '',
+                            accessStatus: vehicle[10] || 'Access'
+                        };
+                    }
                 }
             }
             
@@ -6307,12 +8154,21 @@
                                 // Update local vehicle data for immediate UI refresh
                                 updateLocalVehicleData(vehicleInfo.plateNumber, nextAction);
                                 
+                                // Update one-time pass status if it was disabled
+                                if (result.oneTimePassUsed) {
+                                    updateLocalVehicleOneTimePass(vehicleInfo.plateNumber, 'No');
+                                }
+                                
                                 // Refresh dashboard in background
                                 loadVehicles();
                                 loadTransactionLogs();
                                 
-                                // Quick toast notification for additional feedback
-                                showToast(`${vehicleInfo.plateNumber} ${nextAction} logged successfully`, 'success');
+                                // Quick toast notification for additional feedback with one-time pass info
+                                let message = `${vehicleInfo.plateNumber} ${nextAction} logged successfully`;
+                                if (result.oneTimePassUsed) {
+                                    message += ' - One-time pass disabled';
+                                }
+                                showToast(message, 'success');
                                
                                 // setTimeout(() => {
                                 //     resetForNextScan();
@@ -6352,6 +8208,20 @@
                 // Refresh the vehicle display
                 displayVehicles();
                 updateStatistics();
+            }
+        }
+
+        function updateLocalVehicleOneTimePass(plateNumber, oneTimePassStatus) {
+            // Update the one-time pass status in local vehicle data
+            if (vehicleData && vehicleData.length > 1) {
+                for (let i = 1; i < vehicleData.length; i++) {
+                    if (vehicleData[i] && vehicleData[i][1] === plateNumber) {
+                        vehicleData[i][11] = oneTimePassStatus; // Update one-time pass status at index 11
+                        break;
+                    }
+                }
+                // Refresh the vehicle display to update the OTP column
+                displayVehicles();
             }
         }
 
@@ -6455,7 +8325,11 @@
             noResult.classList.add('d-none');
             scanData.classList.remove('d-none');
             
-            status.textContent = `✓ ${vehicleInfo.plateNumber} verified - Processing...`;
+            // Show both vehicle ID and plate number if available
+            const displayText = vehicleInfo.vehicleId ? 
+                `✓ Vehicle ${vehicleInfo.vehicleId} (${vehicleInfo.plateNumber}) verified - Processing...` :
+                `✓ ${vehicleInfo.plateNumber} verified - Processing...`;
+            status.textContent = displayText;
             
             // Keep scanner active for continuous scanning
         }
@@ -6615,11 +8489,21 @@
                     if (result.success) {
                         // Enhanced success message for restricted access
                         let successMessage = 'Transaction logged successfully!';
+                        if (result.oneTimePassUsed) {
+                            successMessage += ' One-time pass has been disabled.';
+                        }
+                        
                         if (accessStatus === 'Banned') {
                             successMessage = '🚨 BANNED VEHICLE transaction logged - Security audit trail created';
+                            if (result.oneTimePassUsed) {
+                                successMessage += ' One-time pass disabled.';
+                            }
                             showToast(successMessage, 'warning');
                         } else if (accessStatus === 'No Access' && action === 'IN') {
                             successMessage = '⚠️ NO ACCESS override logged - Supervisor review required';
+                            if (result.oneTimePassUsed) {
+                                successMessage += ' One-time pass disabled.';
+                            }
                             showToast(successMessage, 'warning');
                         } else {
                             showToast(successMessage, 'success');
@@ -6647,17 +8531,6 @@
                 .logVehicleAction(transactionData);
         }
         
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check session and initialize
-            const savedSession = sessionStorage.getItem('currentUser');
-            if (savedSession) {
-                currentUser = JSON.parse(savedSession);
-                showDashboard();
-            } else {
-                showLoginPage();
-            }
-        });
 
         // Transaction Logs Functions
         function loadTransactionLogs() {
@@ -6769,7 +8642,6 @@
                 })
                 .getRecentTransactions(50);
         }
-
     </script>
 </body>
 </html>

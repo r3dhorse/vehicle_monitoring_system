@@ -1,3 +1,4 @@
+
 /*
   Vehicle Monitoring System Web App
   Backend: Google Apps Script
@@ -24,21 +25,23 @@ function migrateAddOneTimePassColumn() {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
-    
+
     if (!vehicleSheet) {
       return "Vehicle sheet not found";
     }
-    
+
     // Check if column already exists
-    const headers = vehicleSheet.getRange(1, 1, 1, vehicleSheet.getLastColumn()).getValues()[0];
+    const headers = vehicleSheet
+      .getRange(1, 1, 1, vehicleSheet.getLastColumn())
+      .getValues()[0];
     if (headers.includes("One Time Pass")) {
       return "One Time Pass column already exists";
     }
-    
+
     // Add header in column L (12th column)
     vehicleSheet.getRange(1, 12).setValue("One Time Pass");
     vehicleSheet.getRange(1, 12).setFontWeight("bold");
-    
+
     // Get number of vehicles (rows - 1 for header)
     const lastRow = vehicleSheet.getLastRow();
     if (lastRow > 1) {
@@ -46,16 +49,84 @@ function migrateAddOneTimePassColumn() {
       const defaultValues = Array(lastRow - 1).fill(["No"]);
       vehicleSheet.getRange(2, 12, lastRow - 1, 1).setValues(defaultValues);
     }
-    
+
     // Auto-resize the new column
     vehicleSheet.autoResizeColumn(12);
-    
-    return `Successfully added One Time Pass column. Updated ${lastRow - 1} vehicles.`;
+
+    return `Successfully added One Time Pass column. Updated ${
+      lastRow - 1
+    } vehicles.`;
   } catch (error) {
     console.error("Migration error:", error);
     return "Error during migration: " + error.toString();
   }
 }
+
+// One-time migration function to convert driver IDs to driver names in vehicle sheet
+function migrateDriverIdsToNames() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+    const driverSheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!vehicleSheet || !driverSheet) {
+      return "Vehicle or Driver sheet not found";
+    }
+
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+    const driverData = driverSheet.getDataRange().getValues();
+    
+    if (vehicleData.length <= 1 || driverData.length <= 1) {
+      return "No data to migrate";
+    }
+
+    // Create driver lookup map (ID -> Name)
+    const driverMap = {};
+    for (let i = 1; i < driverData.length; i++) {
+      const driverId = driverData[i][0]; // Column A - Driver ID
+      const driverName = driverData[i][1]; // Column B - Driver Name
+      if (driverId && driverName) {
+        driverMap[driverId.toString()] = driverName;
+      }
+    }
+
+    let updatedCount = 0;
+    const updates = [];
+
+    // Check each vehicle's current driver (Column I, index 8)
+    for (let i = 1; i < vehicleData.length; i++) {
+      const currentDriver = vehicleData[i][8];
+      
+      // If current driver looks like an ID (numeric) and exists in driver map
+      if (currentDriver && /^\d+$/.test(currentDriver.toString()) && driverMap[currentDriver.toString()]) {
+        const driverName = driverMap[currentDriver.toString()];
+        updates.push({
+          row: i + 1,
+          col: 9, // Column I (1-based)
+          oldValue: currentDriver,
+          newValue: driverName
+        });
+        updatedCount++;
+      }
+    }
+
+    // Apply updates if any found
+    if (updates.length > 0) {
+      updates.forEach(update => {
+        vehicleSheet.getRange(update.row, update.col).setValue(update.newValue);
+      });
+      
+      return `Successfully migrated ${updatedCount} vehicles from driver IDs to driver names.`;
+    } else {
+      return "No driver IDs found to migrate. All vehicles already have driver names.";
+    }
+
+  } catch (error) {
+    console.error("Migration error:", error);
+    return "Error during migration: " + error.toString();
+  }
+}
+
 const VEHICLE_SHEET = "VehicleMaster";
 const DRIVER_SHEET = "DriverMaster";
 const LOG_SHEET = "InOutLogs";
@@ -1080,7 +1151,7 @@ function getVehicleListForManagement() {
       data[0].length,
       "columns"
     );
-    
+
     // Clear cache to ensure fresh data
     clearVehicleCache();
 
@@ -1092,7 +1163,28 @@ function getVehicleListForManagement() {
       return updatedData;
     }
 
-    return data;
+    // Resolve driver IDs to names for better UX
+    const resolvedData = data.map((row, index) => {
+      if (index === 0) {
+        // Keep header row as is
+        return row;
+      }
+      
+      // Clone the row to avoid modifying original data
+      const resolvedRow = [...row];
+      
+      // Resolve current driver ID (column I, index 8) to driver name
+      const currentDriverId = row[8];
+      if (currentDriverId && currentDriverId !== '') {
+        resolvedRow[8] = getDriverNameById(currentDriverId);
+      } else {
+        resolvedRow[8] = 'Unassigned';
+      }
+      
+      return resolvedRow;
+    });
+
+    return resolvedData;
   } catch (error) {
     console.error("Error getting vehicle list for management:", error);
     return [
@@ -1173,28 +1265,32 @@ function saveVehicleRecord(
       vehicleData.plateNumber.trim().toUpperCase()
     );
 
-    console.log(`SaveVehicleRecord called with vehicleIdOrIndex: ${vehicleIdOrIndex}, plateNumber: ${cleanPlateNumber}`);
+    console.log(
+      `SaveVehicleRecord called with vehicleIdOrIndex: ${vehicleIdOrIndex}, plateNumber: ${cleanPlateNumber}`
+    );
     console.log(`Total rows in sheet: ${data.length}`);
 
     // Find the actual row index by vehicle ID if updating
     let actualRowIndex = -1;
     let originalPlateNumber = null;
-    
+
     if (vehicleIdOrIndex !== -1) {
       // vehicleIdOrIndex contains the vehicle ID when updating
       const vehicleId = vehicleIdOrIndex.toString();
       console.log(`Looking for vehicle with ID: ${vehicleId}`);
-      
+
       // Find the actual row with this ID
       for (let i = 1; i < data.length; i++) {
         if (data[i][0] && data[i][0].toString() === vehicleId) {
           actualRowIndex = i;
           originalPlateNumber = data[i][1];
-          console.log(`Found vehicle ID ${vehicleId} at row ${i} with plate ${originalPlateNumber}`);
+          console.log(
+            `Found vehicle ID ${vehicleId} at row ${i} with plate ${originalPlateNumber}`
+          );
           break;
         }
       }
-      
+
       if (actualRowIndex === -1) {
         throw new Error(`Vehicle with ID ${vehicleId} not found`);
       }
@@ -1202,10 +1298,15 @@ function saveVehicleRecord(
 
     // Check if plate number already exists (excluding current vehicle)
     // Only check if it's a new vehicle or if the plate number has changed
-    if (vehicleIdOrIndex === -1 || (originalPlateNumber && originalPlateNumber !== cleanPlateNumber)) {
+    if (
+      vehicleIdOrIndex === -1 ||
+      (originalPlateNumber && originalPlateNumber !== cleanPlateNumber)
+    ) {
       for (let i = 1; i < data.length; i++) {
         if (data[i][1] === cleanPlateNumber && i !== actualRowIndex) {
-          console.log(`Duplicate found: plate ${cleanPlateNumber} at row ${i}, actualRowIndex is ${actualRowIndex}`);
+          console.log(
+            `Duplicate found: plate ${cleanPlateNumber} at row ${i}, actualRowIndex is ${actualRowIndex}`
+          );
           throw new Error("Vehicle with this plate number already exists");
         }
       }
@@ -1230,6 +1331,7 @@ function saveVehicleRecord(
         sanitizeInput(vehicleData.assignedDrivers || ""),
         vehicleData.accessStatus || "Access",
         vehicleData.oneTimePass ? "Yes" : "No", // One Time Pass
+        sanitizeInput(vehicleData.mvFile || ""), // MV File
       ];
 
       // Log audit trail before updating (for super-admin and admin only)
@@ -1261,6 +1363,7 @@ function saveVehicleRecord(
         sanitizeInput(vehicleData.assignedDrivers || ""),
         vehicleData.accessStatus || "Access",
         vehicleData.oneTimePass ? "Yes" : "No", // One Time Pass
+        sanitizeInput(vehicleData.mvFile || ""), // MV File
       ];
 
       sheet.appendRow(vehicleRow);
@@ -1401,7 +1504,7 @@ function getVehicleList(searchCriteria = {}) {
     // For large datasets, use chunked reading
     let allData = [];
     const chunkSize = 1000; // Read 1000 rows at a time
-    const header = sheet.getRange(1, 1, 1, 12).getValues()[0];
+    const header = sheet.getRange(1, 1, 1, 13).getValues()[0];
     // Keep all columns including ID
     allData.push(header);
 
@@ -1418,7 +1521,7 @@ function getVehicleList(searchCriteria = {}) {
 
       if (startRow <= lastRow) {
         const paginatedData = sheet
-          .getRange(startRow, 1, endRow - startRow + 1, 12)
+          .getRange(startRow, 1, endRow - startRow + 1, 13)
           .getValues(); // Keep all columns including ID
         allData = allData.concat(paginatedData);
       }
@@ -1438,7 +1541,7 @@ function getVehicleList(searchCriteria = {}) {
     for (let chunkStart = 2; chunkStart <= lastRow; chunkStart += chunkSize) {
       const chunkEnd = Math.min(chunkStart + chunkSize - 1, lastRow);
       const chunkData = sheet
-        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 12)
+        .getRange(chunkStart, 1, chunkEnd - chunkStart + 1, 13)
         .getValues();
 
       // Filter chunk data based on search criteria and remove ID column
@@ -1512,7 +1615,28 @@ function getVehicleList(searchCriteria = {}) {
       );
     }
 
-    return allData;
+    // Resolve driver IDs to names for better UX
+    const resolvedData = allData.map((row, index) => {
+      if (index === 0) {
+        // Keep header row as is
+        return row;
+      }
+      
+      // Clone the row to avoid modifying original data
+      const resolvedRow = [...row];
+      
+      // Resolve current driver ID (column I, index 8) to driver name
+      const currentDriverId = row[8];
+      if (currentDriverId && currentDriverId !== '') {
+        resolvedRow[8] = getDriverNameById(currentDriverId);
+      } else {
+        resolvedRow[8] = 'Unassigned';
+      }
+      
+      return resolvedRow;
+    });
+
+    return resolvedData;
   } catch (error) {
     console.error("Error getting vehicle list:", error);
     return getHeaderWithSampleData();
@@ -1657,6 +1781,11 @@ function logVehicleAction(data) {
     let accessStatus = "Access"; // Default if not found
     let actualPlateNumber = data.plateNumber;
     let actualDriverId = data.driverId;
+    
+    // Convert driver ID to name if it's still an ID (safety check)
+    if (actualDriverId && /^\d+$/.test(actualDriverId.toString())) {
+      actualDriverId = getDriverNameById(actualDriverId);
+    }
 
     // Fix corrupted data: If plateNumber looks like a vehicle ID (numeric), find the actual plate number
     if (/^\d+$/.test(data.plateNumber.toString())) {
@@ -1666,10 +1795,15 @@ function logVehicleAction(data) {
       );
 
       // Try to find vehicle by ID in column A (index 0)
+      // Handle both padded (000001) and unpadded (1) vehicle IDs
+      const searchId = data.plateNumber.toString();
+      const paddedSearchId = searchId.padStart(6, "0");
+
       for (let i = 1; i < vehicleData.length; i++) {
         if (
           vehicleData[i][0] &&
-          vehicleData[i][0].toString() === data.plateNumber.toString()
+          (vehicleData[i][0].toString() === searchId ||
+            vehicleData[i][0].toString() === paddedSearchId)
         ) {
           vehicleRow = i;
           actualPlateNumber = vehicleData[i][1]; // Get actual plate number from column B
@@ -1682,17 +1816,18 @@ function logVehicleAction(data) {
         }
       }
     } else {
-      // Normal flow: search by plate number
+      // Normal flow: search by plate number in column B
+      const searchPlate = data.plateNumber.toString().trim().toUpperCase();
+
       for (let i = 1; i < vehicleData.length; i++) {
         const sheetPlateNumber = vehicleData[i][1]; // Plate Number is in column B (index 1)
         if (
           sheetPlateNumber &&
-          sheetPlateNumber.toString().trim().toUpperCase() ===
-            data.plateNumber.toString().trim().toUpperCase()
+          sheetPlateNumber.toString().trim().toUpperCase() === searchPlate
         ) {
           vehicleRow = i;
           accessStatus = vehicleData[i][10] || "Access"; // Access Status is in column K (index 10)
-          actualPlateNumber = vehicleData[i][1]; // Ensure we use the exact plate number from the sheet
+          actualPlateNumber = vehicleData[i][1]; // Use the actual plate number from column B
           break;
         }
       }
@@ -1707,8 +1842,8 @@ function logVehicleAction(data) {
 
       if (vehicleRow !== -1) {
         // Get current driver from vehicle sheet
-        actualDriverId =
-          vehicleData[vehicleRow][8] || data.username || "Unknown";
+        const currentDriverId = vehicleData[vehicleRow][8] || data.username || "Unknown";
+        actualDriverId = getDriverNameById(currentDriverId);
         console.log("Using current driver from vehicle sheet:", actualDriverId);
       } else {
         // Fallback to username or Unknown
@@ -1722,14 +1857,16 @@ function logVehicleAction(data) {
     if (vehicleRow !== -1 && vehicleData[vehicleRow][11]) {
       oneTimePass = vehicleData[vehicleRow][11] === "Yes";
     }
-    
+
     if (data.action === "IN" && accessStatus !== "Access") {
       // Check if one-time pass is enabled
       if (!oneTimePass) {
         throw new Error(`Vehicle access denied. Status: ${accessStatus}`);
       }
       // One-time pass is enabled, allow entry but we'll disable it after successful log
-      console.log(`One-time pass detected for vehicle ${actualPlateNumber}. Allowing entry.`);
+      console.log(
+        `One-time pass detected for vehicle ${actualPlateNumber}. Allowing entry.`
+      );
     }
 
     // Validate gate access and permissions
@@ -1780,9 +1917,11 @@ function logVehicleAction(data) {
         vehicleSheet.getRange(vehicleRow + 1, 9).setValue(actualDriverId);
       }
 
-      // Disable one-time pass if it was used for entry
-      if (data.action === "IN" && oneTimePass) {
-        console.log(`Disabling one-time pass for vehicle ${actualPlateNumber}`);
+      // Disable one-time pass only when vehicle checks out
+      if (oneTimePass && data.action === "OUT") {
+        console.log(
+          `Disabling one-time pass for vehicle ${actualPlateNumber} (action: ${data.action})`
+        );
         vehicleSheet.getRange(vehicleRow + 1, 12).setValue("No"); // Column L (index 11, column 12)
       }
 
@@ -1794,10 +1933,11 @@ function logVehicleAction(data) {
       console.log("Warning: Vehicle not found in sheet, status not updated");
     }
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       accessStatus: accessStatus,
-      oneTimePassUsed: data.action === "IN" && oneTimePass
+      oneTimePassUsed:
+        oneTimePass && (data.action === "IN" || data.action === "OUT"),
     };
   } catch (error) {
     console.error("Error logging vehicle action:", error);
@@ -2017,7 +2157,7 @@ function createInitialSheets() {
     if (!vehicleSheet) {
       vehicleSheet = ss.insertSheet(VEHICLE_SHEET);
       vehicleSheet
-        .getRange(1, 1, 1, 12)
+        .getRange(1, 1, 1, 13)
         .setValues([
           [
             "ID",
@@ -2031,13 +2171,15 @@ function createInitialSheets() {
             "Current Driver",
             "Assigned Drivers",
             "Access Status",
+            "One Time Pass",
+            "MV File",
           ],
         ]);
-      vehicleSheet.getRange(1, 1, 1, 12).setFontWeight("bold");
+      vehicleSheet.getRange(1, 1, 1, 13).setFontWeight("bold");
 
       // Format the sheet
       vehicleSheet.setFrozenRows(1);
-      vehicleSheet.autoResizeColumns(1, 12);
+      vehicleSheet.autoResizeColumns(1, 13);
 
       // Add data validation for Access Status
       const accessStatusRange = vehicleSheet.getRange(2, 11, 1000, 1);
@@ -2081,53 +2223,24 @@ function createInitialSheets() {
       }
     }
 
-    // Create Driver Master sheet (enhanced)
+    // Create Driver Master sheet (simplified)
     let driverSheet = ss.getSheetByName(DRIVER_SHEET);
     if (!driverSheet) {
       driverSheet = ss.insertSheet(DRIVER_SHEET);
       driverSheet
-        .getRange(1, 1, 1, 11)
-        .setValues([
-          [
-            "ID",
-            "Driver ID",
-            "Name",
-            "License Number",
-            "Phone",
-            "Email",
-            "License Type",
-            "Department",
-            "License Expiry",
-            "Notes",
-            "Status",
-          ],
-        ]);
-      driverSheet.getRange(1, 1, 1, 11).setFontWeight("bold");
+        .getRange(1, 1, 1, 5)
+        .setValues([["ID", "Name", "License Number", "Phone", "Status"]]);
+      driverSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
       driverSheet.setFrozenRows(1);
-      driverSheet.autoResizeColumns(1, 11);
+      driverSheet.autoResizeColumns(1, 5);
 
       // Add data validation for Driver Status
-      const driverStatusRange = driverSheet.getRange(2, 11, 1000, 1);
+      const driverStatusRange = driverSheet.getRange(2, 5, 1000, 1);
       const driverStatusRule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(["Active", "Inactive", "Suspended"], true)
+        .requireValueInList(["Active", "Inactive"], true)
         .setAllowInvalid(false)
         .build();
       driverStatusRange.setDataValidation(driverStatusRule);
-
-      // Add data validation for License Type
-      const licenseTypeRange = driverSheet.getRange(2, 7, 1000, 1);
-      const licenseTypeRule = SpreadsheetApp.newDataValidation()
-        .requireValueInList(
-          ["Regular", "Commercial", "Motorcycle", "Chauffeur"],
-          true
-        )
-        .setAllowInvalid(false)
-        .build();
-      licenseTypeRange.setDataValidation(licenseTypeRule);
-
-      // Format license expiry column
-      const expiryRange = driverSheet.getRange(2, 9, 1000, 1);
-      expiryRange.setNumberFormat("yyyy-mm-dd");
     }
 
     // Create Logs sheet
@@ -2141,7 +2254,7 @@ function createInitialSheets() {
             "ID",
             "Timestamp",
             "Plate Number",
-            "Driver ID",
+            "Driver Name",
             "Action",
             "Gate",
             "Remarks",
@@ -2788,6 +2901,75 @@ function getVehicleByPlate(plateNumber) {
     };
   } catch (error) {
     console.error("Error in getVehicleByPlate:", error);
+    return {
+      found: false,
+      message: "Error looking up vehicle: " + error.toString(),
+    };
+  }
+}
+
+/**
+ * Get vehicle information by vehicle ID for QR scanner
+ * @param {string} vehicleId - Vehicle ID to lookup (handles both padded and unpadded)
+ * @returns {Object} Vehicle information object
+ */
+function getVehicleById(vehicleId) {
+  try {
+    console.log("Looking up vehicle by ID:", vehicleId);
+
+    // Sanitize input
+    const cleanVehicleId = sanitizeInput(vehicleId.toString().trim());
+    const paddedVehicleId = cleanVehicleId.padStart(6, "0");
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const vehicleSheet = ss.getSheetByName(VEHICLE_SHEET);
+
+    if (!vehicleSheet) {
+      console.log("Vehicle sheet not found");
+      return { found: false, message: "Vehicle database not available" };
+    }
+
+    const vehicleData = vehicleSheet.getDataRange().getValues();
+
+    // Search for vehicle (skip header row)
+    for (let i = 1; i < vehicleData.length; i++) {
+      const row = vehicleData[i];
+      const vehicleIdInSheet = (row[0] || "").toString().trim();
+
+      // Match both padded and unpadded IDs
+      if (
+        vehicleIdInSheet === cleanVehicleId ||
+        vehicleIdInSheet === paddedVehicleId
+      ) {
+        // Vehicle found - return details
+        const vehicleInfo = {
+          found: true,
+          vehicleId: row[0] || "",
+          plateNumber: row[1] || "",
+          makeModel: row[2] || "",
+          color: row[3] || "",
+          department: row[4] || "",
+          year: row[5] || "",
+          type: row[6] || "",
+          currentStatus: row[7] || "OUT", // Column H - Current IN/OUT status
+          currentDriver: row[8] || "",
+          assignedDrivers: row[9] || "",
+          accessStatus: row[10] || "Access", // Column K - Access Status
+        };
+
+        console.log("Vehicle found by ID:", vehicleInfo);
+        return vehicleInfo;
+      }
+    }
+
+    // Vehicle not found
+    console.log("Vehicle not found with ID:", cleanVehicleId);
+    return {
+      found: false,
+      message: `Vehicle with ID "${cleanVehicleId}" not found in database`,
+    };
+  } catch (error) {
+    console.error("Error in getVehicleById:", error);
     return {
       found: false,
       message: "Error looking up vehicle: " + error.toString(),
@@ -3508,6 +3690,394 @@ function deleteGate(gateIndex, userRole) {
   }
 }
 
+// Driver Management Functions
+
+/**
+ * Get list of all active drivers for assignment dropdowns
+ * @returns {Array} Array of driver objects with id, name, licenseNumber, and phone
+ */
+function getDriverList() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      createInitialSheets();
+      sheet = ss.getSheetByName(DRIVER_SHEET);
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      // No drivers found, return empty array
+      return [];
+    }
+
+    const drivers = [];
+
+    // Skip header row (index 0)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+
+      // Only include active drivers
+      const status = row[4] || "Active"; // Status is in column E (index 4)
+      if (status === "Active") {
+        drivers.push({
+          id: String(row[0] || ""), // ID (column A) - Convert to string
+          name: String(row[1] || ""), // Driver name (column B)
+          licenseNumber: String(row[2] || ""), // License Number (column C)
+          phone: String(row[3] || ""), // Phone (column D) - Convert to string
+        });
+      }
+    }
+
+    console.log(`Retrieved ${drivers.length} active drivers`);
+    return drivers;
+  } catch (error) {
+    console.error("Error getting driver list:", error);
+    return [];
+  }
+}
+
+/**
+ * Get list of all drivers including inactive ones (for vehicle edit dropdown)
+ * @returns {Array} Array of all driver objects with status
+ */
+function getAllDriversIncludingInactive() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      createInitialSheets();
+      sheet = ss.getSheetByName(DRIVER_SHEET);
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      // No drivers found, return empty array
+      return [];
+    }
+
+    const drivers = [];
+
+    // Skip header row (index 0)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = row[4] || "Active"; // Status is in column E (index 4)
+      
+      drivers.push({
+        id: String(row[0] || ""), // ID (column A) - Convert to string
+        name: String(row[1] || ""), // Driver name (column B)
+        licenseNumber: String(row[2] || ""), // License Number (column C)
+        phone: String(row[3] || ""), // Phone (column D) - Convert to string
+        status: status // Include status so frontend knows if inactive
+      });
+    }
+
+    console.log(`Retrieved ${drivers.length} total drivers (including inactive)`);
+    return drivers;
+  } catch (error) {
+    console.error("Error getting all drivers list:", error);
+    return [];
+  }
+}
+
+/**
+ * Get driver name by driver ID
+ * @param {string} driverId - The driver ID to lookup
+ * @returns {string} Driver name or 'Unassigned' if not found
+ */
+function getDriverNameById(driverId) {
+  if (!driverId || driverId === '') {
+    return 'Unassigned';
+  }
+  
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      return 'Unassigned';
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return 'Unassigned';
+    }
+
+    // Skip header row (index 0)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const currentDriverId = String(row[0] || ""); // ID (column A)
+      
+      if (currentDriverId === String(driverId)) {
+        return String(row[1] || "Unassigned"); // Driver name (column B)
+      }
+    }
+
+    return 'Unassigned';
+  } catch (error) {
+    console.error("Error getting driver name by ID:", error);
+    return 'Unassigned';
+  }
+}
+
+/**
+ * Get list of all drivers for management (including inactive)
+ * @returns {Array} Array of all driver objects
+ */
+function getDriverListForManagement() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      createInitialSheets();
+      sheet = ss.getSheetByName(DRIVER_SHEET);
+    }
+
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return [];
+    }
+
+    const drivers = [];
+
+    // Skip header row (index 0)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row[0]) continue; // Skip empty rows
+
+      drivers.push({
+        id: row[0] || "", // ID (column A)
+        name: String(row[1] || ""), // Driver name (column B)
+        licenseNumber: String(row[2] || ""), // License Number (column C)
+        phone: String(row[3] || ""), // Phone (column D) - Convert to string
+        status: String(row[4] || "Active"), // Status (column E)
+      });
+    }
+
+    console.log(`Retrieved ${drivers.length} total drivers`);
+    return drivers;
+  } catch (error) {
+    console.error("Error getting driver list for management:", error);
+    return [];
+  }
+}
+
+/**
+ * Generate next driver ID
+ * @returns {number} Next sequential driver ID
+ */
+function generateNextDriverId() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      return 1;
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let maxId = 0;
+
+    // Find the highest ID
+    for (let i = 1; i < data.length; i++) {
+      const id = parseInt(data[i][0]) || 0;
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+
+    return maxId + 1;
+  } catch (error) {
+    console.error("Error generating driver ID:", error);
+    return 1;
+  }
+}
+
+/**
+ * Save new driver record
+ * @param {Object} driverData - Driver data object
+ * @returns {Object} Success status and message
+ */
+function saveDriverRecord(driverData) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      createInitialSheets();
+      sheet = ss.getSheetByName(DRIVER_SHEET);
+    }
+
+    // Check if driver with same license number already exists
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][2] === driverData.licenseNumber) {
+        return {
+          success: false,
+          error: "Driver with this license number already exists",
+        };
+      }
+    }
+
+    // Generate new ID
+    const newId = generateNextDriverId();
+
+    // Add new driver
+    sheet.appendRow([
+      newId,
+      driverData.name || "",
+      driverData.licenseNumber || "",
+      driverData.phone || "",
+      driverData.status || "Active",
+    ]);
+
+    console.log(`Added new driver: ${driverData.name} (ID: ${newId})`);
+    return {
+      success: true,
+      message: "Driver added successfully",
+      id: newId,
+    };
+  } catch (error) {
+    console.error("Error saving driver:", error);
+    return {
+      success: false,
+      error: error.toString(),
+    };
+  }
+}
+
+/**
+ * Update existing driver record
+ * @param {number} driverId - Driver ID to update
+ * @param {Object} driverData - Updated driver data
+ * @returns {Object} Success status and message
+ */
+function updateDriverRecord(driverId, driverData) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      return {
+        success: false,
+        error: "Driver sheet not found",
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+
+    // Find the driver row
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == driverId) {
+        rowIndex = i;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        error: "Driver not found",
+      };
+    }
+
+    // Check if new license number conflicts with another driver
+    for (let i = 1; i < data.length; i++) {
+      if (i !== rowIndex && data[i][2] === driverData.licenseNumber) {
+        return {
+          success: false,
+          error: "Another driver with this license number already exists",
+        };
+      }
+    }
+
+    // Update the driver data
+    sheet
+      .getRange(rowIndex + 1, 1, 1, 5)
+      .setValues([
+        [
+          driverId,
+          driverData.name || "",
+          driverData.licenseNumber || "",
+          driverData.phone || "",
+          driverData.status || "Active",
+        ],
+      ]);
+
+    console.log(`Updated driver: ${driverData.name} (ID: ${driverId})`);
+    return {
+      success: true,
+      message: "Driver updated successfully",
+    };
+  } catch (error) {
+    console.error("Error updating driver:", error);
+    return {
+      success: false,
+      error: error.toString(),
+    };
+  }
+}
+
+/**
+ * Delete driver record
+ * @param {number} driverId - Driver ID to delete
+ * @returns {Object} Success status and message
+ */
+function deleteDriverRecord(driverId) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(DRIVER_SHEET);
+
+    if (!sheet) {
+      return {
+        success: false,
+        error: "Driver sheet not found",
+      };
+    }
+
+    const data = sheet.getDataRange().getValues();
+    let rowIndex = -1;
+
+    // Find the driver row
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] == driverId) {
+        rowIndex = i;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        error: "Driver not found",
+      };
+    }
+
+    // Delete the row
+    sheet.deleteRow(rowIndex + 1);
+
+    console.log(`Deleted driver with ID: ${driverId}`);
+    return {
+      success: true,
+      message: "Driver deleted successfully",
+    };
+  } catch (error) {
+    console.error("Error deleting driver:", error);
+    return {
+      success: false,
+      error: error.toString(),
+    };
+  }
+}
+
 // Diagnostic function to check user data
 function checkUserData() {
   try {
@@ -4081,6 +4651,8 @@ function createSampleData() {
           "DRV001",
           "DRV001,DRV002",
           "Access",
+          "No",
+          "MV-2022-001",
         ],
         [
           "000002",
@@ -4094,6 +4666,8 @@ function createSampleData() {
           "DRV002",
           "DRV002,DRV003",
           "Access",
+          "No",
+          "MV-2021-456",
         ],
         [
           "000003",
@@ -4107,6 +4681,8 @@ function createSampleData() {
           "DRV003",
           "DRV003,DRV004",
           "No Access",
+          "Yes",
+          "MV-2020-789",
         ],
         [
           "000004",
@@ -4120,6 +4696,8 @@ function createSampleData() {
           "DRV004",
           "DRV004,DRV005",
           "Banned",
+          "No",
+          "MV-2019-012",
         ],
         [
           "000005",
@@ -4133,6 +4711,8 @@ function createSampleData() {
           "DRV005",
           "DRV005,DRV001",
           "Access",
+          "No",
+          "MV-2023-345",
         ],
       ];
 
@@ -4178,58 +4758,6 @@ function createSampleData() {
           "Transportation",
           "2025-12-31",
           "Experienced driver with 10+ years",
-          "Active",
-        ],
-        [
-          "000002",
-          "DRV002",
-          "Jane Smith",
-          "LIC002",
-          "555-0102",
-          "jane.smith@company.com",
-          "Commercial",
-          "Logistics",
-          "2025-06-30",
-          "CDL certified",
-          "Active",
-        ],
-        [
-          "000003",
-          "DRV003",
-          "Bob Johnson",
-          "LIC003",
-          "555-0103",
-          "bob.johnson@company.com",
-          "Regular",
-          "IT Department",
-          "2024-09-15",
-          "Part-time driver",
-          "Active",
-        ],
-        [
-          "000004",
-          "DRV004",
-          "Alice Brown",
-          "LIC004",
-          "555-0104",
-          "alice.brown@company.com",
-          "Regular",
-          "HR Department",
-          "2025-03-20",
-          "Emergency backup driver",
-          "Inactive",
-        ],
-        [
-          "000005",
-          "DRV005",
-          "Charlie Davis",
-          "LIC005",
-          "555-0105",
-          "charlie.davis@company.com",
-          "Chauffeur",
-          "Executive",
-          "2026-01-15",
-          "Executive driver specialist",
           "Active",
         ],
       ];
