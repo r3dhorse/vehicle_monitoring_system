@@ -59,8 +59,9 @@
         #searchInput {
             border: 2px solid #e0e0e0;
             transition: all 0.3s ease;
-            padding-left: 2.5rem;
-            padding-right: 2.5rem;
+            padding-left: 3rem;
+            padding-right: 3rem;
+            font-size: 1rem;
         }
         
         #searchInput:focus {
@@ -76,17 +77,18 @@
         
         .search-icon {
             position: absolute;
-            left: 0.75rem;
+            left: 1rem;
             top: 50%;
             transform: translateY(-50%);
             color: #6c757d;
             z-index: 3;
             pointer-events: none;
+            font-size: 1rem;
         }
         
         .search-clear {
             position: absolute;
-            right: 0.5rem;
+            right: 0.75rem;
             top: 50%;
             transform: translateY(-50%);
             background: none;
@@ -94,11 +96,12 @@
             color: #6c757d;
             cursor: pointer;
             z-index: 3;
-            padding: 0.25rem;
+            padding: 0.375rem;
             border-radius: 3px;
             transition: all 0.2s ease;
             opacity: 0;
             visibility: hidden;
+            font-size: 1rem;
         }
         
         .search-clear:hover {
@@ -327,6 +330,24 @@
             .btn {
                 min-height: 44px;
                 padding: 0.5rem 1rem;
+            }
+            
+            /* Enhanced search input for mobile */
+            #searchInput {
+                padding-left: 3.5rem;
+                padding-right: 3.5rem;
+                min-height: 48px;
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+            
+            .search-icon {
+                left: 1.25rem;
+                font-size: 1.1rem;
+            }
+            
+            .search-clear {
+                right: 1rem;
+                padding: 0.5rem;
             }
             
             .btn-sm {
@@ -2489,12 +2510,6 @@
                                             <option value="">Select a driver...</option>
                                             <!-- Options will be loaded dynamically -->
                                         </select>
-                                        <div class="driver-info mt-2">
-                                            <i class="bi bi-exclamation-triangle text-warning me-1"></i>
-                                            <small class="text-warning fw-medium" id="driverChangeWarning">
-                                                Changing driver will automatically log a vehicle IN/OUT transaction
-                                            </small>
-                                        </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -4013,6 +4028,11 @@
                 `;
                 editDriverContainer.appendChild(editCheckboxDiv);
             });
+            
+            // Apply security role restrictions after checkboxes are populated
+            setTimeout(() => {
+                applySecurityRoleRestrictions();
+            }, 100);
         }
 
         function getSelectedDriverIds(selectElement) {
@@ -4728,10 +4748,13 @@
             showSearchLoading(true);
             
             // Build enhanced search criteria
+            const filterStatusElement = document.getElementById('filterStatus');
+            const filterAccessStatusElement = document.getElementById('filterAccessStatus');
+            
             const searchCriteria = {
                 searchTerm: parsedQuery.mainQuery,
-                statusFilter: parsedQuery.status || document.getElementById('filterStatus').value,
-                accessStatusFilter: parsedQuery.access || document.getElementById('filterAccessStatus').value,
+                statusFilter: parsedQuery.status || (filterStatusElement ? filterStatusElement.value : ''),
+                accessStatusFilter: parsedQuery.access || (filterAccessStatusElement ? filterAccessStatusElement.value : ''),
                 vehicleTypeFilter: parsedQuery.type || '',
                 exactMatch: parsedQuery.exactMatch || false,
                 departmentFilter: parsedQuery.department || '',
@@ -4753,8 +4776,7 @@
                 return;
             }
             
-            // Show filter feedback
-            showFilterFeedback(parsedQuery.mainQuery, searchCriteria.statusFilter, searchCriteria.accessStatusFilter);
+            // Filter feedback removed since filter UI elements were removed
             
             // Perform server-side search
             loadVehicles(searchCriteria).then(() => {
@@ -5035,9 +5057,6 @@
             
             // Reset to show all vehicles
             loadVehicles();
-            
-            // Show feedback
-            showFilterFeedback('', '', '');
         }
         
         function showSearchLoading(show) {
@@ -5145,9 +5164,13 @@
 
         function clearFilters() {
             // Clear all filter inputs
-            document.getElementById('searchInput').value = '';
-            document.getElementById('filterStatus').value = '';
-            document.getElementById('filterAccessStatus').value = '';
+            const searchInput = document.getElementById('searchInput');
+            const filterStatus = document.getElementById('filterStatus');
+            const filterAccessStatus = document.getElementById('filterAccessStatus');
+            
+            if (searchInput) searchInput.value = '';
+            if (filterStatus) filterStatus.value = '';
+            if (filterAccessStatus) filterAccessStatus.value = '';
             
             // Reset to default search criteria (load all vehicles)
             loadVehicles();
@@ -5159,12 +5182,14 @@
         function showFilterFeedback(searchTerm, filterStatus, filterAccessStatus) {
             // Update clear button visibility
             const clearBtn = document.querySelector('button[onclick="clearFilters()"]');
-            if (searchTerm || filterStatus || filterAccessStatus) {
-                clearBtn.style.opacity = '1';
-                clearBtn.disabled = false;
-            } else {
-                clearBtn.style.opacity = '0.5';
-                clearBtn.disabled = true;
+            if (clearBtn) {
+                if (searchTerm || filterStatus || filterAccessStatus) {
+                    clearBtn.style.opacity = '1';
+                    clearBtn.disabled = false;
+                } else {
+                    clearBtn.style.opacity = '0.5';
+                    clearBtn.disabled = true;
+                }
             }
         }
 
@@ -5192,9 +5217,13 @@
             }
             
             // Load vehicles for the new page
-            const searchTerm = document.getElementById('searchInput').value.trim();
-            const filterStatus = document.getElementById('filterStatus').value;
-            const filterAccessStatus = document.getElementById('filterAccessStatus').value;
+            const searchInput = document.getElementById('searchInput');
+            const filterStatusElement = document.getElementById('filterStatus');
+            const filterAccessStatusElement = document.getElementById('filterAccessStatus');
+            
+            const searchTerm = searchInput ? searchInput.value.trim() : '';
+            const filterStatus = filterStatusElement ? filterStatusElement.value : '';
+            const filterAccessStatus = filterAccessStatusElement ? filterAccessStatusElement.value : '';
             
             const searchCriteria = {
                 searchTerm: searchTerm,
@@ -5214,9 +5243,13 @@
             currentPage = 1; // Reset to first page when changing page size
             
             // Reload vehicles with new page size
-            const searchTerm = document.getElementById('searchInput').value.trim();
-            const filterStatus = document.getElementById('filterStatus').value;
-            const filterAccessStatus = document.getElementById('filterAccessStatus').value;
+            const searchInput = document.getElementById('searchInput');
+            const filterStatusElement = document.getElementById('filterStatus');
+            const filterAccessStatusElement = document.getElementById('filterAccessStatus');
+            
+            const searchTerm = searchInput ? searchInput.value.trim() : '';
+            const filterStatus = filterStatusElement ? filterStatusElement.value : '';
+            const filterAccessStatus = filterAccessStatusElement ? filterAccessStatusElement.value : '';
             
             const searchCriteria = {
                 searchTerm: searchTerm,
@@ -5757,9 +5790,9 @@
                             .withSuccessHandler(resolve)
                             .withFailureHandler(resolve)
                             .getVehicleList({
-                                searchTerm: document.getElementById('searchInput').value.trim(),
-                                statusFilter: document.getElementById('filterStatus').value,
-                                accessStatusFilter: document.getElementById('filterAccessStatus').value,
+                                searchTerm: document.getElementById('searchInput') ? document.getElementById('searchInput').value.trim() : '',
+                                statusFilter: document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : '',
+                                accessStatusFilter: document.getElementById('filterAccessStatus') ? document.getElementById('filterAccessStatus').value : '',
                                 departmentFilter: '',
                                 pageSize: 50,
                                 pageOffset: 0
@@ -6061,6 +6094,9 @@
             console.log('One Time Pass value (index 11):', vehicle[11]);
             document.getElementById('editOneTimePass').checked = vehicle[11] === 'Yes'; // One Time Pass is at index 11
             document.getElementById('editMVFile').value = vehicle[12] || '';    // MV File is at index 12
+            
+            // Apply role-based field restrictions for security users
+            applySecurityRoleRestrictions();
             
             // Load all drivers including inactive ones for edit modal
             google.script.run
@@ -8745,6 +8781,42 @@
                 refreshBtn.disabled = false;
                 showToast('Error refreshing data', 'danger');
             });
+        }
+        
+        // Apply role-based field restrictions for security users
+        function applySecurityRoleRestrictions() {
+            if (!currentUser || currentUser.role !== 'security') {
+                return; // No restrictions for non-security users
+            }
+            
+            // Make MV File Number read-only for security users
+            const mvFileInput = document.getElementById('editMVFile');
+            if (mvFileInput) {
+                mvFileInput.readOnly = true;
+                mvFileInput.style.backgroundColor = '#f8f9fa';
+                mvFileInput.style.cursor = 'not-allowed';
+                mvFileInput.title = '';
+            }
+            
+            // Make Authorized Drivers read-only for security users
+            const assignedDriversContainer = document.getElementById('editAssignedDriversContainer');
+            if (assignedDriversContainer) {
+                // Disable all checkboxes in the container
+                const checkboxes = assignedDriversContainer.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => {
+                    checkbox.disabled = true;
+                    checkbox.style.cursor = 'not-allowed';
+                });
+                
+                // Add visual indication
+                assignedDriversContainer.style.backgroundColor = '#f8f9fa';
+                assignedDriversContainer.style.border = '1px solid #dee2e6';
+                assignedDriversContainer.title = '';
+                
+            }
+            
+            // Current Driver remains editable for security users (no restrictions)
+            console.log('Applied security role restrictions to edit form');
         }
         
         // Add spin animation for refresh button
