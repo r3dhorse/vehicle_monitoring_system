@@ -2265,8 +2265,8 @@
                     <div class="search-container">
                         <i class="bi bi-search search-icon"></i>
                         <input type="text" class="form-control" id="searchInput" 
-                               placeholder="Search plate, model, department, driver... (Ctrl+K)" 
-                               title="Search by plate number, model/make, department, or driver"
+                               placeholder="Search by plate number... (Ctrl+K)" 
+                               title="Search by vehicle plate number only"
                                autocomplete="off"
                                onkeyup="debounceFilter()">
                         <div class="search-loading">
@@ -2302,20 +2302,16 @@
                                 <span class="shortcut-key">Escape</span>
                             </div>
                             <div class="shortcut-item">
-                                <span>Search by type</span>
-                                <span class="shortcut-key">type:car</span>
+                                <span>Partial plate search</span>
+                                <span class="shortcut-key">ABC</span>
                             </div>
                             <div class="shortcut-item">
-                                <span>Search by status</span>
-                                <span class="shortcut-key">status:in</span>
+                                <span>Exact plate match</span>
+                                <span class="shortcut-key">"ABC-123"</span>
                             </div>
                             <div class="shortcut-item">
-                                <span>Search by access</span>
-                                <span class="shortcut-key">access:banned</span>
-                            </div>
-                            <div class="shortcut-item">
-                                <span>Exact match</span>
-                                <span class="shortcut-key">"plate ABC"</span>
+                                <span>Case insensitive</span>
+                                <span class="shortcut-key">abc-123</span>
                             </div>
                         </div>
                     </div>
@@ -4586,6 +4582,13 @@
                 ...searchCriteria
             };
             
+            // If this is a plate-only search and we have full data loaded, skip backend call
+            if (defaultCriteria.plateNumberOnly && vehicleData && vehicleData.length > 1) {
+                console.log('Using client-side filtering instead of backend call');
+                showLoading(false);
+                return Promise.resolve();
+            }
+            
             console.log('Loading vehicles with criteria:', defaultCriteria);
             
             // Load vehicles and get total count for pagination
@@ -5209,11 +5212,18 @@
                 hideSearchSuggestions();
             }
             
-            // Debounced search
+            // Debounced search - faster for client-side filtering
             clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => {
+            
+            if (searchTerm.length === 0) {
+                // Clear search immediately for empty input
                 performEnhancedSearch(searchTerm);
-            }, 200); // Reduced from 300ms for better responsiveness
+            } else if (searchTerm.length >= 1) {
+                // Debounce for non-empty searches
+                filterTimeout = setTimeout(() => {
+                    performEnhancedSearch(searchTerm);
+                }, 100); // Reduced to 100ms for instant client-side filtering
+            }
         }
         
         function handleSearchKeydown(event) {
@@ -5277,33 +5287,37 @@
         }
         
         function performEnhancedSearch(searchTerm) {
-            // Parse advanced search syntax
+            // Parse simple plate number search
             const parsedQuery = parseAdvancedSearchQuery(searchTerm);
+            const plateSearchTerm = parsedQuery.mainQuery.toLowerCase();
             
             // Show loading
             showSearchLoading(true);
-            
-            // Build enhanced search criteria
-            const filterStatusElement = document.getElementById('filterStatus');
-            const filterAccessStatusElement = document.getElementById('filterAccessStatus');
-            
-            const searchCriteria = {
-                searchTerm: parsedQuery.mainQuery,
-                statusFilter: parsedQuery.status || (filterStatusElement ? filterStatusElement.value : ''),
-                accessStatusFilter: parsedQuery.access || (filterAccessStatusElement ? filterAccessStatusElement.value : ''),
-                vehicleTypeFilter: parsedQuery.type || '',
-                exactMatch: parsedQuery.exactMatch || false,
-                departmentFilter: parsedQuery.department || '',
-                pageSize: 50,
-                pageOffset: 0
-            };
             
             // Add to search history if it's a meaningful search
             if (searchTerm.length > 2) {
                 addToSearchHistory(searchTerm);
             }
             
-            // Check cache first for faster response
+            // If we have vehicle data loaded, filter client-side for better performance
+            if (vehicleData && vehicleData.length > 1 && plateSearchTerm.length > 0) {
+                performClientSidePlateFilter(plateSearchTerm, parsedQuery.exactMatch);
+                showSearchLoading(false);
+                updateSearchResultsCounter(searchTerm);
+                hideSearchSuggestions();
+                return;
+            }
+            
+            // Fallback to server-side search if no data loaded or empty search
+            const searchCriteria = {
+                searchTerm: parsedQuery.mainQuery,
+                exactMatch: parsedQuery.exactMatch || false,
+                plateNumberOnly: true,
+                pageSize: 50,
+                pageOffset: 0
+            };
+            
+            // Check cache first
             const cacheKey = JSON.stringify(searchCriteria);
             if (searchCache.has(cacheKey)) {
                 const cachedResult = searchCache.get(cacheKey);
@@ -5312,9 +5326,7 @@
                 return;
             }
             
-            // Filter feedback removed since filter UI elements were removed
-            
-            // Perform server-side search
+            // Perform server-side search only when necessary
             loadVehicles(searchCriteria).then(() => {
                 showSearchLoading(false);
                 updateSearchResultsCounter(searchTerm);
@@ -5325,17 +5337,67 @@
             });
         }
         
+        function performClientSidePlateFilter(searchTerm, exactMatch = false) {
+            if (!vehicleData || vehicleData.length <= 1) {
+                return;
+            }
+            
+            // Filter vehicles by plate number (column B - index 1)
+            const filteredVehicles = [vehicleData[0]]; // Keep header row
+            
+            for (let i = 1; i < vehicleData.length; i++) {
+                const vehicle = vehicleData[i];
+                if (!vehicle || !vehicle[1]) continue;
+                
+                const plateNumber = vehicle[1].toLowerCase();
+                
+                if (exactMatch) {
+                    // Exact match search
+                    if (plateNumber === searchTerm) {
+                        filteredVehicles.push(vehicle);
+                    }
+                } else {
+                    // Partial match search
+                    if (plateNumber.includes(searchTerm)) {
+                        filteredVehicles.push(vehicle);
+                    }
+                }
+            }
+            
+            // Store original data if not already stored
+            if (!window.originalVehicleData) {
+                window.originalVehicleData = vehicleData;
+            }
+            
+            // Update vehicleData with filtered results
+            vehicleData = filteredVehicles;
+            
+            // Update display with filtered data
+            displayVehicles();
+            
+            // Update statistics for filtered view
+            updateStatistics();
+            
+            console.log(`Client-side plate filter: ${filteredVehicles.length - 1} vehicles found for "${searchTerm}"`);
+        }
+        
+        function clearClientSideFilter() {
+            // Restore original data if it exists
+            if (window.originalVehicleData) {
+                vehicleData = window.originalVehicleData;
+                window.originalVehicleData = null;
+                displayVehicles();
+                updateStatistics();
+            }
+        }
+        
         function parseAdvancedSearchQuery(query) {
             const result = {
                 mainQuery: query,
-                status: null,
-                access: null,
-                type: null,
-                department: null,
                 exactMatch: false
             };
             
-            // Check for exact match (quoted strings)
+            // Check for exact match (quoted strings) - Only for plate numbers
             const exactMatchRegex = /"([^"]+)"/g;
             const exactMatches = [];
             let match;
@@ -5349,33 +5411,7 @@
                 return result;
             }
             
-            // Parse special syntax: type:car, status:in, access:banned, dept:IT
-            const typeMatch = query.match(/type:(\w+)/i);
-            if (typeMatch) {
-                result.type = typeMatch[1];
-                result.mainQuery = query.replace(/type:\w+/i, '').trim();
-            }
-            
-            const statusMatch = query.match(/status:(in|out)/i);
-            if (statusMatch) {
-                result.status = statusMatch[1].toUpperCase();
-                result.mainQuery = query.replace(/status:(in|out)/i, '').trim();
-            }
-            
-            const accessMatch = query.match(/access:(access|no\s*access|banned)/i);
-            if (accessMatch) {
-                const accessValue = accessMatch[1].toLowerCase().replace(/\s+/g, ' ');
-                result.access = accessValue === 'access' ? 'Access' : 
-                               accessValue === 'no access' ? 'No Access' : 'Banned';
-                result.mainQuery = query.replace(/access:(access|no\s*access|banned)/i, '').trim();
-            }
-            
-            const deptMatch = query.match(/dept?:(\w+)/i);
-            if (deptMatch) {
-                result.department = deptMatch[1];
-                result.mainQuery = query.replace(/dept?:\w+/i, '').trim();
-            }
-            
+            // No advanced syntax parsing - only plate number search
             return result;
         }
         
@@ -5443,40 +5479,16 @@
             const term = searchTerm.toLowerCase();
             const maxSuggestions = 8;
             
-            // Generate suggestions from loaded vehicle data
+            // Generate suggestions from loaded vehicle data - PLATE NUMBERS ONLY (Column B)
             for (let i = 1; i < vehicleData.length && suggestions.size < maxSuggestions; i++) {
                 const vehicle = vehicleData[i];
                 if (!vehicle) continue;
                 
-                const plateNumber = vehicle[1] || '';
-                const makeModel = vehicle[2] || '';
-                const department = vehicle[4] || '';
-                const currentDriver = vehicle[8] || '';
-                const vehicleType = vehicle[6] || '';
+                const plateNumber = vehicle[1] || ''; // Column B - Plate Number only
                 
-                // Plate number suggestions
+                // Plate number suggestions only
                 if (plateNumber.toLowerCase().includes(term)) {
                     suggestions.add({ text: plateNumber, type: 'plate' });
-                }
-                
-                // Make/Model suggestions
-                if (makeModel.toLowerCase().includes(term)) {
-                    suggestions.add({ text: makeModel, type: 'model' });
-                }
-                
-                // Department suggestions
-                if (department.toLowerCase().includes(term)) {
-                    suggestions.add({ text: department, type: 'department' });
-                }
-                
-                // Driver suggestions
-                if (currentDriver.toLowerCase().includes(term)) {
-                    suggestions.add({ text: currentDriver, type: 'driver' });
-                }
-                
-                // Vehicle type suggestions
-                if (vehicleType.toLowerCase().includes(term)) {
-                    suggestions.add({ text: vehicleType, type: 'type' });
                 }
             }
             
@@ -5492,14 +5504,8 @@
         
         function selectSuggestion(suggestionElement) {
             const suggestionText = suggestionElement.getAttribute('data-suggestion');
-            const suggestionType = suggestionElement.getAttribute('data-type');
             
             document.getElementById('searchInput').value = suggestionText;
-            
-            // Add special syntax for type suggestions
-            if (suggestionType === 'type') {
-                document.getElementById('searchInput').value = `type:${suggestionText}`;
-            }
             
             performEnhancedSearch(suggestionText);
             hideSearchSuggestions();
@@ -5591,8 +5597,13 @@
             hideSearchSuggestions();
             updateSearchResultsCounter('');
             
-            // Reset to show all vehicles
-            loadVehicles();
+            // Clear client-side filter first, fallback to server if needed
+            if (window.originalVehicleData) {
+                clearClientSideFilter();
+            } else {
+                // Only hit server if we don't have original data
+                loadVehicles();
+            }
         }
         
         function showSearchLoading(show) {
