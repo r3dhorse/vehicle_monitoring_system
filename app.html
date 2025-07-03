@@ -306,8 +306,8 @@
             }
             
             .refresh-btn {
-                bottom: 80px; /* Stack above QR scanner button on mobile */
-                left: 20px;
+                bottom: 20px; /* Same level as QR scanner */
+                left: 80px; /* Position to the right of QR scanner */
                 width: 50px;
                 height: 50px;
                 right: auto; /* Override desktop positioning */
@@ -1035,7 +1035,7 @@
             height: 60px;
             border-radius: 50%;
             box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
-            z-index: 1000;
+            z-index: 10000; /* Highest z-index to stay on top */
             transition: all 0.3s ease;
             display: none; /* Hidden by default */
         }
@@ -1053,7 +1053,7 @@
             height: 60px;
             border-radius: 50%;
             box-shadow: 0 4px 20px rgba(40, 167, 69, 0.4);
-            z-index: 1000;
+            z-index: 10000; /* Highest z-index to stay on top */
             transition: all 0.3s ease;
             display: none; /* Hidden by default */
         }
@@ -1071,7 +1071,7 @@
             height: 60px;
             border-radius: 50%;
             box-shadow: 0 4px 20px rgba(108, 117, 125, 0.4);
-            z-index: 1000;
+            z-index: 10000; /* Highest z-index to stay on top */
             transition: all 0.3s ease;
             display: none; /* Hidden by default */
             background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
@@ -1090,10 +1090,53 @@
         }
         
         /* Hide buttons when login page is active */
-        #loginPage:not(.hidden) ~ * .add-vehicle-btn,
-        #loginPage:not(.hidden) ~ * .qr-scanner-btn,
-        #loginPage:not(.hidden) ~ * .refresh-btn {
+        body:has(#loginPage:not(.hidden)) .add-vehicle-btn,
+        body:has(#loginPage:not(.hidden)) .qr-scanner-btn,
+        body:has(#loginPage:not(.hidden)) .refresh-btn {
             display: none !important;
+        }
+        
+        /* Fallback for browsers that don't support :has() */
+        .login-active .add-vehicle-btn,
+        .login-active .qr-scanner-btn,
+        .login-active .refresh-btn {
+            display: none !important;
+        }
+        
+        /* Tablet view - relocate floating buttons to the left */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .add-vehicle-btn {
+                left: 30px;
+                right: auto;
+            }
+            
+            .qr-scanner-btn {
+                left: 100px;
+                right: auto;
+            }
+            
+            .refresh-btn {
+                left: 170px;
+                right: auto;
+            }
+        }
+        
+        /* Also apply for landscape tablets */
+        @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+            .add-vehicle-btn {
+                left: 30px;
+                right: auto;
+            }
+            
+            .qr-scanner-btn {
+                left: 100px;
+                right: auto;
+            }
+            
+            .refresh-btn {
+                left: 170px;
+                right: auto;
+            }
         }
         
         .role-badge {
@@ -1538,11 +1581,13 @@
             gap: 10px;
             opacity: 0;
             transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: none; /* Prevent interference when hidden */
         }
         
         .fullscreen-mode .fullscreen-toolbar {
             opacity: 1;
             transform: translateY(-234%) translateX(0);
+            pointer-events: all; /* Enable clicks when visible */
         }
         
         .fullscreen-toolbar .btn {
@@ -1557,6 +1602,8 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s ease;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
         }
         
         .fullscreen-toolbar .btn:hover {
@@ -1595,12 +1642,19 @@
         @media (max-width: 768px) {
             .fullscreen-toolbar {
                 right: 10px;
+                pointer-events: all; /* Ensure clickability on mobile */
             }
             
             .fullscreen-toolbar .btn {
                 width: 36px;
                 height: 36px;
                 font-size: 0.9rem;
+                pointer-events: all; /* Ensure buttons are clickable */
+            }
+            
+            /* Adjust transform for better mobile positioning */
+            .fullscreen-mode .fullscreen-toolbar {
+                transform: translateY(-50%) translateX(0);
             }
         }
         
@@ -3924,11 +3978,13 @@
         function showLoginPage() {
             document.getElementById('loginPage').classList.remove('hidden');
             document.getElementById('dashboardPage').classList.add('hidden');
+            document.body.classList.add('login-active');
         }
 
         function showDashboard() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('dashboardPage').classList.remove('hidden');
+            document.body.classList.remove('login-active');
             
             // Update user role display
             const usernameElement = document.getElementById('currentUsername');
@@ -4276,6 +4332,10 @@
             const addDriverContainer = document.getElementById('vehicleAssignedDriversContainer');
             const editDriverContainer = document.getElementById('editAssignedDriversContainer');
             
+            // Preserve current driver selection before clearing
+            const currentDriverSelect = document.getElementById('editDriver');
+            const currentDriverValue = currentDriverSelect ? currentDriverSelect.value : '';
+            
             // Clear existing content
             addDriverContainer.innerHTML = '';
             editDriverContainer.innerHTML = '';
@@ -4318,6 +4378,15 @@
             // Apply security role restrictions after checkboxes are populated
             setTimeout(() => {
                 applySecurityRoleRestrictions();
+                // Restore current driver value if it was set before
+                if (currentDriverValue && currentDriverSelect) {
+                    // Trigger update to rebuild the dropdown with preserved value
+                    updateCurrentDriverDropdown();
+                    // Set the value after dropdown is updated
+                    setTimeout(() => {
+                        currentDriverSelect.value = currentDriverValue;
+                    }, 50);
+                }
             }, 100);
         }
 
@@ -5898,6 +5967,7 @@
             // Immediately hide buttons
             document.getElementById('addVehicleBtn').style.display = 'none';
             document.getElementById('qrScannerBtn').style.display = 'none';
+            document.getElementById('refreshBtn').style.display = 'none';
             
             document.getElementById('username').value = '';
             document.getElementById('password').value = '';
@@ -6533,6 +6603,7 @@
             // Use all drivers including inactive ones if available
             const driversToUse = window.tempAllDriversForEdit || availableDrivers;
             
+            console.log('updateCurrentDriverDropdown - currentValue preserved:', currentValue);
             console.log('updateCurrentDriverDropdown - authorizedDriversString:', authorizedDriversString);
             console.log('updateCurrentDriverDropdown - driversToUse:', driversToUse);
             
@@ -6569,8 +6640,17 @@
                 });
                 
                 // Restore previous selection if it's still in the list
-                if (currentValue && authorizedDriverIds.includes(currentValue)) {
+                if (currentValue) {
+                    // Try to restore the value even if it's not in the authorized list
+                    // This handles the case where the selection was made before the list was updated
                     currentDriverSelect.value = currentValue;
+                    
+                    // If the value couldn't be set (not in the list), log it
+                    if (currentDriverSelect.value !== currentValue) {
+                        console.log('updateCurrentDriverDropdown - Previous driver not in authorized list:', currentValue);
+                    } else {
+                        console.log('updateCurrentDriverDropdown - Successfully restored driver:', currentValue);
+                    }
                 }
             } else {
                 console.log('No authorized drivers for this vehicle');
@@ -6738,7 +6818,7 @@
                 // Update save button text
                 const saveBtn = document.getElementById('saveVehicleEditBtn');
                 if (saveBtn) {
-                    saveBtn.innerHTML = '<i class="bi bi-person-check me-2"></i>Update Driver Assignment';
+                    saveBtn.innerHTML = '<i class="bi bi-person-check me-2"></i>Save & Record Transaction';
                     saveBtn.className = 'btn btn-primary';
                 }
             } else {
@@ -9518,6 +9598,46 @@
             }
         `;
         document.head.appendChild(refreshStyle);
+        
+        // Mobile-specific touch event handling for fullscreen toolbar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if login page is visible on initial load
+            const loginPage = document.getElementById('loginPage');
+            if (loginPage && !loginPage.classList.contains('hidden')) {
+                document.body.classList.add('login-active');
+            }
+            
+            // Ensure fullscreen toolbar buttons work on mobile
+            const focusModeBtn = document.getElementById('focusModeBtn');
+            if (focusModeBtn) {
+                // Add touch event support
+                focusModeBtn.addEventListener('touchstart', function(e) {
+                    e.preventDefault();
+                    toggleFocusMode();
+                }, { passive: false });
+            }
+            
+            // Fix for mobile button overlap - ensure proper z-index
+            const style = document.createElement('style');
+            style.textContent = `
+                @media (max-width: 768px) {
+                    /* Ensure buttons don't overlap and have proper touch targets */
+                    .qr-scanner-btn,
+                    .refresh-btn,
+                    .add-vehicle-btn {
+                        min-width: 50px;
+                        min-height: 50px;
+                        touch-action: manipulation; /* Prevent double-tap zoom */
+                    }
+                    
+                    /* Ensure fullscreen toolbar is accessible */
+                    .fullscreen-mode .fullscreen-toolbar {
+                        z-index: 9999;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
     </script>
 </body>
 </html>

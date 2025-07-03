@@ -322,16 +322,14 @@ This is a Google Apps Script project - no build tools, npm commands, or testing 
 ### Repository Information
 - **Git Remote**: GitHub repository (r3dhorse/vehicle-monitoring-system)
 - **Main Branch**: Single branch development model
-- **Current Version**: Enhanced with security role interface improvements and comprehensive access control
-- **Recent Activity**: Security role interface enhancement and gate access control improvements
+- **Current Version**: Enhanced with driver field preservation and responsive UI improvements
+- **Recent Activity**: UI/UX improvements for driver selection and tablet layout
 - **Latest Changes**: 
-  - Fixed critical gate restriction bugs (single gate access and non-standard access status values)
-  - Added access status normalization to handle typos and variations (e.g., "full acces", "Full Access")
-  - Created helper function `fixNonStandardAccessStatus()` for data cleanup
-  - Added comprehensive test suites for gate validation scenarios
-  - Enhanced debug logging for gate access troubleshooting
-  - Updated documentation with Gate Restriction System guide and troubleshooting
-  - Previous: Enhanced security role interface, audit trail, and transaction protection
+  - Fixed driver field preservation issue in Change Current Driver modal
+  - Added tablet-specific floating button positioning (left side for 768px-1024px)
+  - Enhanced current driver dropdown to preserve selection during authorized driver updates
+  - Improved user experience by preventing unnecessary field clearing
+  - Previous: Fixed critical gate restriction bugs and added access status normalization
 - **Project Structure**: Enhanced 6-file architecture (Code.gs, app.html, Claude.md, USER_MANUAL.md, README.md, USER_STORIES.md)
 
 ## Development Guidelines
@@ -454,6 +452,18 @@ The system implements a simplified driver management structure:
   - Verify enhanced driver change warning shows comprehensive vehicle information
   - Test save button shows "Update Driver Assignment" text for security users
   - Confirm all visual enhancements are properly cleaned up for non-security roles
+- **Driver Field Preservation Testing**:
+  - Verify current driver selection is preserved when changing authorized drivers checkboxes
+  - Test restoration of driver dropdown value after authorized drivers list updates
+  - Confirm no unnecessary field clearing when fetching driver data
+  - Verify timeout handling works correctly for driver field restoration
+  - Test preservation works across different user roles and permission levels
+- **Tablet Responsive Design Testing**:
+  - Test floating buttons appear on left side for tablet viewport (768px-1024px)
+  - Verify buttons remain on right side for desktop (>1024px) and mobile (<768px)
+  - Test landscape tablet orientation button positioning (768px-1366px)
+  - Confirm proper button spacing and accessibility on tablet devices
+  - Verify no UI conflicts or overlap issues with left-positioned buttons
 
 #### Gate Restriction Bug Fixes (July 2025)
 
@@ -495,3 +505,28 @@ The system implements a simplified driver management structure:
 - Added configuration tables and examples
 - Documented standard access status values: "Access", "No Access", "Banned"
 - Added troubleshooting guide for gate restrictions
+
+#### UI/UX Improvements (January 2025)
+
+##### Driver Field Preservation Enhancement
+- **Issue**: Current driver field was being cleared when fetching authorized drivers data in Change Current Driver modal
+- **Root Cause**: `populateDriverDropdowns()` function cleared all container content without preserving current selection
+- **Solution Implemented** (app.html lines 4299-4355):
+  - Added preservation logic to save current driver selection before clearing containers
+  - Enhanced `updateCurrentDriverDropdown()` to better preserve and restore current values
+  - Added restoration logic after driver checkbox population with timeout handling
+  - Improved logging for debugging value preservation and restoration
+- **User Experience**: Prevents frustrating field clearing when users are updating authorized drivers list
+
+##### Tablet Responsive Design Enhancement  
+- **Issue**: Floating action buttons positioned on right side caused UI conflicts on tablet devices
+- **Solution Implemented** (app.html lines 1106-1140):
+  - Added tablet-specific media queries for 768px-1024px viewport
+  - Relocated floating buttons to left side for tablet view
+  - Added landscape tablet support for 768px-1366px with orientation detection
+  - Maintained right-side positioning for desktop (>1024px) and mobile (<768px)
+- **Button Positioning**:
+  - Add Vehicle Button: `left: 30px` (tablet) vs `right: 30px` (desktop/mobile)
+  - QR Scanner Button: `left: 100px` (tablet) vs `right: 100px` (desktop/mobile) 
+  - Refresh Button: `left: 170px` (tablet) vs `right: 170px` (desktop/mobile)
+- **Responsive Strategy**: Device-specific button placement for optimal accessibility
