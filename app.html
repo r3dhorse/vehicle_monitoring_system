@@ -94,6 +94,14 @@
             font-size: 1rem;
         }
         
+        .external-search-button {
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        
         .search-clear {
             position: absolute;
             right: 0.75rem;
@@ -355,6 +363,12 @@
             .search-clear {
                 right: 1rem;
                 padding: 0.5rem;
+            }
+            
+            .external-search-button {
+                height: 44px;
+                font-size: 1.1rem;
+                margin-top: 0.5rem;
             }
             
             .btn-sm {
@@ -2268,7 +2282,8 @@
                                placeholder="Search by plate number... (Ctrl+K)" 
                                title="Search by vehicle plate number only"
                                autocomplete="off"
-                               onkeyup="debounceFilter()">
+                               onkeyup="debounceFilter()"
+                               onkeydown="handleSearchKeydown(event)">
                         <div class="search-loading">
                             <div style="color: #0d6efd;">
                                 <div class="bouncing-dots size-sm">
@@ -2316,6 +2331,14 @@
                         </div>
                     </div>
                     <div class="search-results-counter" id="searchResultsCounter"></div>
+                </div>
+                <div class="col-12 col-md-1 mb-2 mb-md-0">
+                    <label class="form-label mb-1 d-none d-md-block">
+                        <small>&nbsp;</small>
+                    </label>
+                    <button type="button" class="btn btn-primary w-100 external-search-button" onclick="triggerManualSearch()" title="Search">
+                        <i class="bi bi-search me-1"></i><span class="d-md-none">Search</span>
+                    </button>
                 </div>
                 <div class="col-6 col-md-2 mb-2 mb-md-0">
                     <label class="form-label mb-1 d-none d-md-block">
@@ -5191,39 +5214,8 @@
         }
         
         function handleSearchInput(event) {
-            const searchTerm = event.target.value.trim();
-            currentSearchQuery = searchTerm;
-            
-            // Show/hide clear button
-            const clearButton = document.querySelector('.search-clear');
-            if (searchTerm.length > 0) {
-                clearButton.classList.add('show');
-            } else {
-                clearButton.classList.remove('show');
-            }
-            
-            // Show loading indicator
-            showSearchLoading(true);
-            
-            // Update suggestions if search term is long enough
-            if (searchTerm.length >= 1) {
-                showSearchSuggestions(searchTerm);
-            } else {
-                hideSearchSuggestions();
-            }
-            
-            // Debounced search - faster for client-side filtering
-            clearTimeout(filterTimeout);
-            
-            if (searchTerm.length === 0) {
-                // Clear search immediately for empty input
-                performEnhancedSearch(searchTerm);
-            } else if (searchTerm.length >= 1) {
-                // Debounce for non-empty searches
-                filterTimeout = setTimeout(() => {
-                    performEnhancedSearch(searchTerm);
-                }, 100); // Reduced to 100ms for instant client-side filtering
-            }
+            // Now just handles UI updates, actual search triggered by button click
+            handleSearchInputUI(event);
         }
         
         function handleSearchKeydown(event) {
@@ -5247,7 +5239,8 @@
                     if (highlightedSuggestionIndex >= 0 && suggestions[highlightedSuggestionIndex]) {
                         selectSuggestion(suggestions[highlightedSuggestionIndex]);
                     } else {
-                        performEnhancedSearch(event.target.value.trim());
+                        // Use the same protected search mechanism as the button
+                        triggerManualSearch();
                         hideSearchSuggestions();
                     }
                     break;
@@ -5305,7 +5298,7 @@
                 showSearchLoading(false);
                 updateSearchResultsCounter(searchTerm);
                 hideSearchSuggestions();
-                return;
+                return Promise.resolve(); // Return resolved promise for consistency
             }
             
             // Fallback to server-side search if no data loaded or empty search
@@ -5327,7 +5320,7 @@
             }
             
             // Perform server-side search only when necessary
-            loadVehicles(searchCriteria).then(() => {
+            return loadVehicles(searchCriteria).then(() => {
                 showSearchLoading(false);
                 updateSearchResultsCounter(searchTerm);
                 hideSearchSuggestions();
@@ -5505,13 +5498,20 @@
         function selectSuggestion(suggestionElement) {
             const suggestionText = suggestionElement.getAttribute('data-suggestion');
             
+            // Only populate the search input, don't trigger search
             document.getElementById('searchInput').value = suggestionText;
             
-            performEnhancedSearch(suggestionText);
+            // Hide suggestions after selection
             hideSearchSuggestions();
             
-            // Add to search history
-            addToSearchHistory(suggestionText);
+            // Update UI elements (show clear button, etc.)
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                handleSearchInputUI({ target: searchInput });
+            }
+            
+            // Focus back on the search input for user convenience
+            searchInput.focus();
         }
         
         function updateSuggestionHighlight(suggestions) {
@@ -5695,11 +5695,77 @@
             }
         }
         
-        // Legacy function for compatibility - now calls enhanced search
+        // Manual search trigger function for search button with click protection
+        let isSearchInProgress = false;
+        
+        function triggerManualSearch() {
+            // Prevent multiple concurrent searches
+            if (isSearchInProgress) {
+                console.log('Search already in progress, ignoring click');
+                return;
+            }
+            
+            const searchInput = document.getElementById('searchInput');
+            const searchButton = document.querySelector('.external-search-button');
+            
+            if (searchInput) {
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm.length > 0) {
+                    console.log('Manual search triggered for:', searchTerm);
+                    
+                    // Set search in progress and disable button
+                    isSearchInProgress = true;
+                    if (searchButton) {
+                        searchButton.disabled = true;
+                        searchButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Searching...';
+                    }
+                    
+                    // Perform search
+                    performEnhancedSearch(searchTerm).finally(() => {
+                        // Re-enable button after search completes
+                        isSearchInProgress = false;
+                        if (searchButton) {
+                            searchButton.disabled = false;
+                            searchButton.innerHTML = '<i class="bi bi-search me-1"></i><span class="d-md-none">Search</span>';
+                        }
+                    });
+                } else {
+                    // If empty, clear the search
+                    clearSearchInput();
+                }
+            }
+        }
+        
+        // Modified to only handle UI updates, NO auto-search behavior
+        function handleSearchInputUI(event) {
+            const searchTerm = event.target.value.trim();
+            currentSearchQuery = searchTerm;
+            
+            // Show/hide clear button
+            const clearButton = document.querySelector('.search-clear');
+            if (searchTerm.length > 0) {
+                clearButton.classList.add('show');
+            } else {
+                clearButton.classList.remove('show');
+                // Only clear search results when input is completely empty
+                if (searchTerm.length === 0) {
+                    performEnhancedSearch(searchTerm);
+                }
+            }
+            
+            // Update suggestions if search term is long enough (but don't trigger search)
+            if (searchTerm.length >= 1) {
+                showSearchSuggestions(searchTerm);
+            } else {
+                hideSearchSuggestions();
+            }
+        }
+        
+        // Legacy function for compatibility - now only handles UI updates
         function debounceFilter() {
             const searchInput = document.getElementById('searchInput');
             if (searchInput) {
-                handleSearchInput({ target: searchInput });
+                handleSearchInputUI({ target: searchInput });
             }
         }
 
